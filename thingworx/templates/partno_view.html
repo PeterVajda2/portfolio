@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+<script src="{% static 'all.js' %}"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.3/jspdf.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+
+    {% block title %}
+    <title>Normování | PartNo </title>
+    {% endblock %}
+
+{% endblock %}
+
+{% block body %}
+
+<div class="norm-wrapper">
+
+    <div class="searchbar">
+        <div class="partno-search">
+            <div class="fa-div">
+                  <i class="fas fa-search"></i>
+            </div>
+            <div class="form-part">
+                <form method="POST" class="norm-form" id="norm-form">{% csrf_token %}
+                    <label for="part-number"></label>
+                    <input id="norm-select" onmousemove="suggest()" onfocus="suggest()" onkeyup="updatesuggest()" onclick="suggest()" name="partno" {% if partno %} value="{{partno}}" {% endif %}>
+                    </input>
+                    <div class="table-wrapper">
+                        <table id="suggestions" class="suggestions not_displayed">
+                            {% for partno in partnos %}
+                            <tr onclick="suggestselect(this)"><td>{{partno.partnumber}} {{partno.machine|cut:"MachineThing"|cut:"KBLIB"}}</td></tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                    <input type="hidden" name="date_from" id="date_from_hidden" value="">
+                    <input type="hidden" name="date_to" id="date_to_hidden" value="">
+                    <input type="submit" class="not_displayed">
+                </form>
+            </div>
+        </div>
+        
+        <div class="date-pickers">
+            <div>
+                <input type="datetime-local" class="datefrom" id="datefrom" {% if date_from %} value="{{date_from}}" {% else %} value="{{date_90|date:'Y-m-d'}}T{{date_90|date:'H:i'}}" {% endif %}>
+            </div>  
+            <div>
+                <input type="datetime-local" class="datefrom" id="dateto" {% if date_to %} value="{{date_to}}" {% else %} value="{{date_today|date:'Y-m-d'}}T{{date_today|date:'H:i'}}" {% endif %}>
+            </div>
+            <div>
+                <i class="fa fa-paper-plane" aria-hidden="true" onclick="formsubmit()"></i>
+            </div>
+        </div>
+        
+    </div>
+
+    {% if message %}
+
+    <div class="error-message">
+        <div>
+        Part Number nemá v databázi v zadaném období žádný výskyt.
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if data %}
+    
+    <div class="norm-results" id="norm-results">
+        
+
+        <div class="norm-results-sub">
+            <div id="line"></div>
+        </div>
+
+        <div class="norm-results-sub">
+            <div id="histogram"></div>
+        </div>
+
+        <div class="norm-results-sub">
+            <div id="boxplot"></div>
+        </div>
+
+        
+        <div class="norm-results-sub">
+            <div id="spc"></div>
+        </div>
+
+        
+    </div>
+    
+    <div class="text-info">
+        <div>
+            <div class="norm-value">{{sap_apo_time|floatformat:"2"}}</div>
+            <div class="norm-name">APO Time</div>
+        </div>
+
+        <div>
+            <div class="norm-value">{{sap_tgmax_time|floatformat:"2"}}</div>
+            <div class="norm-name">TG Max Time</div>
+        </div>
+
+        <div>
+            <div class="norm-value">{{mean|floatformat:"2"}}</div>
+            <div class="norm-name">Mean Time</div>
+        </div>
+
+        <div>
+            <div class="norm-value">{{median|floatformat:"2"}}</div>
+            <div class="norm-name">Median Time</div>
+        </div>
+
+        <div>
+            <div class="norm-value">{{count}}</div>
+            <div class="norm-name">Produced pcs</div>
+        </div>
+
+        <div>
+            <div class="norm-value">{{outliers_percentage|floatformat:"1"}}%</div>
+            <div class="norm-name">Outliers %</div>
+        </div>
+
+        <div class="pdf-ico">
+            <span onclick="getPDF()" style="cursor: pointer"><i class="fas fa-file-pdf"></i></span>
+            <span onclick="getPDF()" style="cursor: pointer">Export to PDF</span>
+        </div>
+
+    </div>
+
+    
+    {% endif %}
+</div>
+
+<script>
+
+    window.onload = calcSizes();
+
+    var calc_width
+    var calc_height
+
+    function calcSizes() {
+        calc_width = document.getElementById("norm-results").offsetWidth - 1;
+        calc_height = document.getElementById("norm-results").offsetHeight - 4;
+    }
+
+</script>
+
+{% if data %}
+
+<script>
+    var Data = {
+        type: 'scatter',
+        x: {{line_x|safe}},
+        y: {{line_y|safe}},
+        mode: 'lines+markers',
+        showlegend: true,
+        name: "Prod. time",
+        line: {
+            color: 'blue',
+            width: 2
+        },
+        marker: {
+            color: 'blue',
+            size: 8,
+            symbol: 'circle'
+        }
+    }
+
+    var CL = {
+        type: 'scatter',
+        x: {{lcl_x|safe}},
+        y: {{lcl_y|safe}},
+        mode: 'lines',
+        name: 'SAP APO',
+        showlegend: true,
+        line: {
+            color: 'red',
+            width: 2,
+            dash: 'dash'
+        }
+    }
+
+    var Mean = {
+        type: 'scatter',
+        x: {{mean_x|safe}},
+        y: {{mean_y|safe}},
+        mode: 'lines',
+        name: 'Mean time',
+        showlegend: true,
+        line: {
+            color: 'green',
+            width: 2,
+            dash: 'dash'
+        }
+    }
+
+
+var histo = {
+  type: 'histogram',
+  x: {{line_x|safe}},
+  y: {{line_y|safe}},
+  name: 'Distribution',
+  orientation: 'h',
+  marker: {
+    color: 'blue',
+    line: {
+      color: 'white',
+      width: 1
+    }
+  },
+  xaxis: 'x2',
+  yaxis: 'y2'
+}
+
+var data = [Data, CL, Mean, histo]
+
+// layout
+var layout = {
+    autosize: false,
+    width: calc_width / 2,
+    height: calc_height / 2,
+    xaxis: {
+        domain: [0, 0.7], // 0 to 70% of width
+        zeroline: false
+    },
+    xaxis2: {
+        domain: [0.8, 1] // 70 to 100% of width
+    },
+    yaxis2: {
+        anchor: 'x2',
+        showticklabels: false
+    }
+}
+
+Plotly.newPlot('spc', data,layout);
+</script>
+
+<script>
+    var Data = {
+        type: 'line',
+        x: {{line_x|safe}},
+        y: {{line_y|safe}},
+        mode: 'lines+markers',
+        name: 'Data',
+        showlegend: false,
+        hoverinfo: 'all',
+        line: {
+            color: 'blue',
+            width: 2
+        },
+        marker: {
+            color: 'blue',
+            size: 8,
+            symbol: 'circle'
+        }
+    }   
+
+    var data = [Data]
+    var layout = {
+        autosize: false,
+        width: calc_width / 2,
+        height: calc_height / 2,
+    }
+
+    Plotly.newPlot('line', data, layout);
+
+</script>
+
+<script>
+
+    var x = {{line_y|safe}};
+
+    var trace = {
+        x: x,
+        type: 'histogram',
+    };
+    var data = [trace];
+
+    var layout = {
+        autosize: false,
+        width: calc_width / 2,
+        height: calc_height / 2,
+    }
+    Plotly.newPlot('histogram', data, layout);
+
+</script>
+
+<script>
+    var y0 = {{line_y|safe}};
+    var trace1 = {
+    y: y0,
+    type: 'box',
+    };
+
+    var data = [trace1];
+
+    var layout = {
+        autosize: false,
+        width: calc_width / 2,
+        height: calc_height / 2,
+    }
+    Plotly.newPlot('boxplot', data, layout);
+</script>
+
+{% endif %}
+
+<script>
+
+    var table = document.getElementById('suggestions');
+    var tr = table.getElementsByTagName('tr');
+    var input = document.getElementById('norm-select');
+
+    function updatesuggest() {
+        filter = input.value.toUpperCase();
+
+        for (i = 0; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[0];
+        if (td) {
+            txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+    }
+
+    function suggest() {
+        if (document.getElementById('suggestions').classList.contains('not_displayed')) {
+        document.getElementById('suggestions').classList.remove('not_displayed');
+        }   
+        if (document.getElementById('norm-results')) {
+        document.getElementById('norm-results').style.zIndex = "-1";
+        }
+    }
+
+    function hidesuggest() {
+        document.getElementById('suggestions').classList.add('not_displayed');
+        if (document.getElementById('norm-results')) {
+        document.getElementById('norm-results').style.zIndex = "5";
+        }
+    }
+
+    function suggestselect(row) {
+        input.value = row.getElementsByTagName('td')[0].innerText;
+        hidesuggest();
+        document.getElementById('date_from_hidden').value = document.getElementById('datefrom').value;
+        document.getElementById('date_to_hidden').value = document.getElementById('dateto').value;
+
+        
+        // document.getElementById('norm-form').submit();
+    }
+
+    document.getElementById('suggestions').addEventListener("mouseleave", function (event) {
+        hidesuggest();
+    });
+    
+    window.addEventListener('click', function (e) {
+        if (!document.getElementById('suggestions').contains(e.target) && !document.getElementById('norm-select').contains(e.target)) {
+            hidesuggest();
+        }
+    })
+
+    document.getElementById('datefrom').addEventListener("change", function (event) {
+        document.getElementById('date_from_hidden').value = document.getElementById('datefrom').value;
+    })
+
+    document.getElementById('dateto').addEventListener("change", function (event) {
+        document.getElementById('date_to_hidden').value = document.getElementById('dateto').value;
+    })
+
+    function formsubmit() {
+        document.getElementById('date_from_hidden').value = document.getElementById('datefrom').value;
+        document.getElementById('date_to_hidden').value = document.getElementById('dateto').value;
+        document.getElementById('norm-form').submit();
+    }
+
+</script>
+
+<script>
+    function getPDF(){
+
+        var HTML_Width = $(".norm-wrapper").width();
+        var HTML_Height = $(".norm-wrapper").height();
+        var top_left_margin = 15;
+        var PDF_Width = HTML_Width+(top_left_margin*2);
+        var PDF_Height = HTML_Height;
+        var canvas_image_width = HTML_Width;
+        var canvas_image_height = HTML_Height + 2 * top_left_margin;
+
+        var totalPDFPages = Math.ceil(HTML_Height/PDF_Height)-1;
+
+
+        html2canvas($(".norm-wrapper")[0],{allowTaint:true}).then(function(canvas) {
+            canvas.getContext('2d');
+            
+            console.log(canvas.height+"  "+canvas.width);
+            
+            
+            var imgData = canvas.toDataURL("image/jpeg", 1.0);
+            var pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [PDF_Height + 4*top_left_margin, PDF_Width]
+            })
+            pdf.addImage(imgData, 'JPG', top_left_margin, top_left_margin,canvas_image_width,canvas_image_height);
+            
+            
+            for (var i = 1; i <= totalPDFPages; i++) { 
+                pdf.addPage(PDF_Width, PDF_Height);
+                pdf.addImage(imgData, 'JPG', top_left_margin, -(PDF_Height*i)+(top_left_margin*4),canvas_image_width,canvas_image_height);
+            }
+            
+            pdf.save("HTML-Document.pdf");
+        });
+    };
+</script>
+{% endblock %}

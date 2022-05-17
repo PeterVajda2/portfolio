@@ -1,0 +1,52 @@
+{% extends 'reman_base.html' %}
+
+{% block content %}
+
+
+<table class="yfcorer">
+    <thead>
+        <th>CC material</th>
+        <th>Core group</th>
+        <th>COC description</th>
+        <th>Warehouse Flag</th>
+        <th>Damage 1</th>
+        <th>Damage 2</th>
+        <th>Damage 3</th>
+        <th>Damage 4</th>
+        <th>Damage 5</th>
+        <th>Change date</th>
+    </thead>
+    <tbody>
+        {% for row in yfcorer %}
+        <tr>
+            <td>{{row.cc_material.material_number}}</td>
+            <td>{{row.core_group}}</td>
+            <td>{{row.coc_description}}</td>
+            <td>{{row.warehouse_flag|floatformat:"0"}}</td>
+            <td>{{row.damage_1|default_if_none:""}}</td>
+            <td>{{row.damage_2|default_if_none:""}}</td>
+            <td>{{row.damage_3|default_if_none:""}}</td>
+            <td>{{row.damage_4|default_if_none:""}}</td>
+            <td>{{row.damage_5|default_if_none:""}}</td>
+            <td>{{row.change_date}}</td>
+        </tr>
+        {% endfor %}
+        
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    document.addEventListener('scroll', () => {
+        if (window.scrollY > 0) {
+            document.getElementsByTagName('thead')[0].style.top = '0';
+        } else {
+            document.getElementsByTagName('thead')[0].style.top = '5vh';
+        }
+    })
+
+</script>
+
+{% endblock %}

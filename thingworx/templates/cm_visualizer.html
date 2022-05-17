@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    {% load static %}
+</head>
+<body>
+    <img src='{% get_media_prefix %}{{canvas.canvas_picture_url}}' width='{{canvas.canvas_picture_width}}px' height='{{canvas.canvas_picture_height}}px'>    
+<script>
+    let url = "{% url 'get_plc_tag_value' 'plc_tag_placeholder' %}"
+    let elements = {{elements|safe}}
+    elements.forEach(element => {
+        let single_element = document.createElement('div');
+        single_element.style.top = element.from_top  + 'px';
+        single_element.style.left = element.from_left  + 'px';
+        single_element.style.width = element.width + 'px';
+        single_element.style.height = element.height + 'px';
+        single_element.style.backgroundColor = 'red';
+        single_element.style.position = 'absolute';
+        single_element.style.zIndex = 100;
+        single_element.id = element.id;
+        single_element.classList.add('plc_element');
+        document.body.appendChild(single_element);
+    })
+
+    let plc_elements = document.querySelectorAll('.plc_element');
+    
+    var intervalID = window.setInterval(update_plc_tags, 500);
+
+    function update_plc_tags() {
+        plc_elements.forEach(element => {
+            update_single_element(element);
+        })
+    }
+
+    function update_single_element(element) {
+        fetch(url.replace('plc_tag_placeholder', element.id))
+        .then(response => response.text())
+        .then(data => element.innerText = parseFloat(data).toFixed(2))
+    }
+
+</script>
+
+</body>
+</html>

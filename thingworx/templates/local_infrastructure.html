@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThingWorx infrastructure</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="twx-infrastructure-wrapper">
+        <table class="twx-infrastructure-table">
+            <thead>
+                <tr>
+                    <td>Linka</td>
+                    <td>Meskit status</td>
+                    <td>TV status</td>
+                    <td>Terminál status</td>
+                    <td>Měkký restart meskitu</td>
+                    <td>Tvrdý restart meskitu</td>
+                </tr>
+            </thead>
+
+        <tbody>
+        {% for device_set in infrastructure %}
+        <tr class="infrastructure-unit">
+            <td><a href="http://{{device_set.wifi_plug}}" target="_blank">{{device_set.machine}}</a></td>
+            <td data-meskit-ip='{{device_set.meskit_ip}}' data-purpose='meskit_status'>CHECKING</td>
+            <td></td>
+            <td></td>
+            <td data-meskit-ip='{{device_set.meskit_ip}}' data-purpose='meskit_reboot'>--</td>
+            {% if device_set.wifi_plug %}<td data-meskit-ip='{{device_set.meskit_ip}}' data-purpose='meskit_restart'>--</td>{% endif %}
+        </tr>
+        {% endfor %}
+        </tbody>
+
+        </table>
+
+    </div>
+
+</body>
+</html>
+
+
+<script>
+
+    const meskits = document.querySelectorAll('.meskit')
+    const ping_tds = document.querySelectorAll('[data-purpose="meskit_status"]')
+    const reboot_tds = document.querySelectorAll('[data-purpose="meskit_reboot"]')
+    const restart_tds = document.querySelectorAll('[data-purpose="meskit_restart"]')
+
+    function show_meskit_ping(ping_td, data = {}) {
+        if (data == 0) {
+            ping_td.innerText = "ONLINE";
+            let reboot_td = document.querySelector(`[data-purpose="meskit_reboot"][data-meskit-ip="${ping_td.dataset.meskitIp}"]`)
+            reboot_td.style.cursor = 'pointer';
+            reboot_td.innerText = 'REBOOT';
+            
+            let restart_td = document.querySelector(`[data-purpose="meskit_restart"][data-meskit-ip="${ping_td.dataset.meskitIp}"]`)
+            restart_td.style.cursor = 'pointer';
+            restart_td.innerText = 'RESTART'
+
+            
+        } else if (data != 999) {
+            ping_td.innerText = "OFFLINE";
+            let restart_td = document.querySelector(`[data-purpose="meskit_restart"][data-meskit-ip="${ping_td.dataset.meskitIp}"]`)
+            restart_td.style.cursor = 'pointer';
+            restart_td.innerText = 'RESTART'
+
+        } else {
+            ping_td.innerText = "REBOOTING";
+        }
+    }
+
+    async function get_meskit_ping(ping_td, force_offline = false) {
+        let url = "{% url 'ping_meskit' %}"
+        const response = await fetch(url, {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({'ip': ping_td.dataset.meskitIp, 'force_offline': force_offline})
+        });
+        return response.json(); // parses JSON response into native JavaScript objects
+    }
+
+    ping_tds.forEach(ping_td => {
+        get_meskit_ping(ping_td).then(data => show_meskit_ping(ping_td, data));
+    })
+
+    reboot_tds.forEach(reboot_td => {
+        reboot_td.addEventListener('click', () => {
+                if (reboot_td.innerText == 'REBOOT') {
+                    reboot_meskit(reboot_td).then(resp => {
+                        let ping_td = document.querySelector(`[data-purpose="meskit_status"][data-meskit-ip="${reboot_td.dataset.meskitIp}"]`);
+                        if (resp['success'] == false) {
+                            get_meskit_ping(ping_td, force_offline = true).then(data => show_meskit_ping(ping_td, data));;
+                        }
+                    })
+                }
+        })
+    })
+
+    restart_tds.forEach(restart_td => {
+            restart_td.addEventListener('click', () => {
+                if (restart_td.innerText == 'RESTART') {
+                    restart_meskit(restart_td)
+                }
+            })
+        })
+
+    async function reboot_meskit(reboot_td) {
+        let reboot_url = "{% url 'reboot_meskit' %}"
+        let meskit_ip = reboot_td.dataset.meskitIp;
+        let meskit_status_td = document.querySelector(`[data-meskit-ip="${meskit_ip}"][data-purpose="meskit_status"]`)
+        meskit_status_td.innerText = 'REBOOTING';
+        const reboot_result = await fetch(reboot_url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({'ip': meskit_ip})
+        })
+        return reboot_result.json();
+
+    }
+
+    async function restart_meskit(restart_td) {
+            let restart_url = "{% url 'restart_meskit' %}"
+            let meskit_ip = restart_td.dataset.meskitIp;
+            let meskit_status_td = document.querySelector(`[data-meskit-ip="${meskit_ip}"][data-purpose="meskit_status"]`)
+            meskit_status_td.innerText = 'REBOOTING';
+            const reboot_result = await fetch(restart_url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 'ip': meskit_ip })
+            })
+            return reboot_result.json();
+
+        }
+
+    setInterval(() => {
+        ping_tds.forEach(ping_td => {
+        get_meskit_ping(ping_td).then(data => show_meskit_ping(ping_td, data));
+    })}, 10000)
+
+    tds = document.querySelectorAll('td')
+    tds.forEach(td => {
+        td.addEventListener('mouseover', (e) => {
+            e.target.parentElement.style.backgroundColor = 'rgba(255,0,0,0.1)';
+        });
+        td.addEventListener('mouseout', (e) => {
+            e.target.parentElement.style.backgroundColor = 'transparent';
+        })
+    })
+
+</script>

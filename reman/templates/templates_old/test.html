@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regeneration rate report</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+
+    <style>
+        .p-table {
+            width: 97vw;
+            margin: 0 auto;
+            box-sizing: border-box;
+            border: 1px solid lightgray;
+            display: grid;
+            grid-template-columns: repeat(16, minmax(min-content, 5vw));
+        }
+
+        .p-table a {
+            cursor: pointer;
+        }
+
+        .even-column {
+            background-color: rgba(0, 0, 0, 0.05)
+        }
+
+        .p-cell {
+            text-align: left;
+            padding: 0 .2em;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .title-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 .25em;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+
+        .light-background {
+            background-color: rgba(0, 125, 255, 0.025);
+        }
+
+        .selectors {
+            width: 97vw;
+            margin: 0 auto;
+            display: flex;
+        }
+
+    
+    </style>
+
+</head>
+
+<body>
+
+    <section class="selectors">
+        <div class="selector"><input type="number" style="width: 2rem" value="7" min="1" max="12" step="1"></div>
+        <div class="selector"><input type="number" style="width: 4rem" value="2021" min="2021" step="1"></div>
+        <div class="selector"><input type="submit" style="width: 4rem" value="Vybrat"></div>
+    </section>
+
+    {% load reman_tags %}
+
+    <div class="p-table" id="table" style="display: none;">
+        <div class="title-cell odd-column" onclick="sortTable(0)"><span>CC Material</span><input id="filter0"
+                type="text" oninput='filterData(0, this.value)' data-column-index="0">
+        </div>
+        <div class="title-cell even-column" onclick="sortTable(1)">FG Material<input id="filter1" type="text"
+                oninput='filterData(1, this.value)' data-column-index="1"></div>
+        <div class="title-cell" onclick="sortTable(2)">R Material<input id="filter2" type="text"
+                oninput='filterData(2, this.value)' data-column-index="2"></div>
+        <div class="title-cell even-column" onclick="sortTable(3)">Material Plant View<input id="filter3" type="text"
+                oninput='filterData(3, this.value)' data-column-index="3"></div>
+        <div class="title-cell" onclick="sortTable(4)">RR Sorting (group)</div>
+        <div class="title-cell even-column" onclick="sortTable(5)">CC consumption</div>
+        <div class="title-cell" onclick="sortTable(6)">FG receiving</div>
+        <div class="title-cell even-column" onclick="sortTable(7)">RR Disassembly</div>
+        <div class="title-cell" onclick="sortTable(8)">RR Disassembly (group)</div>
+        <div class="title-cell even-column" onclick="sortTable(9)">FG consumption</div>
+        <div class="title-cell" onclick="sortTable(10)">R receiving</div>
+        <div class="title-cell even-column" onclick="sortTable(11)">RR Recondition</div>
+        <div class="title-cell" onclick="sortTable(12)">RR Recondition (group)</div>
+        <div class="title-cell even-column" onclick="sortTable(13)">RR Process</div>
+        <div class="title-cell" onclick="sortTable(14)">RR Process (group)</div>
+        <div class="title-cell even-column" onclick="sortTable(15)">RR External (group)</div>
+
+
+
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-1" data-row="{{forloop.counter0}}" style="height: 1.2rem">{{item.0}}</div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-2" data-row="{{forloop.counter0}}" style="height: 1.2rem">{{item.1}}</div>
+            {% endfor %}
+        </div>
+        <div style=" display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-3" data-row="{{forloop.counter0}}" style="height: 1.2rem">{{item.2}}</div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-4" data-row="{{forloop.counter0}}"
+                style="height: 1.2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                {{item.3}}</div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-5" data-row="{{forloop.counter0}}" style="height: 1.2rem">
+            {{item.4|to_percentage:"0"}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-6" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.5|default_if_none:0}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-7" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.6|default_if_none:0}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-8" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.7|default_if_none:0|to_percentage:"0"}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-9" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.8|default_if_none:0|to_percentage:"0"}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-10" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.9}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-11" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.10|default_if_none:0}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-12" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.11|default_if_none:0|to_percentage:"0"}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-13" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.12|default_if_none:0|to_percentage:"0"}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-14" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.13|default_if_none:0|to_percentage:"0"}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-15" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.14|default_if_none:0|to_percentage:"0"}}
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            {% for item in data %}
+            <div class="column-16" data-row={{forloop.counter0}} style="height: 1.2rem">
+            {{item.15|default_if_none:0|to_percentage:"0"}}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+
+</body>
+
+<script>
+
+    const range = (end, start = 0, step = 1) => {
+        function* generateRange() {
+            let x = start - step;
+            while (x < end - step) yield x += step;
+        }
+        return {
+            [Symbol.iterator]: generateRange
+        };
+    }
+    var table = document.getElementById('table');
+    var columns = [1, 2, 3, 4, 5, 9, 13, 15, 16]
+
+    
+    addSpan();
+
+    function addSpan() {
+        columns.forEach(column_number => addColumnSpan(column_number));
+        table.style.display = "grid";
+    }
+
+    function addColumnSpan(column_number) {
+        let column_cells = document.querySelectorAll(`.column-${column_number}:not(.invisible)`);
+        column_cells.forEach((cell, index) => {
+
+            if (index == 0) {
+                previous_cell = cell
+            }
+
+            else if (cell.innerHTML == previous_cell.innerHTML) {
+                previous_cell.style.height = (parseFloat(previous_cell.style.height.split('vh')[0]) + 1.2) + 'rem';
+                cell.classList.add('to-delete');
+            }
+
+            else {
+                previous_cell = cell;
+            }
+        })
+
+        column_cells.forEach((cell) => {
+            if (cell.classList.contains('to-delete')) {
+                cell.remove();
+            }
+        })
+    }
+
+
+    function removeSpan() {
+        columns.forEach(column_number => removeColumnSpan(column_number));
+        table.style.display = "grid";
+    }
+
+    function removeColumnSpan(column_number) {
+        let column_cells = document.querySelectorAll(`.column-${column_number}:not(.invisible)`);
+        column_cells.forEach((cell) => {
+
+            if (cell.style.height != '1.2rem') {
+                let multiplier = (parseInt(cell.style.height.split('rem')[0]) / 1.2) - 1;
+                var counter = parseInt(cell.dataset.row)
+                for (i = 0; i < multiplier; i++) {
+                    let new_div = document.createElement('div')
+                    new_div.classList = cell.classList;
+                    new_div.style.height = '1.2rem';
+                    new_div.dataset.row = `${counter+1}`
+                    new_div.innerHTML = cell.innerHTML;
+                    cell.after(new_div);
+                    counter += 1
+                }
+                cell.style.height = '1.2rem';
+            }
+        })
+    }
+
+    function filterData(idxOfCol, filteredValue) {
+        filteredValueUpperCase = filteredValue.toUpperCase();
+        let rows = table.getElementsByClassName(`column-${idxOfCol + 1}`);
+        var arrayOfRows = Array.from(rows);
+        removeSpan()
+        arrayOfRows.forEach((filteredDiv) => {
+            let textOfDiv = filteredDiv.innerHTML.toUpperCase();
+            if (textOfDiv.includes(filteredValueUpperCase)) {
+                filteredDiv.classList.remove("invisible");
+                let numberOfRow = filteredDiv.dataset.row;
+                //console.log(numberOfRow);
+                let rowOfFilteredDiv = document.querySelectorAll(`div[data-row='${numberOfRow}']`);
+                let arrayOfFilteredDivs = Array.from(rowOfFilteredDiv);
+                arrayOfFilteredDivs.forEach((filteredDivChildren) => {
+                    filteredDivChildren.classList.remove("invisible");
+            })
+                //console.log(filteredDiv.innerHTML, filteredValue)
+            }
+            else { filteredDiv.classList.add("invisible");
+
+                let numberOfRow = filteredDiv.dataset.row;
+                //console.log(numberOfRow)
+                let rowOfFilteredDiv = document.querySelectorAll(`div[data-row='${numberOfRow}']`);
+                //console.log(rowOfFilteredDiv)
+                let arrayOfFilteredDivs = Array.from(rowOfFilteredDiv);
+                arrayOfFilteredDivs.forEach((filteredDivChildren) => {
+                    filteredDivChildren.classList.add("invisible");
+            }) 
+            }
+        })
+
+    }
+
+    function sortTable(idxOfColsorted) {
+        removeSpan()
+        console.log('sortuju')
+        var rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        switching = true;
+
+        dir = "asc";
+
+        while (switching) {
+            switching = false;
+            valuesInColumnNeedToBeSorted = document.querySelectorAll(`.column-${idxOfColsorted + 1}`);
+            let arrayOfValuesUnsorted = Array.from(valuesInColumnNeedToBeSorted);
+            for (i = 0; i < (arrayOfValuesUnsorted.length -1); i++){
+                shouldSwitch = false;
+                x = arrayOfValuesUnsorted[i];
+                y = arrayOfValuesUnsorted[i+1];
+
+                if (dir == "asc"){
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()){
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+                else if (dir == "desc"){
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()){
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+
+            }
+            if (shouldSwitch) {
+                let new_div = document.createElement('div')
+                new_div.classList = x.classList;
+                new_div.style.height = '1.2rem';
+                new_div.dataset.row = x.dataset.row;
+                new_div.innerHTML = x.innerHTML;
+                y.after(new_div);
+                x.remove()
+                switching = true;
+                switchcount ++;
+        }   else {
+                if (switchcount == 0 && dir == "asc") {
+                dir = "desc";
+                switching = true;
+          }
+        }
+      }
+    }
+
+</script>
+
+
+</html>

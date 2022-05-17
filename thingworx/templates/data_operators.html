@@ -1,0 +1,5 @@
+{# {{data.messagetime|date:"Y-m-d"}} {{data.messagetime|time:"H:i:s"}} | {{data.messagetype1}} | {{data.messagetype2}} | {{data.message}} | {{data.description}}<br /> #}
+
+{% for line in data %}
+{{line.messagetime|date:"Y-m-d"}} {{line.messagetime|time:"H:i:s"}} | {{line.messagetype1}} | {{line.messagetype2}} | {{line.message}} | {{line.description}}<br />
+{% endfor %}

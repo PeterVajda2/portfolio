@@ -1,0 +1,14 @@
+Active machines<br />
+{% for machine in machines_active %}
+
+<a href="{% url 'machine_view' %}?machine={{machine.0}}">{{machine.0}}</a><br />
+
+{% endfor %}
+
+<br /><br />
+Inactive machines<br />
+{% for machine in machines_inactive %}
+
+<a href="{% url 'machine_view' %}?machine={{machine.0}}">{{machine.0}}</a><br />
+
+{% endfor %}

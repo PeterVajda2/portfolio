@@ -1,0 +1,1156 @@
+<head>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,800,900&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+:root {
+  --main-radius: 5px;
+  --main-padding: 5px;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+* {
+margin: 0;
+padding: 0;
+}
+
+.container {
+  display: grid;
+  height: 100vh;
+  grid-template-columns: 0.075fr 1fr 1.2fr 0.9fr 0.9fr 1.2fr 0.3fr 1fr 0.075fr;
+  grid-template-rows: 0.1fr 0.2fr 1fr 1fr 1fr 1fr 0.5fr 0.5fr 1fr 0.1fr; 
+  grid-template-areas:
+    "border_top border_top border_top border_top border_top border_top border_top border_top border_top"
+    "border_left machine_name scrolling_text scrolling_text scrolling_text status status time border_right"
+    "border_left responsible_person NOK_reasons line_status line_status line_failure oee oee border_right"
+    "border_left responsible_person NOK_reasons line_status line_status line_failure oee oee border_right"
+    "border_left line_info NOK_reasons line_status line_status line_failure rq rq border_right"
+    "border_left line_info total_production total_production total_production_order total_production_order rq rq border_right"
+    "border_left line_info total_production total_production total_production_order total_production_order dlp1 dlp1 border_right"
+    "border_left line_info dlp1_in_time dlp1_in_time loss_to_one_piece loss_to_one_piece dlp1 dlp1 border_right"
+    "border_left line_info dlp1_in_time dlp1_in_time loss_to_one_piece loss_to_one_piece dlp1 dlp1 border_right"
+    "border_bottom border_bottom border_bottom border_bottom border_bottom border_bottom border_bottom border_bottom border_bottom";
+  grid-gap: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 1em;
+  color: #004d40;
+  text-align: center;
+
+}
+
+#scrolling_text {
+  background: #AAAAAA;
+  grid-area: scrolling_text;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+.GeneratedMarquee {
+line-height:2em;
+color:#000000;
+}
+
+#dlp1_in_time {
+  background: #6fffd2;
+  grid-area: dlp1_in_time;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#machine_name {
+  background: #AAAAAA;
+  grid-area: machine_name;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#status {
+  background: #AAAAAA;
+  grid-area: status;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#time {
+  background: #AAAAAA;
+  grid-area: time;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#machine_name {
+  background: #AAAAAA;
+  grid-area: machine_name;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#responsible_person {
+  background: #AAAAAA;
+  grid-area: responsible_person;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#line_info {
+  background: #AAAAAA;
+  grid-area: line_info;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+  display: grid;
+  height: 100%;
+  grid-auto-rows: auto;
+}
+
+#line_info > div {
+  height: 100%;
+}
+
+#NOK_reasons {
+  background:#6fffd2;
+  grid-area: NOK_reasons;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#line_status {
+  background: #6fffd2;
+  grid-area: line_status;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#line_failure {
+  background: #6fffd2;
+  grid-area: line_failure;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#dlp1 {
+  background: #AAAAAA;
+  grid-area: dlp1;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#oee {
+  background: #AAAAAA;
+  grid-area: oee;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#rq {
+  background: #AAAAAA;
+  grid-area: rq;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#total_production {
+  background: #6fffd2;
+  grid-area: total_production;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#total_production_order {
+  background: #6fffd2;
+  grid-area: total_production_order;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+#loss_to_one_piece {
+  background: #6fffd2;
+  grid-area: loss_to_one_piece;
+  border-radius: var(--main-radius);
+  padding-top: var(--main-padding);
+}
+
+a {
+  text-align: center;
+  display: block;
+  font-family: inherit;
+  text-decoration: none;
+  font-weight: bold;
+  margin: 1rem;
+}
+
+.photo > img {
+  object-fit: cover;
+  width: 90%;
+  max-height: 100%;
+  border-radius: 50%;
+}
+
+.responsible_person{
+  color: rgba(0, 77, 64, 0.7)
+}
+
+.textA{
+  padding-top: 0.3em; 
+  font-size: large; 
+  color: rgba(0, 77, 64, 0.7)
+}
+
+.textB {
+  /* padding-top: 5px; */
+  font-size: x-large;
+  border-bottom: 2px solid #DDDDDD;
+}
+
+.textB:last-of-type {
+  border-bottom: none;
+}
+
+
+.textC{
+  padding-top: 5px;
+  font-size: medium;
+}
+#do_legend{
+   height:62px;
+}
+
+#do_legend{
+    width:100%;     
+}
+
+#do_legend> ul{
+    padding: 0;
+    text-align: center;
+}
+ 
+#do_legend {   
+  width:100%;
+  bottom:10%;
+}
+#do_legend li {
+    cursor: pointer;
+    margin: 4px 3px;
+    display: inline-table;
+}
+#do_legend li span {
+    position: relative;
+    padding: 3px 10px;
+    border-radius: 13px;
+    color: white;
+    z-index: 2;
+    font-size: 11px;
+}
+
+#do_legend{
+    height: 62px;
+    overflow-y: auto;
+}
+
+#do_legend2{
+   height:62px;
+}
+
+#do_legend2{
+    width:100%;     
+}
+
+#do_legend2> ul{
+    padding: 0;
+    text-align: center;
+}
+ 
+#do_legend2 {   
+  width:100%;
+  bottom:10%;
+}
+#do_legend2 li {
+    cursor: pointer;
+    margin: 4px 3px;
+    display: inline-table;
+}
+#do_legend2 li span {
+    position: relative;
+    padding: 3px 10px;
+    border-radius: 13px;
+    color: white;
+    z-index: 2;
+    font-size: 11px;
+}
+
+#do_legend2{
+    height: 62px;
+    overflow-y: auto;
+}
+.donut-area{
+    height:calc(100% - 62px)
+}
+
+.text-wrapper:not(:last-child){
+  border-bottom: 2px solid white;
+}
+
+@media only screen and (max-width: 550px) {
+  .container {
+    grid-template-columns: 1fr;
+    grid-template-rows: 0.2fr 0.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-areas:
+      "scrolling_text"
+      "machine_name"
+      "time"
+      "responsible_person"
+      "line_info"
+      "NOK_reasons"
+      "line_status"
+      "line_failure"
+      "total_production"
+      "total_production_order"
+      "loss_to_one_piece"
+      "dlp1_in_time"
+      "oee"
+      "rq"
+      "dlp1";
+
+  }
+}
+  </style>
+</head>
+<body>
+<div class="container" id = "container_background">
+  <div id="machine_name">{{machine}}</div>
+  <div id="time" style="padding-top: 0.7em;">{{time}}</div>
+  <div id="scrolling_text" style="padding-top: 0.7em;">
+    <marquee class="GeneratedMarquee" direction="left" scrollamount="20" behavior="scroll">Scrolling text...</marquee>
+  </div>
+  <div id="responsible_person">
+    <div class="responsible_person">Responsible Person</div>
+    <div class="name" style="padding-top: 20px; font-size: x-large;">Alice Holubová</div>
+    <div class="photo" style="padding-top: 20px; padding-bottom: 20px;">
+      <img src="https://img.freepik.com/fotos-kostenlos/froehliches-lockiges-geschaeftsmaedchen-das-brille-traegt_176420-206.jpg?size=626&ext=jpg">
+    </div>
+  </div>
+  <div id="line_info">
+    <div class="text-wrapper">
+      <div class="textA">Days without accident</div>
+      <div class="textB">123</div>
+    </div>
+    <div class="text-wrapper">
+      <div class="textA">Monthly OEE</div>
+      <div class="textB">{{monthly_OEE}}%</div>
+    </div>
+    <div class="text-wrapper">
+      <div class="textA">Monthly RQ</div>
+      <div class="textB">{{monthly_RQ}}%</div>
+    </div>
+    <div class="text-wrapper">
+      <div class="textA">Actual Order</div>
+      <div class="textB">{{last_ordernumber}}</div>
+    </div>
+    <div class="text-wrapper">
+      <div class="textA">Order Production</div>
+      <div class="textB">{{total_production_order}} / {{Target_order_full}}</div>
+    </div>
+      <div class="text-wrapper">
+        <div class="textA">Actual Partnumber</div>
+        <div class="textB">{{last_partnumber}}</div>
+    </div>
+    <div class="text-wrapper">
+      <div class="textA">Actual Operators</div>
+      <div class="textB">{{operators}}</div>
+  </div>
+    <div class="text-wrapper">
+        <div class="textA">Est. Shift Production (APO)</div>
+        <div class="textB">{{Estimated_total_shift_production_sap_apo}}</div>
+    </div>
+    <div class="text-wrapper">
+        <div class="textA">Est. Order Production (APO)</div>
+        <div class="textB">{{Estimated_total_order_production_sap_apo}}</div>
+    </div>
+  </div>
+  <div class="chartBox" id="NOK_reasons">
+    <div style="padding-bottom: 10px;">NOK Reasons</div>
+    <div id="do_legend2" style="height: 35%;"></div>
+    <canvas id="NOK_reasons_chart" height="200px"></canvas>
+  </div>
+  
+  <div id="status">
+    <div class = "textC" id = "actual_line_status">{{actual_line_status}}</div>
+  </div>
+  <div id="line_status">
+    <canvas id="line_status_chart" width="800" height="650"></canvas>
+  </div>
+
+  <div class="chartBox" id="line_failure">
+    <div style="padding-bottom: 10px;">Line Downtime</div>
+    <div id="do_legend" style="height: 35%;"></div>
+    <canvas id="line_failure_chart" height="200px"></canvas>
+  </div>
+  <div class="chartBox" id="dlp1">
+    <div style="padding-bottom: 10px;">DLP1</div>
+    <div>
+      <canvas id="DLP1_chart" height="200px"></canvas>
+    </div>
+  </div>
+  <div class="chartBox" id="oee">
+    <div style="padding-bottom: 10px;">OEE</div>
+    <canvas id="OEE_chart" height="200px"></canvas>
+  </div>
+  <div class="chartBox" id="rq">
+    <div style="padding-bottom: 10px;">RQ</div>
+    <canvas id="RQ_chart" height="200px"></canvas>
+  </div>
+  <div class="chartBox" id="total_production">
+    <div style="padding-bottom: 10px;">Total Shift Production</div>
+      <canvas id="Total_production_chart" height="90px"></canvas>
+  </div>
+  <div class="chartBox" id="total_production_order">
+    <div style="padding-bottom: 10px;">Total Order Production In Shift</div>
+    <canvas id="Total_production_order_chart" height="90px"></canvas>
+  </div>
+  <div class="chartBox" id="loss_to_one_piece">
+    <div style="padding-bottom: 10px;">Loss to one piece (Max 10)</div>
+    <canvas id="Loss_to_one_piece_chart" height="90px"></canvas>
+  </div>
+  <div class="chartBox" id="dlp1_in_time">
+    <div style="padding-bottom: 10px;">DLP1 in time</div>
+    <canvas id="DLP1_time_chart" height="90px"></canvas>
+  </div>
+  </div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+<script>//DLP1, RQ, OEE
+var DLP1_average_shift_real = {{DLP1_average_shift_real|safe}};
+var DLP1_average_shift_estimated = {{DLP1_average_shift_estimated|safe}};
+var container_background = document.getElementById('container_background');
+if (DLP1_average_shift_real >= DLP1_average_shift_estimated){
+  var DLP1_rest = 0
+  container_background.style.backgroundColor = 'green'
+}
+else{var DLP1_rest = DLP1_average_shift_estimated - DLP1_average_shift_real
+    container_background.style.backgroundColor = 'red'}
+
+var data = {
+  labels: [
+    "DLP1",
+    "Missing to DLP1"
+  ],
+  datasets: [
+    {
+      data: [DLP1_average_shift_real, DLP1_rest],
+      backgroundColor: [
+        "#7CFC00",
+        "#B22222"
+      ],
+      hoverBackgroundColor: [
+        "#7CFC00",
+        "#B22222"
+      ],
+      hoverBorderColor: [
+        "#32CD32",
+        "#8B0000"
+      ],
+      borderWidth: 1 ,
+      borderColor: '#ddd'
+    }]
+};
+
+var myChart = new Chart(document.getElementById('DLP1_chart'), {
+  type: 'doughnut',
+  data: data,
+  options: {
+  	responsive: true,
+    legend: {
+      display: false
+    },
+    cutoutPercentage: 50,
+    tooltips: {
+    	filter: function(item, data) {
+        var label = data.labels[item.index];
+        if (label) return item;
+      }
+    },
+  }
+});
+
+textCenter(DLP1_average_shift_real);
+function textCenter(val) {
+  Chart.pluginService.register({
+    beforeDraw: function(chart) {
+      if (chart.id == 0){
+        var width = chart.chart.width,
+            height = chart.chart.height,
+            ctx = chart.chart.ctx;
+
+        ctx.restore();
+        var fontSize = (height / 114).toFixed(2);
+        ctx.font = fontSize + "em sans-serif";
+        ctx.textBaseline = "middle";
+        
+        var text = val,
+            textX = Math.round((width - ctx.measureText(text).width) / 2),
+            textY = height / 2;
+
+        ctx.fillText(text, textX, textY);
+        ctx.save();}
+  }});
+}
+var OEE = {{OEE_shift|safe}}
+var data2 = {
+  labels: [
+    "OEE",
+    "Missing to OEE1"
+  ],
+  datasets: [
+    {
+      data: [OEE, 100-OEE],
+      backgroundColor: [
+        "#7CFC00",
+        "#B22222"
+      ],
+      hoverBackgroundColor: [
+        "#7CFC00",
+        "#B22222"
+      ],
+      hoverBorderColor: [
+        "#32CD32",
+        "#8B0000"
+      ],
+      borderWidth: 1 ,
+      borderColor: '#ddd'
+    }]
+};
+
+var myChart = new Chart(document.getElementById('OEE_chart'), {
+  type: 'doughnut',
+  data: data2,
+  options: {
+  	responsive: true,
+    legend: {
+      display: false
+    },
+    cutoutPercentage: 50,
+    tooltips: {
+    	filter: function(item, data) {
+        var label = data.labels[item.index];
+        if (label) return item;
+      }
+    },
+  }
+});
+textCenter2(OEE)
+
+function textCenter2(val) {
+  Chart.pluginService.register({
+    beforeDraw: function(chart) {
+      if (chart.id == 1){
+        var width = chart.chart.width,
+            height = chart.chart.height,
+            ctx = chart.chart.ctx;
+
+        ctx.restore();
+        var fontSize = (height / 114).toFixed(2);
+        ctx.font = fontSize + "em sans-serif";
+        ctx.textBaseline = "middle";
+        
+        var text = val + '%',
+            textX = Math.round((width - ctx.measureText(text).width) / 2),
+            textY = height / 2;
+
+        ctx.fillText(text, textX, textY);
+        ctx.save();}
+  }});
+}
+
+var RQ = {{RQ_shift|safe}}
+var data3 = {
+  labels: [
+    "RQ",
+    "Missing to RQ"
+  ],
+  datasets: [
+    {
+      data: [RQ, 100-RQ],
+      backgroundColor: [
+        "#7CFC00",
+        "#B22222"
+      ],
+      hoverBackgroundColor: [
+        "#7CFC00",
+        "#B22222"
+      ],
+      hoverBorderColor: [
+        "#32CD32",
+        "#8B0000"
+      ],
+      borderWidth: 1 ,
+      borderColor: '#ddd'
+    }]
+};
+
+var myChart = new Chart(document.getElementById('RQ_chart'), {
+  type: 'doughnut',
+  data: data3,
+  options: {
+  	responsive: true,
+    legend: {
+      display: false
+    },
+    cutoutPercentage: 50,
+    tooltips: {
+    	filter: function(item, data) {
+        var label = data.labels[item.index];
+        if (label) return item;
+      }
+    },
+  }
+});
+textCenter3(RQ)
+
+function textCenter3(val) {
+  Chart.pluginService.register({
+    beforeDraw: function(chart) {
+      if (chart.id == 2){
+        var width = chart.chart.width,
+            height = chart.chart.height,
+            ctx = chart.chart.ctx;
+
+        ctx.restore();
+        var fontSize = (height / 114).toFixed(2);
+        ctx.font = fontSize + "em sans-serif";
+        ctx.textBaseline = "middle";
+        
+        var text = val + '%',
+            textX = Math.round((width - ctx.measureText(text).width) / 2),
+            textY = height / 2;
+
+        ctx.fillText(text, textX, textY);
+        ctx.save();}
+  }});
+}
+</script>
+<script> //NOK Reasons, Line Failure
+var top_5_line_defects = {{top_5_line_defects|safe}}
+var top_5_line_defects_count = {{top_5_line_defects_count|safe}}
+var line_defects_percent = {{line_defects_percent|safe}}
+
+var configd = {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: top_5_line_defects_count,          
+            backgroundColor: [
+              "#3366CC",
+              "#DC3912",
+              "#FF9900",
+              "#109618",
+              "#990099"
+            ],
+            hoverBackgroundColor: [
+              "#3366CC",
+              "#DC3912",
+              "#FF9900",
+              "#109618",
+              "#990099"
+            ],
+            hoverBorderColor: [
+              "#000080",
+              "#000080",
+              "#000080",
+              "#000080",
+              "#000080",
+            ],
+            borderWidth: 1 ,
+            borderColor: '#ddd',
+            label: 'Top 5 line defects'
+        }],
+        labels: top_5_line_defects
+    },
+    options: {
+        responsive: true,
+        legend: {
+            display: false
+        },
+        legendCallback: function (chart) {             
+            var text = [];
+            text.push('<ul class="' + chart.id + '-legend">');
+            for (var i = 0; i < chart.data.datasets[0].data.length; i++) {
+                text.push('<li><span id="legend-' + i + '-item" style="background-color:' + chart.data.datasets[0].backgroundColor[i] + '"   onclick="updateDataset2(event, ' + '\'' + i + '\'' + ')">');
+                if (chart.data.labels[i]) {
+                    text.push(chart.data.labels[i]);
+                }
+                text.push('</span></li>');
+            }
+            text.push('</ul>');
+            return text.join("");
+        },
+        title: {
+            display: false,
+            text: 'Chart.js Doughnut Chart'
+        },
+        animation: {
+            animateScale: true,
+            animateRotate: true
+        },
+        tooltips: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+                label: function (tooltipItem, data) {
+                    let label = data.datasets[tooltipItem.datasetIndex].label + ' - ' + data.labels[tooltipItem.index];
+                    let datasetLabel = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                    return label + ': ' + datasetLabel.toLocaleString();
+                }
+            }
+        },
+    }
+};
+
+ var ctxd = document.getElementById('line_failure_chart').getContext('2d');
+    
+    window.myDoughnut2 = new Chart(ctxd, configd);
+    $("#do_legend").html(window.myDoughnut2.generateLegend());
+
+// Show/hide chart by click legend
+updateDataset2 = function (e, datasetIndex) {    
+    var index = datasetIndex;
+    var ci = e.view.myDoughnut2;
+    var meta = ci.getDatasetMeta(0);    
+    var result= (meta.data[datasetIndex].hidden == true) ? false : true;
+    if(result==true)
+    {
+        meta.data[datasetIndex].hidden = true;
+        $('#' + e.path[0].id).css("text-decoration", "line-through");
+    }else{
+        $('#' + e.path[0].id).css("text-decoration","");
+        meta.data[datasetIndex].hidden = false;
+    }
+     
+    ci.update();   
+};
+
+
+textCenter4(line_defects_percent);
+function textCenter4(val) {
+  Chart.pluginService.register({
+    beforeDraw: function(chart) {
+      if (chart.id == 3){
+        var width = chart.chart.width,
+            height = chart.chart.height,
+            ctx = chart.chart.ctx;
+
+        ctx.restore();
+        var fontSize = (height / 114).toFixed(2);
+        ctx.font = fontSize + "em sans-serif";
+        ctx.textBaseline = "middle";
+        
+        var text = val + '%',
+            textX = Math.round((width - ctx.measureText(text).width) / 2),
+            textY = height / 2;
+
+        ctx.fillText(text, textX, textY);
+        ctx.save();}
+  }});
+}
+
+var top_5_NOK_defects = {{top_5_NOK_defects|safe}}
+var top_5_NOK_defects_count = {{top_5_NOK_defects_count|safe}}
+var rejects = {{rejects|safe}}
+
+var configd = {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: top_5_NOK_defects_count,          
+            backgroundColor: [
+              "#3366CC",
+              "#DC3912",
+              "#FF9900",
+              "#109618",
+              "#990099"
+            ],
+            hoverBackgroundColor: [
+              "#3366CC",
+              "#DC3912",
+              "#FF9900",
+              "#109618",
+              "#990099"
+            ],
+            hoverBorderColor: [
+              "#000080",
+              "#000080",
+              "#000080",
+              "#000080",
+              "#000080",
+            ],
+            borderWidth: 1 ,
+            borderColor: '#ddd',
+            label: 'top_5_NOK_defects_count'
+        }],
+        labels: top_5_NOK_defects
+    },
+    options: {
+        responsive: true,
+        legend: {
+            display: false
+        },
+        legendCallback: function (chart) {             
+            var text = [];
+            text.push('<ul class="' + chart.id + '-legend">');
+            for (var i = 0; i < chart.data.datasets[0].data.length; i++) {
+                text.push('<li><span id="legend-' + i + '-item" style="background-color:' + chart.data.datasets[0].backgroundColor[i] + '"   onclick="updateDataset(event, ' + '\'' + i + '\'' + ')">');
+                if (chart.data.labels[i]) {
+                    text.push(chart.data.labels[i]);
+                }
+                text.push('</span></li>');
+            }
+            text.push('</ul>');
+            return text.join("");
+        },
+        title: {
+            display: false,
+            text: 'Chart.js Doughnut Chart'
+        },
+        animation: {
+            animateScale: true,
+            animateRotate: true
+        },
+        tooltips: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+                label: function (tooltipItem, data) {
+                    let label = data.datasets[tooltipItem.datasetIndex].label + ' - ' + data.labels[tooltipItem.index];
+                    let datasetLabel = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                    return label + ': ' + datasetLabel.toLocaleString();
+                }
+            }
+        },
+    }
+};
+
+ var ctxd = document.getElementById('NOK_reasons_chart').getContext('2d');
+    
+    window.myDoughnut = new Chart(ctxd, configd);
+    $("#do_legend2").html(window.myDoughnut.generateLegend());
+
+// Show/hide chart by click legend
+updateDataset = function (e, datasetIndex) {    
+    var index = datasetIndex;
+    var ci = e.view.myDoughnut;
+    var meta = ci.getDatasetMeta(0);    
+    var result= (meta.data[datasetIndex].hidden == true) ? false : true;
+    if(result==true)
+    {
+        meta.data[datasetIndex].hidden = true;
+        $('#' + e.path[0].id).css("text-decoration", "line-through");
+    }else{
+        $('#' + e.path[0].id).css("text-decoration","");
+        meta.data[datasetIndex].hidden = false;
+    }
+     
+    ci.update();   
+};
+
+textCenter5(rejects);
+function textCenter5(val) {
+  Chart.pluginService.register({
+    beforeDraw: function(chart) {
+      if (chart.id == 4){
+        var width = chart.chart.width,
+            height = chart.chart.height,
+            ctx = chart.chart.ctx;
+
+        ctx.restore();
+        var fontSize = (height / 114).toFixed(2);
+        ctx.font = fontSize + "em sans-serif";
+        ctx.textBaseline = "middle";
+        
+        var text = val,
+            textX = Math.round((width - ctx.measureText(text).width) / 2),
+            textY = height / 2;
+
+        ctx.fillText(text, textX, textY);
+        ctx.save();}
+  }});
+}
+</script>
+<script> //Line Status
+var actual_line_status = "{{actual_line_status|safe}}";
+var line_status = document.getElementById('actual_line_status')
+var line_status_time = document.getElementById('actual_line_status_time')
+if (actual_line_status == "Výroba"){
+  line_status.style.color = '#228B22'
+  //line_status_time.style.color = '#228B22'
+}
+else if(actual_line_status == "Přestávka") {
+  line_status.style.color = '#0000FF'
+}
+else {
+  line_status.style.color = '#FF0000'
+  //line_status_time.style.color = '#FF0000'
+}
+</script>
+<script> //Total Production
+var estimated_total_production = {{Total_shift_production_estimated|safe}}
+var total_production = {{Total_shift_production_actual|safe}}
+new Chart(document.getElementById("Total_production_chart"), {
+    type: 'horizontalBar',
+    data: {
+      labels: ["Actual", "Target"],
+      datasets: [
+        {
+          label: "Finished Pieces",
+          backgroundColor: ["#3366CC", "#DC3912"],
+          data: [total_production,estimated_total_production]
+        }
+      ]
+    },
+    options: {
+      legend: { display: false },
+      title: {
+        display: false,
+        text: 'Total Pieces',
+      },
+      scales: {
+        xAxes: [{
+          ticks: {
+            min: 0
+          }
+        }],
+        yAxes: [{
+          ticks: {
+            fontSize: 16
+          }
+        }]
+      },
+      animation: {
+          duration: 1,
+            onComplete: function() {
+              let chartInstance = this.chart,
+                  ctx = chartInstance.ctx;
+
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+
+              this.data.datasets.forEach(function(dataset, i)
+                                         {
+                let meta = chartInstance.controller.getDatasetMeta(i);
+                meta.data.forEach(function(bar, index) {
+                  let data = dataset.data[index];
+                  ctx.fillStyle = 'white';
+                  ctx.font = "25px Arial";
+                  if (bar._model.x < 125){
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(Math.round(data), bar._model.x + 40 , bar._model.y + 15);
+                  }
+                  else{
+                    ctx.fillText(Math.round(data), bar._model.x - 40 , bar._model.y + 15);
+                  }
+                });
+              });
+            }
+        }
+    },
+});
+
+var total_production_order = {{actual_total_order_production_in_shift|safe}}
+var total_production_order_estimated = {{total_production_order_estimated|safe}}
+var target_order = {{Target_order|safe}}
+new Chart(document.getElementById("Total_production_order_chart"), {
+    type: 'horizontalBar',
+    data: {
+      labels: ["Actual", "Target"],
+      datasets: [
+        {
+          backgroundColor: ["#3366CC", "#DC3912"],
+          data: [total_production_order,target_order],
+        }
+      ]
+    },
+    options: {
+      legend: { 
+        display: false,
+        labels:{
+          fontSize: 16
+        }
+      },
+      title: {
+        display: false,
+        text: 'Total Pieces',
+      },
+      scales: {
+        xAxes: [{
+          ticks: {
+            min: 0
+          }
+        }],
+        yAxes: [{
+          ticks: {
+            fontSize: 16
+          }
+        }]
+      },
+      animation: {
+          duration: 1,
+            onComplete: function() {
+              let chartInstance = this.chart,
+                  ctx = chartInstance.ctx;
+
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+
+              this.data.datasets.forEach(function(dataset, i)
+                                         {
+                let meta = chartInstance.controller.getDatasetMeta(i);
+                meta.data.forEach(function(bar, index) {
+                  let data = dataset.data[index];
+                  ctx.fillStyle = 'white';
+                  ctx.font = "25px Arial";
+                  if (bar._model.x < 125){
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(Math.round(data), bar._model.x + 40 , bar._model.y + 15);
+                  }
+                  else{
+                    ctx.fillText(Math.round(data), bar._model.x - 40 , bar._model.y + 15);
+                  }
+                });
+              });
+            }
+        }
+    },
+});
+
+</script>
+<script> // Loss to one piece
+var loss_to_one_part = {{loss_to_one_part|safe}}
+var time_intervals_loss = {{time_intervals_loss|safe}}
+new Chart(document.getElementById('Loss_to_one_piece_chart'),{
+  type: 'line',
+  data: {
+    labels: time_intervals_loss,
+    datasets: [{
+      data: loss_to_one_part,
+      label: "Loss to one part [sec]",
+      borderColor: "#3366CC",
+      fill: true
+    }]
+  },
+  options: {
+    legend:{
+      display: true,
+      labels: {
+        fontColor: '#111',
+        fontSize: 16,
+      }
+    },
+  }
+})
+</script>
+<script> //DLP1
+var dlp1_real_time_intervals = {{dlp1_real_time_intervals|safe}}
+var time_intervals_in_hours_mins = {{time_intervals|safe}}
+var dlp1_estimated_intervals = {{dlp1_estimated_intervals|safe}}
+new Chart(document.getElementById('DLP1_time_chart'),{
+  type: 'line',
+  data: {
+    labels: time_intervals_in_hours_mins,
+    datasets: [{
+      data: dlp1_real_time_intervals,
+      label: "DLP1 real",
+      borderColor: "#7CFC00",
+      fill: true
+    }, {
+      data: dlp1_estimated_intervals,
+      label: "DLP1 estimated",
+      borderColor: "#8B0000",
+      fill: true,
+    }
+  ],
+  },
+  options: {
+    legend:{
+      display: true,
+      labels: {
+        fontColor: '#111',
+        fontSize: 16,
+      }
+    },
+    scales: {
+        yAxes: [{
+          ticks: {
+            min: 0
+          }
+        }],
+      },
+  }
+})
+</script>
+<script> //Performance
+var Production_times_and_losses = {{Production_times_and_losses|safe}}
+// var labels = ["Production of OK parts", "Quality loss", "Logistics loss", "Organizational loss", "Technical loss", "Performance loss"];
+var ctx = document.getElementById('line_status_chart').getContext('2d');
+var myChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ["Production of OK parts", "Quality loss", "Performance loss", "Organization loss", "Other losses"],
+        datasets: [{
+            data: Production_times_and_losses,
+            backgroundColor: ["#3366CC", "#DC3912", "#FF9900", "#109618", "#990099"],
+            hoverBackgroundColor: [
+              "#3366CC",
+              "#DC3912",
+              "#FF9900",
+              "#109618",
+              "#990099"
+            ],
+            hoverBorderColor: [
+              "#000080",
+              "#000080",
+              "#000080",
+              "#000080",
+              "#000080",
+            ],
+            borderWidth: 1 ,
+            borderColor: '#ddd'
+        }]
+    },
+    options: {
+        title: {
+            display: false,
+            text: 'Line_status',
+            position: 'top',
+            fontSize: 16,
+            fontColor: '#111',
+            padding: 20
+        },
+        legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+                boxWidth: 20,
+                fontColor: '#111',
+                padding: 5,
+                fontSize: 16
+            }
+        },
+        tooltips: {
+            enabled: false
+        },
+        plugins: {
+            datalabels: {
+                color: '#111',
+                textAlign: 'center',
+                font: {
+                    lineHeight: 1.6
+                },
+                formatter: function(value, ctx) {
+                    return ctx.chart.data.labels[ctx.dataIndex] + '\n' + value + '%';
+                }
+            }
+        }
+    }
+});
+</script>

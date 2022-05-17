@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+<script src="https://unpkg.com/interactjs/dist/interact.min.js"></script>
+<style>
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box !important;
+}
+
+.PLC {
+  width: 30px;
+  height: 30px;
+  background: rgba(255,0,0,1);
+  left: 0;
+  top: 0;
+  z-index: 20;
+  position: absolute;
+}
+
+.element-name {
+  position: absolute;
+  top: -1em;
+  font-size: 1em;
+}
+
+.element-name-prompt {
+  width: 200px;
+  height: 50px;
+  border: 1px solid black;
+  z-index: 10;
+  position: absolute;
+  background-color: red;
+}
+
+.resize-drag {
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+  border: 1px solid lightgray;
+  max-width: calc(100vw - 2px);
+  max-height: calc(97vh - 4px);
+}
+
+.cm-builder-form {
+  background: rgba(0,0,0,0.1);
+  height: 3vh;
+}
+
+#context-menu {
+  position: fixed;
+  z-index: 10000;
+  width: 150px;
+  background: white;
+  transform: scale(0);
+  transform-origin: top left;
+  border: 1px solid lightgray;
+}
+
+#context-menu.visible {
+  transform: scale(1);
+  transition: transform 200ms ease-in-out;
+}
+
+#context-menu .item {
+  padding: 8px 10px;
+  font-size: 15px;
+  color: black;
+  cursor: pointer;
+  border-radius: inherit;
+}
+
+#context-menu .item:hover {
+  background: rgba(0,0,0,0.25);
+}
+
+</style>
+
+{% endblock %}
+
+{% block body %}
+
+<form id='form' class='cm-builder-form'>
+<input type='file'>
+
+<input type='button' id='add_element' value="Přidat element">
+<input type='submit' id='submit' value="Uložit">
+<label>URL
+  <input type='text' id='url' name="URL" placeholder="">
+</label>
+
+
+</form>
+<div id='img_container'>
+  <img id="layout" src="#" class="resize-drag">
+</div>
+
+<div id="context-menu">
+  <div class="item" id="menu_element_name" onclick="add_element_name(this)">Název</div>
+  <div class="item" id="menu_element_plc_tag" onclick="add_element_plc_tag(this)">PLC tag</div>
+  <div class="item" id="menu_element_alarm">Alarm</div>
+  <div class="item" id="menu_element_delete" onclick="remove_element(this)">Odstranit</div>
+  <div class="item" id="menu_element_add_display">Přidat displej</div>
+</div>
+
+<script>
+
+var form = document.querySelector('form');
+var blob_image;
+var user_url = document.getElementById('url');
+var img = document.querySelector('img');
+var img_container = document.querySelector('#img_container');
+var position = { x: 0, y: 0 };
+const contextMenu = document.getElementById("context-menu");
+
+function sendBlob(event) {
+    const form_data = new FormData()
+    form_data.append('picture', blob_image)
+    form_data.append('layout_x', img.dataset.x) 
+    form_data.append('layout_y', img.dataset.y)
+    form_data.append('canvas_width', img.offsetWidth)
+    form_data.append('canvas_height', img.offsetHeight)
+    form_data.append('user_url', user_url.value)
+
+    let cm_elements = document.querySelectorAll('.element')
+
+    let elements_data = []
+
+    cm_elements.forEach((element) => {
+      elements_data.push([element.id, element.dataset.plc_tag, element.dataset.x, element.dataset.y]);
+    })
+
+    form_data.append('elements', JSON.stringify(elements_data));
+
+    const url = "{% url 'cm_designer' %}"
+
+    fetch(url, {
+        method: "POST",
+        body: form_data,
+    })
+    .then(response => response.json())
+    .then(data => {console.log(data)})
+    .catch(error => {console.error(error)})
+    
+    event.preventDefault();
+}
+
+
+window.addEventListener('load', function() {
+  document.querySelector('input[type="file"]').addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+          img.onload = () => {
+              URL.revokeObjectURL(img.src);  // no longer needed, free memory
+          }
+
+          img.src = URL.createObjectURL(this.files[0]); // set src to blob url
+          img.dataset.x = 0;
+          img.dataset.y = 0;
+
+          blob_image = this.files[0];
+      }
+  });
+  document.querySelector('#add_element').addEventListener('click', function() {
+    position = { x: 0, y: 0 }
+    let new_element = document.createElement('div')
+    new_element.classList.add('PLC')
+    new_element.classList.add('draggable');
+    new_element.classList.add('element');
+    new_element.id = getRandomInt(1000000)
+    new_element.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+
+      const { clientX: mouseX, clientY: mouseY } = event;
+      contextMenu.classList.remove("visible");
+
+      contextMenu.style.top = `${mouseY}px`;
+      contextMenu.style.left = `${mouseX}px`;
+
+      setTimeout(() => {
+        contextMenu.classList.add("visible");
+        contextMenu.dataset.elementId = new_element.id;
+        document.getElementById('menu_element_plc_tag').setAttribute("title", new_element.dataset.plc_tag ? new_element.dataset.plc_tag : "");
+      });
+    })
+
+    img_container.append(new_element);
+  })
+});
+
+
+form.addEventListener('submit', sendBlob);
+
+function dragMoveListener (event) {
+    var target = event.target,
+        // keep the dragged position in the data-x/data-y attributes
+        x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx,
+        y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+    // translate the element
+    target.style.webkitTransform =
+    target.style.transform =
+      'translate(' + x + 'px, ' + y + 'px)';
+
+    // update the posiion attributes
+    x_diff = x - target.dataset.x
+    y_diff = y - target.dataset.y
+
+    target.setAttribute('data-x', x);
+    target.setAttribute('data-y', y);
+    
+    if (event.target.id == 'layout') {
+      document.querySelectorAll('.element').forEach((element) => {
+        element.style.transform = `translate(${Number(element.dataset.x) + Number(x_diff)}px, ${Number(element.dataset.y) + Number(y_diff)}px)`
+        element.setAttribute('data-x', Number(element.dataset.x) + Number(x_diff))
+        element.setAttribute('data-y', Number(element.dataset.y) + Number(y_diff))
+      })
+    }
+}
+
+
+interact('.resize-drag')
+  .resizable({
+    // resize from all edges and corners
+    edges: { left: true, right: true, bottom: true, top: true },
+
+    listeners: {
+      move (event) {
+        var target = event.target
+        var x = (parseFloat(target.getAttribute('data-x')) || 0)
+        var y = (parseFloat(target.getAttribute('data-y')) || 0)
+
+        // update the element's style
+        target.style.width = event.rect.width + 'px'
+        target.style.height = event.rect.height + 'px'
+
+        // translate when resizing from top or left edges
+        x += event.deltaRect.left
+        y += event.deltaRect.top
+
+        target.style.transform = 'translate(' + x + 'px,' + y + 'px)'
+
+        target.setAttribute('data-x', x)
+        target.setAttribute('data-y', y)
+        target.textContent = Math.round(event.rect.width) + '\u00D7' + Math.round(event.rect.height)
+      }
+    },
+    inertia: true
+  })
+  .draggable({
+    listeners: { move: window.dragMoveListener },
+    inertia: true,
+  })
+
+interact('.draggable')
+  .draggable({
+  listeners: {
+    start (event) {
+      position.x = Number(event.target.getAttribute('data-x'))
+      position.y = Number(event.target.getAttribute('data-y'))
+    },
+    
+    move (event) {
+      position.x += event.dx
+      position.y += event.dy
+
+      event.target.style.transform = `translate(${position.x}px, ${position.y}px)`
+      event.target.setAttribute('data-x', position.x)
+      event.target.setAttribute('data-y', position.y)
+    },
+  }
+})
+
+window.addEventListener("click", (e) => {
+  if (e.target.offsetParent != contextMenu) {
+    contextMenu.classList.remove("visible");
+  }
+});
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function add_element_name(item) {
+  let element_id = item.parentElement.dataset.elementId;
+  let element = document.getElementById(element_id);
+  let element_name = prompt('Enter the name of the element', element.getAttribute('name') ? element.getAttribute('name') : "");
+  if (element_name != null) {
+    element.setAttribute("name", element_name);
+    contextMenu.classList.remove("visible");
+    if (element.getElementsByTagName('p').length == 1) {
+      let element_name_anchor = element.getElementsByTagName('p')[0];
+      element_name_anchor.innerText = element_name;
+    }
+    else {
+      let element_name_anchor = document.createElement('p');
+      element.append(element_name_anchor);
+      element_name_anchor.classList.add('element-name');
+      element_name_anchor.innerText = element_name;
+    }
+  }
+}
+
+function add_element_plc_tag(item) {
+  let element_id = item.parentElement.dataset.elementId;
+  let element = document.getElementById(element_id);
+  let plc_tag = prompt('Enter the PLC tag of element', element.dataset.plc_tag ? element.dataset.plc_tag : "");
+  if (plc_tag != null) {
+    element.dataset.plc_tag = plc_tag;
+    contextMenu.classList.remove("visible");
+  }
+}
+
+function remove_element(item) {
+  let element_id = item.parentElement.dataset.elementId;
+  let element = document.getElementById(element_id);
+  let answer = confirm('Are you sure you want to delete?');
+  if (answer) {
+    element.remove();
+    contextMenu.classList.remove("visible");
+  }
+}
+
+</script>
+
+
+
+{% endblock %}

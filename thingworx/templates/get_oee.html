@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load twx_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+
+
+    {% block title %}
+    <title>OEE</title>
+    {% endblock %}
+
+{% endblock %}
+
+{% block body %}
+
+
+<div class="oee-wrapper" id="oee-wrapper">
+
+    <div>
+        <h3>Vyberte linky</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; margin-bottom: 1em">
+            {% for line in lines %}
+                <div style="display: flex; align-items: center" id="lines">
+                    <label style="font-size: 0.9em"><input type="checkbox" value="{{line.0}}" name="{{line.1}}" id="{{line.1}}">{{line.1}}</label>
+                </div>
+            {% endfor %}
+                <div onclick="unclick_all_lines()" style="font-size: 0.9em">-vše-</div>
+                <div onclick="click_all_lines()" style="font-size: 0.9em">+vše+</div>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr">
+        <div>
+            <h3>Vyberte datumy</h3>
+                <div style="display: flex; justify-content: space-around">
+                    <div style="font-size: 0.9em">od <input type="date" name="start-date" id="start-date" required></div>
+                    <div style="font-size: 0.9em">do <input type="date" name="end-date" id="end-date" required></div>
+                </div>
+        </div>
+
+        <div>
+            <h3>Vyberte směny</h3>
+            <div style="display: flex; justify-content: space-around; align-items: center">
+                <div style="display: flex; align-items: center" class="shifts"><label style="font-size: 0.9em"><input value="Morning" type="checkbox">Ranní</label></div>
+                <div style="display: flex; align-items: center" class="shifts"><label style="font-size: 0.9em"><input value="Afternoon" type="checkbox">Odpolední</label></div>
+                <div style="display: flex; align-items: center" class="shifts"><label style="font-size: 0.9em"><input value="Night" type="checkbox">Noční</label></div>
+            </div>
+        </div>
+    </div>
+    
+    <input type="button" value="Odeslat" style="width: 100%; height: 2em; margin: 1em 0" onclick="get_oee()">
+
+    <table style="width: 100%; font-size: 0.9em; padding: 0 1em" onclick="doit('xlsx')" id="data-table" class="not_displayed highlight-rows">
+        <thead>
+            <tr>
+                <th>Linka</th>
+                <th>Datum</th>
+                <th>Směna</th>
+                <th>Zakázka</th>
+                <th>TgMax (s)</th>
+                <th>Kusy</th>
+                <th>Směnový OEE</th>
+                <th>Denní OEE</th>
+                <th>Celkový OEE</th>
+            </tr>
+        </thead>
+
+        <tbody id="table_body">
+
+        </tbody>
+    </table>
+
+</div>
+
+<script>
+
+var table = document.getElementById("table_body")
+var production_time = 0
+var number_of_shifts = 0
+var wrapper = document.getElementById('oee-wrapper')
+var finished_lines
+var lines = new Set()
+var shifts = new Set()
+const line_checkboxes = document.querySelectorAll('#lines input[type="checkbox"]')
+const shift_checkboxes = document.querySelectorAll('.shifts input[type="checkbox"]')
+var all_lines = {{lines|get_tuples_0|safe}}
+
+function get_oee() {
+
+    if (!document.getElementById('start-date').value || !document.getElementById('end-date').value) {
+        window.alert("Zadejte rozsah datumů pro výpočet OEE");
+        return false;
+    }
+
+    if (document.querySelectorAll('#lines input[type="checkbox"]:checked').length == 0) {
+        window.alert("Vyberte alespoň jednu linku");
+        return false;
+    }
+
+    if (document.querySelectorAll('.shifts input[type="checkbox"]:checked').length == 0) {
+        window.alert("Vyberte alespoň jednu směnu");
+        return false;
+    }
+
+    document.getElementsByTagName("table")[0].classList.remove("not_displayed")
+
+    let start_date = new Date(document.getElementById('start-date').value)
+    let end_date = new Date(document.getElementById('end-date').value)
+
+    let dates = []
+
+    production_time = 0
+    number_of_shifts = 0
+    
+    for (dt = start_date; dt <= end_date; dt.setDate(dt.getDate() + 1)) {
+        dates.push(new Date(dt).toISOString().slice(0,10));
+    }
+
+finished_lines = 0
+
+document.querySelectorAll('tbody > tr').forEach(el => el.remove());
+if (document.getElementById('overal-oee-div')) {document.getElementById('overal-oee-div').remove()};
+
+var data = {
+    'lines': lines,
+    'dates': dates,
+    'shifts': shifts,
+}
+
+for (let z = 0; z < data['lines'].size; z++) {
+
+    let req = new XMLHttpRequest()
+    req.onreadystatechange = function() {
+        if (req.readyState == 4 && req.status == 200) {
+            let output_data = JSON.parse(req.responseText);
+            
+            let machines = Object.keys(output_data);
+            machines.pop()
+            machines.pop()
+
+            production_time += output_data['line_time_sum'];
+            number_of_shifts += output_data['line_number_of_shifts'];
+
+            for (let i = 0; i < machines.length; i++) {
+
+                let dates = Object.keys(output_data[machines[i]]);
+                    dates.pop()
+
+                    for (let j = 0; j < dates.length; j++) {
+
+                        let shifts = Object.keys(output_data[machines[i]][dates[j]])
+                        shifts.pop()
+
+                        for (let k = 0; k < shifts.length; k++) {
+
+                            let production_orders = Object.keys(output_data[machines[i]][dates[j]][shifts[k]])
+                            production_orders.pop()
+
+                            for (let l = 0; l < production_orders.length; l++) {
+            
+                                let new_row = document.createElement("tr")
+
+                                let line_td = document.createElement("td")
+                                line_td.innerText = machines[i].replace("KBLIB",'').replace("MachineThing",'')
+                                let date_td = document.createElement("td")
+                                date_td.innerText = dates[j]
+                                let shift_td = document.createElement("td")
+                                shift_td.innerText = shifts[k]
+                                let order_td = document.createElement("td")
+                                order_td.innerText = production_orders[l]
+                                let tgmax_td = document.createElement("td")
+                                tgmax_td.innerText = output_data[machines[i]][dates[j]][shifts[k]][production_orders[l]]['tgmax']
+                                pieces_td = document.createElement("td")
+                                pieces_td.innerText = output_data[machines[i]][dates[j]][shifts[k]][production_orders[l]]['pieces']
+
+                                let empty_td = document.createElement("td");
+                                empty_td.colSpan = 3;
+
+                                new_row.append(line_td)
+                                new_row.append(date_td)
+                                new_row.append(shift_td)
+                                new_row.append(order_td)
+                                new_row.append(tgmax_td)
+                                new_row.append(pieces_td)
+                                new_row.append(empty_td)
+                                table.append(new_row)
+                            }
+
+                        let new_row = document.createElement("tr");
+                        var oee_td = document.createElement("td")
+                        oee_td.style.textAlign = 'right';
+                        oee_td.innerText = output_data[machines[i]][dates[j]][shifts[k]]['oee'].toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2}); 
+                        for (let i = 0; i < 6; i++) {
+                            let empty_td = document.createElement("td");
+                            new_row.append(empty_td);
+                        }
+                        new_row.append(oee_td);
+                        if (!output_data[machines[i]][dates[j]][shifts[k]]['oee'] == 0) {
+                            table.append(new_row);
+                        }
+                    }
+
+                    let daily_oee = output_data[machines[i]][dates[j]]['oee'];
+                    let new_row = document.createElement("tr");
+                    let daily_oee_td = document.createElement("td");
+                    daily_oee_td.style.textAlign = 'right';
+                    daily_oee_td.innerText = daily_oee.toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2})
+
+                    for (let i = 0; i < 7; i++) {
+                            let empty_td = document.createElement("td");
+                            new_row.append(empty_td);
+                        }
+
+                    new_row.append(daily_oee_td);
+                    table.append(new_row);
+
+                    }
+
+                let line_oee = output_data[machines[i]]['oee'];
+                let new_row = document.createElement("tr");
+                let line_oee_td = document.createElement("td");
+                line_oee_td.style.textAlign = 'right';
+                line_oee_td.innerText = line_oee.toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2}); 
+
+                for (let i = 0; i < 8; i++) {
+                            let empty_td = document.createElement("td");
+                            new_row.append(empty_td);
+                        }
+
+                new_row.append(line_oee_td);
+                if (line_oee) {table.append(new_row)};
+            }
+            finished_lines += 1
+            if (finished_lines == data.lines.size) {
+                add_overal_oee()
+            }
+        }
+    }
+
+    url = '{% url "get_oee_ajax" %}'
+
+    req.open("POST", url, true)
+    req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+    req.send("line=" + JSON.stringify(Array.from(data.lines)[z]) + "&dates=" + JSON.stringify(data.dates) + "&shifts="  + JSON.stringify(Array.from(data.shifts)))
+    }
+}
+
+function add_overal_oee() {
+    let overal_oee_div = document.createElement("div");
+    overal_oee_div.style.textAlign = "center";
+    overal_oee_div.style.padding = "1em 1em";
+    overal_oee_div.style.fontSize = "2em";
+    overal_oee_div.id = "overal-oee-div";
+    let overal_oee = production_time / (number_of_shifts * 8 * 3600)
+    overal_oee_div.innerText = overal_oee.toLocaleString(undefined,{style: 'percent', minimumFractionDigits:2});
+    document.getElementsByTagName("table")[0].before(overal_oee_div);
+    }
+
+
+</script>
+
+<!-- <script>
+    // function doit(type, fn, dl) {
+    //     var elt = document.getElementById('data-table');
+    //     var wb = XLSX.utils.table_to_book(elt, {sheet:"OEE"});
+    //     return dl ?
+    //         XLSX.write(wb, {bookType:type, bookSST:true, type: 'base64'}) :
+    //         XLSX.writeFile(wb, fn || ('SheetJSTableExport.' + (type || 'xlsx')));
+    // }
+</script> -->
+
+<script>
+    function unclick_all_lines(e) {
+        document.querySelectorAll('#lines input[type="checkbox"]').forEach(e => e.checked = false);
+        lines.clear();
+    }
+
+    function click_all_lines(e) {
+        document.querySelectorAll('#lines input[type="checkbox"]').forEach(e => e.checked = true);
+        all_lines.forEach(item => lines.add(item));
+    }
+
+    function add_line_to_list(e) {
+        if (lines.has(e.target.value)) {
+            lines.delete(e.target.value)
+        } else {
+            lines.add(e.target.value)
+        }
+    }
+
+    function add_shift_to_list(e) {
+        if (shifts.has(e.target.value)) {
+            shifts.delete(e.target.value)
+        } else {
+            shifts.add(e.target.value)
+        }
+    }
+
+    shift_checkboxes.forEach(
+            function(checkbox) {
+                checkbox.addEventListener("click", add_shift_to_list, false);
+            }
+        )
+
+    line_checkboxes.forEach(
+            function(checkbox) {
+                checkbox.addEventListener("click", add_line_to_list, false);
+            }
+        )
+</script>
+
+{% endblock %}

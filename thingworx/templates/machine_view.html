@@ -1,0 +1,59 @@
+<table>
+    <thead>
+        <th>
+            SAP APO
+        </th>
+        <th>
+            Time
+        </th>
+        <th>
+            Machine
+        </th>
+        <th>
+            PartNo
+        </th>
+        <th>
+            SerialNo
+        </th>
+        <th>
+            OrderNo
+        </th>
+        <th>
+            # Parts
+        </th>
+        <th>
+            Creation time
+        </th>
+    </thead>
+    <tbody>
+        {% for line in data %}
+        <tr>
+            <td>
+                {{line.sapapotime}}
+            </td>
+            <td>
+                {{line.production_time|floatformat:"0"}}
+            </td>
+            <td>
+                {{line.machine}}
+            </td>
+            <td>
+                {{line.partnumber}}
+            </td>
+            <td>
+                {{line.serialnumber}}
+            </td>
+            <td>
+                {{line.ordernumber}}
+            </td>
+            <td>
+                {{line.numberofparts}}
+            </td>
+            <td>
+                {{line.creationtime}}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+

@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="shift-screen-wrapper">
+
+    <div class="shift-screen-header">
+
+        <div class="machine-section">
+            <select id="machine_selection">
+                {% for line in lines %}
+                <option value="{{line.0}}">{{line.1}}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+
+        <div class="time-overview-section">
+           <div id="time-carousel"></div>
+           <div id="breaks-container"></div>
+                <div class="break-in-carousel" id="break-type-1"></div>
+                <div class="break-in-carousel" id="break-type-2"></div>
+           <div id="worktime-container"></div>
+           <div id="downtime-container"></div>
+        </div>
+
+
+        <div class="time-section" id="clock">
+            11:30
+        </div>
+
+    </div>
+
+</div>
+
+
+<script> // project state in time carousel
+
+function project_state(state) {
+    let time_carousel = document.getElementById('time-carousel');
+    let width = time_carousel.offsetWidth;
+    let projected_state = state.current_state;
+    let projected_beginning = state.beginning_of_state;
+    let projected_end = state.end_of_state;
+}
+
+</script>
+
+
+<script> // ajax
+
+document.getElementById('machine_selection').addEventListener('change', (event) => {
+    get_shift_calendar(event.target.value);
+    get_operators_checks(event.target.value);
+})
+
+function get_shift_calendar(machine) {
+
+    req = new XMLHttpRequest()
+
+    req.onreadystatechange = function() {
+        
+        if (req.readyState == 4 && req.status == 200) {
+            var jsonResponse = JSON.parse(JSON.parse(req.responseText));
+            jsonResponse.forEach((state) => {
+                project_state(state);
+            })
+        }
+        
+    }
+
+    url = '{% url "get_shift_calendar" %}'
+        
+    req.open("POST", url, true)
+    req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+    req.send(`machine=${machine}`)
+}
+
+
+function get_operators_checks(machine) {
+
+    if (document.getElementById('checks_table')) {
+        document.getElementById('checks_table').remove();
+    }
+
+    if (document.getElementById('number_of_active_operators')) {
+        document.getElementById('number_of_active_operators').remove();
+    }
+
+    req = new XMLHttpRequest()
+
+    req.onreadystatechange = function() {
+        
+        if (req.readyState == 4 && req.status == 200) {
+            
+            var jsonResponse = JSON.parse(req.responseText);
+
+            console.log(jsonResponse);
+
+        }
+    }
+        
+    url = '{% url "operators_on_line" %}'
+        
+    req.open("POST", url, true)
+    req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+    req.send(`machine=${machine}`)
+}
+
+</script>
+
+
+<script> // clock
+
+window.addEventListener('DOMContentLoaded', (event) => {
+    startTime();
+});
+
+function startTime() {
+    var today = new Date();
+    var h = today.getHours();
+    var m = today.getMinutes();
+    var s = today.getSeconds();
+    m = checkTime(m);
+    s = checkTime(s);
+    document.getElementById('clock').innerText = h + ":" + m + ":" + s;
+    let seconds_to_shift = s + 60*m + 3600*h;
+    let shift_start = 6 * 3600;
+    let shift_duration = 8 * 3600;
+    let since_start = (seconds_to_shift - shift_start) / shift_duration
+    //console.log(since_start)
+    var t = setTimeout(startTime, 500);
+}
+
+function checkTime(i) {
+    if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
+    return i;
+}
+</script>
+
+<script> // time carousel
+    let time_carousel = document.getElementById('time-carousel')
+    let width = time_carousel.offsetWidth;
+    let height = time_carousel.offsetHeight;
+    let shift_duration = 8;
+    let hour_windows = [...Array(shift_duration).keys()]
+    let single_hour_width = width / shift_duration;
+    hour_windows.forEach((n) => {
+        let hour_n = document.createElement('div')
+        hour_n.style.width = single_hour_width + "px";
+        hour_n.style.height = height + "px";
+        hour_n.innerText = (n + 6);
+        hour_n.classList.add("hour-window")
+        time_carousel.append(hour_n);
+    })
+
+
+
+
+</script>
+
+{% endblock %}

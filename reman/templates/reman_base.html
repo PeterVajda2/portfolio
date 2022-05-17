@@ -1,0 +1,77 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}
+    <title>Regeneration rate report</title>
+    {% endblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'reman.css' %}">
+    <script src="{% static 'reman.js' %}"></script>
+
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <div class="left">
+                <div class="menu-button"><a href="{% url 'visualize_cc' %}" id="visualize_cc">CC materiály</a></div>
+                <div class="menu-button"><a href="{% url 'visualize_fg' %}" id="visualize_fg">FG materiály</a></div>
+                <div class="menu-button"><a href="{% url 'visualize_yfcorer' %}" id="visualize_yfcorer">YF core</a></div>
+            </div>
+            <div class="right">
+                <div class="menu-button"><a href="{% url 'report_yfcorer' %}" id="report_yfcorer">Sorting</a></div>
+                <div class="menu-button"><a href="{% url 'report_disassembly' %}" id="report_disassembly">Disassembly</a></div>
+                <div class="menu-button"><a href="{% url 'report_recondition' %}" id="report_recondition">Recondition</a></div>
+            </div>
+            <div class="period">
+                <div class="menu-button"><input name="month" type="number" id="month" step="1" value="{{request.session.period.0}}" min="1" max="12"></div>
+                <div class="menu-button"><input name="year" type="number" id="year" value="{{request.session.period.1}}" step="1" min="2021" max="2023"></div>
+                <div class="menu-button"><input type="button" value="odeslat"></div>
+                <div class="menu-button"><input type="button" value="přepočet" id="recalc"></div>
+            </div>
+
+        </div>
+        
+        <div class="main">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</body>
+
+{% block scripts_base %}
+<script>
+    let submit_btn = document.querySelector('input[type="button"]')
+    let url_period = "{% url 'period_setter' %}"
+    submit_btn.addEventListener('click', (e) => {
+        fetch(url_period, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({'month': document.getElementById('month').value, 'year': document.getElementById('year').value})
+        });
+        window.location.reload();
+    })
+
+    todays_date = new Date()
+
+    document.getElementById('recalc').addEventListener('click', () => {
+        window.location.href = `${window.location.href}?recalc`
+    })
+
+
+</script>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
+
+
+</html>
+

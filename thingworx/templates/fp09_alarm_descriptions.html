@@ -1,0 +1,175 @@
+{% extends 'fp09_base.html' %}
+
+
+{% block content %}
+
+<div style="padding: 0 2rem; box-sizing: border-box" class="not_displayed" id="alarm-codes-wrapper">
+
+    <table class="fp09-alarms-table">
+        <thead>
+            <tr>
+                <td>Kód alarmu</td>
+                <td>Popis</td>
+                <td>Skupina</td>
+                <td>Rozlišení</td>
+            </tr>
+            <tr>
+                <td><input type="text" placeholder="filtr kódu" id="alarm-code"></td>
+                <td><input type="text" placeholder="filtr popisu" id="alarm-description"></td>
+                <td><input type="text" placeholder="filtr skupiny" id="alarm-group"></td>
+                <td></td>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for description in descriptions %}
+            <tr>
+                <td class="alarm-code">{{description.code}}</td>
+                <td contenteditable="true" data-id="{{description.id}}" data-purpose="description" class="alarm-description">{{description.description}}</td>
+                <td contenteditable="true" data-id="{{description.id}}" data-purpose="group" >{{description.group}}</td>
+                <td><input type="color" value="{{description.color_code}}" data-id="{{description.id}}" data-group="{{description.group}}" data-purpose="color" style="height: 2vh; border: 0; background-color: white;"></td>
+            </tr>             
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="fp09-save-button" id="fp09-save-button">Uložit</div>
+<div class="fp09-load-reserves" id="fp09-load-reserves">{% if not reserves %}<a href="{% url 'fp09_alarm_descriptions' %}?reserves=true">Načíst rezervy</a>{% else %}<a href="{% url 'fp09_alarm_descriptions' %}">Schovat rezervy</a>{% endif %}</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    var active_header_div = document.getElementById('alarm_codes')
+    active_header_div.style.backgroundColor = 'rgba(255,0,0,0.1)'
+
+    var alarm_parents = document.querySelectorAll('.alarm-parent')
+    var header = document.getElementById('fp09-base-header')
+    var save_button = document.getElementById('fp09-save-button')
+    var wrapper = document.getElementById('alarm-codes-wrapper')
+
+    url = '{% url "fp09_alarm_descriptions" %}'
+    const descriptions = document.querySelectorAll('[data-purpose="description"]')
+    const groups = document.querySelectorAll('[data-purpose="group"]')
+    const colors = document.querySelectorAll('[data-purpose="color"]')
+
+    descriptions.forEach(description => {
+        description.addEventListener('blur', (e) => {
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 'description': e.target.innerText, 'alarm-id': e.target.dataset.id })
+            });
+        })
+    })
+
+    groups.forEach(group => {
+            group.addEventListener('blur', (e) => {
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 'group': e.target.innerText, 'alarm-id': e.target.dataset.id })
+                });
+            group.nextElementSibling.firstElementChild.dataset.group = group.innerText;
+            })
+        })
+
+    colors.forEach(color => {
+            color.addEventListener('blur', (e) => {
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 'color': e.target.value, 'alarm-id': e.target.dataset.id })
+                });
+                if (color.dataset.group) {
+                    let group_colors = document.querySelectorAll(`[data-purpose="color"][data-group="${e.target.dataset.group}"]`);
+                    group_colors.forEach(group_color => {
+                        group_color.value = color.value;
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ 'color': color.value, 'alarm-id': group_color.dataset.id })
+                    });
+                })
+                }
+            })
+        })
+
+    document.addEventListener('scroll', () => {
+        if (is_scrolled_into_view(header)) {
+            save_button.style.top = '3vh';
+        } else {
+            save_button.style.top = '0';
+        }
+    })
+
+    var codes = document.querySelectorAll('.alarm-code')
+
+    const code_search = document.getElementById('alarm-code')
+    const description_search = document.getElementById('alarm-description')
+    const group_search = document.getElementById('alarm-group')
+
+    code_search.addEventListener('input', () => {
+        let filter_value = code_search.value;
+        codes.forEach(code => {
+            if (!code.innerText.toLowerCase().includes(filter_value.toLowerCase())) {
+                code.parentElement.classList.add('not_displayed');
+            }
+            else {
+                code.parentElement.classList.remove('not_displayed');
+            }}
+        )
+    })
+
+    description_search.addEventListener('input', () => {
+            let filter_value = description_search.value;
+            descriptions.forEach(description => {
+                if (!description.innerText.toLowerCase().includes(filter_value.toLowerCase())) {
+                    description.parentElement.classList.add('not_displayed');
+                }
+                else {
+                    description.parentElement.classList.remove('not_displayed');
+                }
+            }
+            )
+        })
+
+    group_search.addEventListener('input', () => {
+            let filter_value = group_search.value;
+            groups.forEach(group => {
+                if (!group.innerText.toLowerCase().includes(filter_value.toLowerCase())) {
+                    group.parentElement.classList.add('not_displayed');
+                }
+                else {
+                    group.parentElement.classList.remove('not_displayed');
+                }
+            }
+            )
+        })
+
+    alarm_parents.forEach(parent => {
+        parent.addEventListener('mouseover', () => {
+            highlight_element(parent);
+        })
+
+        parent.addEventListener('mouseout', () => {
+            dehighlight_element(parent);
+        })
+    })
+
+    window.addEventListener('DOMContentLoaded', (event) => {
+        wrapper.classList.remove('not_displayed');
+    });
+
+</script>
+{% endblock %}

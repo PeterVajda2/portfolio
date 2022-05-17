@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.plot.ly/plotly-2.1.0.min.js"></script>
+    <title>Document</title>
+    <style>
+        table{
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+        th, td{
+            padding: 10px 20px;
+            border: 1px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="machines_parent"></div>
+    <input type="datetime-local" id="date" value='2021-07-21T08:00'>
+    <input type="datetime-local" id="date_end" value='2021-07-21T16:00'>
+    <input type="submit" value="odeslat" id="submit_button">
+
+<script>
+
+var submit_button = document.getElementById('submit_button')
+var url = "{% url 'charts_all' %}"
+submit_button.addEventListener('click', async () => {
+    let date = document.getElementById('date').value
+    let date_end = document.getElementById('date_end').value
+    let data = {}
+    data['date'] = date
+    data['date_end'] = date_end
+    const response = await fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data =>
+        {
+            scatter_data = data['scatter'];
+            workers_data = data['workers'];
+            machines = data['machines'];
+            total_time = data['totaltime'];
+            order_data = data['order'];
+            production_time_x = data['production_time_x'];
+            production_time_y = data['production_time_y'];
+            sum_planned_number_of_workers = data['sumplannedworkers'];
+            average_workers = data['averageworkers']
+        });
+    const keys = Object.keys(scatter_data);
+    var Time
+    var Quantity
+    var Workers
+    for (var e = 0; e < machines.length; e++) {
+        let machine_div = document.createElement('div');
+        machine_div.id = machines[e];
+        machine_div.dataset.order = e;
+        machine_div.innerText = "TRT";
+        document.getElementById('machines_parent').append(machine_div);
+        let machine_div2 = document.createElement('div');
+        machine_div2.id = machines[e] + '2';
+        machine_div.dataset.order = e;
+        document.getElementById('machines_parent').append(machine_div2);
+
+    }
+    for (var i = 0; i < keys.length; i++) {
+        var array = scatter_data[keys[i]];
+        var arrayorder = order_data[keys[i]];
+        Time = [];
+        Quantity = [];
+        Workers = [];
+        Workers50 = [];
+        Workers80 = [];
+
+        for (var j = 0; j < array.length; j++){
+            var arrayTimeQuantityWorkers = array[j];
+            var arrayTime = arrayTimeQuantityWorkers[0];
+            var arrayQuantity = arrayTimeQuantityWorkers[2];
+            var arrayWorkers = arrayTimeQuantityWorkers[1];
+            var arrayWorkers50 = arrayTimeQuantityWorkers[3];
+            var arrayWorkers80 = arrayTimeQuantityWorkers[4];
+            Time.push(arrayTime);
+            Quantity.push(arrayQuantity);
+            Workers.push(arrayWorkers);
+            Workers50.push(arrayWorkers50);
+            Workers80.push(arrayWorkers80);
+
+        }
+        var trace1 = {
+            x: Time,
+            y: Workers,
+            type: 'scatter',
+            name: 'Operators'
+        };
+        
+        var trace2 = {
+            x: Time,
+            y: Quantity,
+            type: 'scatter',
+            yaxis: 'y2',
+            name: 'Quantity'
+        };
+
+        var trace4 = {
+            x: Time,
+            y: Workers50,
+            type: 'scatter',
+            name: 'Workers 50%',
+            line: {
+                color: 'rgb(255, 192, 203)',}
+        };
+
+        var trace5 = {
+            x: Time,
+            y: Workers80,
+            type: 'scatter',
+            name: 'Workers 80%',
+            line: {
+                color: 'rgb(255, 0, 0)',}
+        }; 
+
+        var layout = {
+            autosize: false,
+            width: 1200,
+            height: 500,
+            title: keys[i],
+            xaxis: {
+                range: [date, date_end],
+            },
+            yaxis: {rangemode:'tozero',
+                    title: 'Operators'},
+            yaxis2: {rangemode:'tozero',
+                    title: 'Quantity',
+                    overlaying: 'y',
+                    side: 'right'},
+        };
+        console.log(keys[i])
+        console.log(production_time_x[keys[i]])
+        console.log(production_time_y[keys[i]])
+        data2 = []
+    
+        if (arrayorder) {
+            for (const [key, value] of Object.entries(arrayorder)) {
+                var x_list = []
+                x_list.push(value[1], value[0])
+                var counter = 6
+                window['trace'+counter] = {
+                    type: 'scatter',
+                    x: x_list,
+                    y: [0, 0],
+                    mode: 'lines',
+                    name: key,
+                    line: {
+                        color: 'rgb(255, 192, 203)',
+                        width: 20
+                    }
+                };
+                data2.push(window['trace'+counter])
+                counter += 1
+                window['trace'+counter] = {
+                    type: 'scatter',
+                    x: [value[3], value[4]],
+                    y: [2, 2],
+                    mode: 'lines',
+                    name: key,
+                    line: {
+                        color: 'rgb(128, 128, 128)',
+                        width: 20
+                    }
+                };
+                data2.push(window['trace'+counter])
+                counter += 1
+            };
+        };
+    
+        var trace3 = {
+            x: production_time_x[keys[i]],
+            y: production_time_y[keys[i]],
+            type: 'scatter',
+            yxis: 'y2',
+            mode: 'lines',
+            line: {
+                    color: 'rgb(0, 0, 255)',
+                    width: 2
+                }
+        };
+        data2.push(trace3);
+        var layout2 = {
+            width:1200,
+            height: 400,
+            xaxis: {
+                range: [date, date_end],
+            },
+            yaxis: {
+                range: [-0.5, 10],
+            },
+            yaxis2: {
+                    overlaying: 'y',
+                    side: 'right'},
+            showlegend: false
+        };
+
+        data = [trace1, trace2, trace4, trace5];
+        Plotly.newPlot(keys[i], data, layout);
+        Plotly.newPlot(keys[i]+'2', data2, layout2);
+        let existing_table = document.querySelector(`[data-name="${keys[i]}"]`);
+        if (existing_table) {existing_table.remove()}
+        let table = document.createElement('table');
+        table.dataset.name = keys[i]
+
+        let parent_div = document.querySelector(`[data-order="${i}"]`);
+        console.log(parent_div);
+        parent_div.append(table);
+        let row = table.insertRow(0);
+        let cell1 = row.insertCell(0);
+        cell1.innerHTML = "Operators [min]";
+        let cell2 = row.insertCell(1);
+        cell2.innerHTML = Math.round(workers_data[keys[i]] * 15);
+        let cell3 = row.insertCell(2);
+        cell3.innerHTML = "Standard Time [min]";
+        let cell4 = row.insertCell(3);
+        cell4.innerHTML = Math.round(total_time[keys[i]] * sum_planned_number_of_workers[keys[i]]);
+        let cell5 = row.insertCell(4);
+        cell5.innerHTML = "Efficiency [%]";
+        let cell6 = row.insertCell(5);
+        cell6.innerHTML = Math.round(1000 * (total_time[keys[i]] * sum_planned_number_of_workers[keys[i]] /(workers_data[keys[i]] * 15)) / 10);
+
+        
+
+
+
+
+
+
+    }
+});
+
+</script>
+
+</body>
+
+</html>

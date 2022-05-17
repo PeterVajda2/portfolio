@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    </head>
+    <style>
+        .btn {
+            color: white;
+            background-color: #7a5195;
+            }
+        .btn-group{
+            width: 30%;
+        }
+        .loader {
+            height: 50px;
+            transform-origin: bottom center;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: block;
+            opacity: 0;
+            }
+
+        .circle {
+            display: inline-block;
+            background-color: darkslateblue;
+            height: 70px;
+            width: 70px;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: grow 1.5s linear infinite;
+            margin: -10px;
+            }
+
+        .circle:nth-child(2) {
+            background-color: darkorchid;
+            animation-delay: 0.75s;
+            }
+
+
+        @keyframes rotate {
+            to {
+                transform: rotate(360deg);
+            }
+            }
+
+        @keyframes grow {
+            50% {
+                transform: scale(1);
+            }
+            }
+        .slidecontainer {
+            width: 100%;
+            }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 25px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #7a5195;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #7a5195;
+            cursor: pointer;
+        }
+        .visible {
+            visibility: visible;
+        }
+        .invisible {
+        visibility: hidden;
+        }
+
+    </style>
+    <body>
+        <form class="row g-3" method="post">
+            <div class="col-md-6 position-relative">
+                <label for="inputGroupSelect01" class="form-label">Machine</label>
+                <select class="form-select" id='inputGroupSelect01' onchange=SelectSelect(this)>
+                    <option selected>Choose Machine</option>
+                    {% for machine in machines %}
+                    <option>{{machine}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 position-relative">
+                <label for="inputGroupSelect02" class="form-label">Partnumber</label>
+                <select class="form-select" id='inputGroupSelect02'>
+                    <option selected>Choose Partnumber</option>
+                </select> 
+            </div>
+            <div class="col-md-2 position-relative">
+                <!-- <div class="form-check">
+                    <input class="form-check-input" type="radio" name="MachinesDowntimes" id="Include" value="Include">
+                    <label class="form-check-label" for="Include">
+                    Machine Downtimes included
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="MachinesDowntimes" id="NotInclude" value="NotInclude" checked>
+                    <label class="form-check-label" for="NotInclude">
+                    Machine Downtimes not included (faster)
+                    </label>
+                  </div> -->
+            </div>
+            <div class="col-md-8 position-relative">
+                <div class="slidecontainer">
+                    <label>Data Percentage - Extreme filtration</label>
+                    <input type="range" min="1" max="100" value="80" class="slider" id="myRange" onchange=SliderChange(this)>
+                </div>
+            </div>
+            <div class="col-md-2 position-relative">
+                <p style="text-align:center;">Data Percentage</p>
+                <p style="text-align:center; color:red; font-size: 20px;" id=slidervalue>80 %</p>
+            </div>
+            <div class="col-md-12 position-relative" style="text-align: center;">
+                <div class="btn-group">
+                    <button type="button" class="btn" onclick=SelectButton(this)>Ok</button>
+                </div>
+        </form>
+        <div class="loader">
+            <div class="circle"></div>
+            <div class="circle"></div>
+        </div>
+        <div class="container">
+            <div class="row g-3">
+                <div class="col-md-8 position-relative">
+                    <canvas id="myChart"></canvas>
+                </div>
+                <div class="col-md-4 position-relative">
+                    <p style="text-align:center;" id=parts></p>
+                    <p style="text-align:center; color:red; font-size: 20px;" id=parts_value></p>
+                    <p style="text-align:center;" id=mean></p>
+                    <p style="text-align:center; color:red; font-size: 20px;" id=mean_value></p>
+                    <p style="text-align:center;" id=median></p>
+                    <p style="text-align:center; color:red; font-size: 20px;" id=median_value></p>
+                    <p style="text-align:center;" id=tgmax></p>
+                    <p style="text-align:center; color:red; font-size: 20px;" id=tgmax_value></p>
+                    <p style="text-align:center;" id=sapapo></p>
+                    <p style="text-align:center; color:red; font-size: 20px;" id=sapapo_value></p>
+                    <div class="input-group">
+                        <span style="visibility: hidden; width: 40%;" class="input-group-text" id=sapapoform>SAP APO</span>
+                        <input style="visibility: hidden; width: 40%;" type="number" placeholder="4,48" onkeydown="return event.key != 'Enter';" aria-label="Value" id=sapapotime>
+                        <button type="button" class="btn" style="visibility: hidden; width: 20%;" id=sapapook onclick=SAPAPOButton(this)>Ok</button>
+                    </div>
+                    <div class="input-group">
+                        <span style="visibility: hidden; width: 40%;" class="input-group-text" id=sapapoparts>Parts in SAP APO time [%]</span>
+                        <input style="visibility: hidden; width: 40%;" type="number" placeholder="12" onkeydown="return event.key != 'Enter';" aria-label="Value" id=sapapoperc>
+                        <button type="button" class="btn" style="visibility: hidden; width: 20%;" id=sapapopartsok onclick=PartsButton(this)>Ok</button>
+                    </div>
+
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-3 position-relative">
+                </div>
+                <div class="col-md-2 position-relative">
+                    <button id="downloadExcel" class="btn invisible">Download Chart Data as Excel</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+    </body>
+    </html>
+<script>
+const loader = document.querySelector('.loader');
+const main = document.querySelector('.container');
+function loading() {
+    loader.style.opacity = '1';
+    loader.style.display = 'inline';
+    main.style.display = 'block';
+    main.style.opacity = '0';
+}
+
+function loadingdone() {
+    loader.style.opacity = '0';
+    loader.style.display = 'block';
+    main.style.opacity = '1';
+    main.style.display = 'inline';
+}
+
+function SliderChange(slider){
+    slider_text = document.getElementById("slidervalue")
+    document.getElementById("slidervalue").innerHTML ='';
+    percentage_value = slider.value + " %"
+    var valueofslider = document.createTextNode(percentage_value);
+    slider_text.appendChild(valueofslider);
+}
+
+function SelectButton(button){
+    loading();
+    var url = '{% url "apo_comparison" %}';
+    var machine_change = 0;
+    var data_percentage = document.getElementById("myRange").value
+    var e = document.getElementById("inputGroupSelect01");
+    var machine = e.options[e.selectedIndex].text;
+    var f = document.getElementById("inputGroupSelect02");
+    var partnumber = f.options[f.selectedIndex].text;
+    //var MachineDowntimes = document.querySelector('input[name=MachinesDowntimes]:checked').value
+    get_data(url, {'machine_change': machine_change, 'machine':machine, 'partnumber':partnumber, 'data_percentage':data_percentage}).then(data => {Charts(data) });
+}
+async function get_data(url = '', data = {}) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json(); 
+}
+function SAPAPOButton(select, time=0){
+    if (time == 0){
+        var SAPAPO = document.getElementById('sapapotime').value
+    }
+    else {
+        var SAPAPO = time
+    }
+    var counter = 0
+    for (let productivetime of productivetimes){
+        if (productivetime <= SAPAPO){
+            counter += 1
+        }
+    }
+    var TimesCounter = productivetimes.length
+    var Result = Math.round((counter/TimesCounter)*100 *100) / 100
+    document.getElementById('sapapoperc').value = Result
+}
+function PartsButton(select){
+    var SAPAPOperc = document.getElementById('sapapoperc').value
+    var url = '{% url "apo_comparison" %}';
+    machine_change = -1
+    console.log(SAPAPOperc)
+    get_percentage(url, {'machine_change': machine_change, 'sap_apo_perc': SAPAPOperc, 'productivetimes': productivetimes}).then(data => {UpdateSAPAPOTime(data) });
+}
+function UpdateSAPAPOTime(data = {}) {
+    var sap_apo_time = data.sapapotime
+    document.getElementById('sapapotime').value = sap_apo_time
+
+}
+function SelectSelect(select){
+    var url = '{% url "apo_comparison" %}';
+    var e = document.getElementById("inputGroupSelect01");
+    var machine = e.options[e.selectedIndex].text;
+    var machine_change = 1;
+    document.getElementById('inputGroupSelect01').onclick = function() {
+        var options = document.querySelectorAll('#inputGroupSelect02 option');
+        options.forEach(o => o.remove());
+    }
+    get_partnumbers(url, {'machine_change': machine_change, 'machine': machine}).then(data => {UpdatePartnumberSelect(data) });
+}
+async function get_percentage(url = '', data = {}) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json(); 
+}
+async function get_partnumbers(url = '', data = {}) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json(); 
+}
+function UpdatePartnumberSelect(data = {}){
+    var selectpartnumber = document.getElementById('inputGroupSelect02');
+    for (var i=0; i<data.partnumbers.length; i++){
+        var opt = document.createElement('option')
+        opt.value = data.partnumbers[i]
+        opt.innerHTML = data.partnumbers[i]
+        selectpartnumber.appendChild(opt)
+    }
+}
+function Charts(data = {}) {
+    globalThis.productivetimes = data.productivetimes
+    document.getElementById("parts_value").innerHTML = '';
+    document.getElementById("parts").innerHTML ='Displayed Parts / Parts';
+    var parts_value = document.getElementById("parts_value");
+    text_parts_value = data.numberofpartsdisplayed + " / " + data.numberofpartssum;
+    var text_parts_node = document.createTextNode(text_parts_value);
+    parts_value.appendChild(text_parts_node);
+    document.getElementById("mean_value").innerHTML = '';
+    document.getElementById("mean").innerHTML ='Mean of Displayed Parts';
+    var mean_value = document.getElementById("mean_value");
+    text_mean_value = data.meanofproductivetimeswithoutextreme + " " +  data.timeunit;
+    var text_mean_node = document.createTextNode(text_mean_value);
+    mean_value.appendChild(text_mean_node);
+    document.getElementById("median_value").innerHTML = '';
+    document.getElementById("median").innerHTML ='Median of Displayed Parts / Median of Parts';
+    var median_value = document.getElementById("median_value");
+    text_median_value = data.medianofproductivetimeswithoutextreme + " " +  data.timeunit + " / " + data.medianofproductivetimes + " " + data.timeunit + " ";
+    var text_median_node = document.createTextNode(text_median_value);
+    median_value.appendChild(text_median_node);
+    document.getElementById("tgmax_value").innerHTML = '';
+    document.getElementById("tgmax").innerHTML ='TgMax of Parts';
+    var tgmax_value = document.getElementById("tgmax_value");
+    text_tgmax_value = data.tgmax + " " +  data.timeunitTgMax;
+    var text_tgmax_node = document.createTextNode(text_tgmax_value);
+    tgmax_value.appendChild(text_tgmax_node);
+    document.getElementById("sapapo_value").innerHTML = '';
+    document.getElementById("sapapo").innerHTML ='SAP APO of Parts';
+    var sapapo_value = document.getElementById("sapapo_value");
+    text_sapapo_value = data.sapapo + " " +  data.timeunit;
+    var text_sapapo_node = document.createTextNode(text_sapapo_value);
+    sapapo_value.appendChild(text_sapapo_node);
+    var intervals = data.intervals;
+    var numberofpartsininterval = data.numberofpartsininterval;
+    var partnumber = data.partnumber;
+    document.getElementById("sapapoform").style.visibility = "visible"
+    document.getElementById("sapapotime").style.visibility = "visible"
+    document.getElementById("sapapook").style.visibility = "visible"
+    document.getElementById("sapapotime").placeholder = data.sapapo
+    document.getElementById("sapapoparts").style.visibility = "visible"
+    document.getElementById("sapapoperc").style.visibility = "visible"
+    document.getElementById("sapapopartsok").style.visibility = "visible"
+    document.getElementById('sapapotime').value = data.sapapo
+    var select = 0
+    SAPAPOButton(select, data.sapapo)
+    if (Chart.getChart("myChart")) {
+    Chart.getChart("myChart").destroy();
+}
+    var ctx = document.getElementById("myChart").getContext('2d');
+    var dataValues = numberofpartsininterval;
+    var dataLabels = intervals;
+    var myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: dataLabels,
+        datasets: [{
+        label: partnumber,
+        data: dataValues,
+        backgroundColor: 'rgba(255, 99, 132, 1)',
+        }]
+    },
+    options: {
+        scales: {
+        xAxes: [{
+            display: false,
+            barPercentage: 1.3,
+            ticks: {
+                max: 3,
+            }
+        }, {
+            display: true,
+            ticks: {
+                autoSkip: false,
+                max: 4,
+            }
+        }],
+        yAxes: [{
+            ticks: {
+            beginAtZero:true
+            }
+        }]
+        }
+    }
+    });
+    var ExportButton = document.getElementById("downloadExcel");
+    //ExportButton.classList.remove("invisible")
+    loadingdone();
+}
+
+</script>

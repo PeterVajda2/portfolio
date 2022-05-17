@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAP robot</title>
+    {% load static %}
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .highlighted {
+            background-color: rgba(255 0 0 / .5);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 80vw;
+            margin: 0 auto;
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            user-select: none;
+            cursor: pointer;
+        }
+
+        thead {
+            background-color: black;
+            color: white;
+        }
+
+        input[type="button"] {
+            display: block;
+            margin: 0 auto;
+            padding: 1rem;
+            background-color: black;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        tr > td:not(:first-of-type) {
+            text-align: center;
+        }
+
+        form {
+            margin: 5rem auto;
+            width: 60vw;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            column-gap: 2rem;
+        }
+
+        .form-input-label label,
+        .form-input-label input {
+            display: block;
+            font-size: 1.2rem;
+            width: 100%;
+        }
+
+        .form-input-label label {
+            padding-bottom: 0.5rem;
+        }
+
+        input[type="number"] {
+            width: 50%;
+            text-align: center;
+        }
+
+        form input[type="submit"] {
+            display: block;
+            grid-column: 1/4 !important;
+            width: 100%;
+            margin: 2rem 0;
+            padding: 1rem;
+            background-color: lightgrey;
+            color: black;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+
+        input[type="button"] {
+            cursor: pointer;
+        }
+
+        .center-items {
+            display: flex;
+            flex-flow: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>Zakázka</th>
+                <th>Cílové množství</th>
+                <th>Materiál</th>
+                <th>Počet kusů v SAP</th>
+                <th>Aktualizace SAP</th>
+                <th>Limit robota</th>
+                <th>Group ID</th>
+                <th>Aktivní</th>
+            </tr>
+        </thead>
+
+        <tbody id="table-body">
+            {% for line in current_robot_data %}
+            <tr data-order="{{line.order_number}}">
+                <td>{{line.order_number}}</td>
+                <td>{{line.target_quantity}}</td>
+                <td>{{line.type_number|default_if_none:""}}</td>
+                <td>{% if line.current_sap_quantity == 0 %} {{line.initial_quantity}} {% else %} {{line.current_sap_quantity}} {% endif %}</td>
+                <td>{{line.sap_update_time|date:"Y-m-d G:i"}}</td>
+                <td>{{line.sap_max}}</td>
+                <td>{{line.group_id}}</td>
+                <td style="cursor:help" title="Ukazuje, jestli ma zakázka aktivní zdroj SQL dat (z testovacího stavu)"><input style="cursor:help" type="checkbox" {% if line.current_sql_quantity %} checked {% endif %}></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <input type="button" value="Přidat zakázku pro robota" id="order-form-button">
+    <input type="button" value="Odebrat zakázku" id="remove-order" class="hidden">
+
+    <form class="hidden" id="order-form" method="POST">{% csrf_token %}
+        <div class="form-input-label">
+            <label for="order-number">Číslo zakázky</label>
+            <input type="text" name="order-number" rqeuired>
+        </div>
+
+        <div class="form-input-label center-items">
+            <label for="initial-quantity">Maximální množství</label>
+            <input type="number" name="max-quantity" value="0">
+        </div>
+
+        <div class="form-input-label">
+            <label for="operator-password">Group ID</label>
+            <input type="text" name="group-id" required>
+        </div>
+
+        <input type="submit" value="Odeslat robotovi">
+
+    </form>
+
+    <img src="{% static 'robot.png' %}" style="display: block; margin: 0 auto">
+
+<script>
+
+    const orderFormButton = document.getElementById('order-form-button')
+    const tableBody = document.getElementById('table-body')
+    const removeOrderButton = document.getElementById('remove-order')
+
+    tableBody.addEventListener('click', () => {
+        let row = event.target.parentElement;
+        let rows = tableBody.querySelectorAll('tr')
+        if (row.classList.contains('highlighted')) {
+            row.classList.remove('highlighted');
+            removeOrderButton.classList.add('hidden');
+            orderFormButton.classList.remove('hidden');
+        } else {
+            rows.forEach(row => {
+                row.classList.remove('highlighted');
+            })
+            row.classList.add('highlighted');
+            removeOrderButton.classList.remove('hidden');
+            orderFormButton.classList.add('hidden');
+        }
+    })
+
+    removeOrderButton.addEventListener('click', removeOrder);
+
+    orderFormButton.addEventListener('click', unhideForm);
+
+    function unhideForm() {
+        let form = document.getElementById('order-form');
+        if (form.classList.contains('hidden')) {
+            form.classList.remove('hidden');
+        } else {
+            form.classList.add('hidden');
+        }
+    }
+
+    function removeOrder() {
+        removeOrderFromDatabase().then(() => removeRow());
+    }
+
+    async function removeOrderFromDatabase() {
+        let order = document.querySelector('tr[class*="highlighted"]').dataset.order;
+        const response = await fetch('{% url "sap_robot" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                'delete': 'true',
+                'order-number': order
+            }).toString()
+        });
+
+    return response;      
+    }
+
+    function removeRow() {
+        tableBody.querySelector('[class*="highlighted"]').remove();
+        removeOrderButton.classList.add('hidden');
+        orderFormButton.classList.remove('hidden');
+    }
+    
+    function reloadPage() {
+        if (document.getElementById("order-form").classList.contains('hidden')) {
+            location.reload();
+        }
+    }
+
+    setInterval(reloadPage, 10000);
+
+</script>
+
+</body>
+
+</html>

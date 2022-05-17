@@ -1,0 +1,55 @@
+{% extends 'reman_base.html' %}
+
+{% load static %}
+
+{% block content %}
+
+{% load reman_tags %}
+
+<table class="yfcorer">
+    <thead>
+        <th>Summary group</th>
+        <th>Zákazník</th>
+        <th>CC materiál</th>
+        <th>Sorting group</th>
+        <th>RR sorting (group)</th>
+    </thead>
+    <tbody>
+        {% for cc_material, values in data.items %}
+        <tr>
+            <td class="yfcorer-data-td" data-purpose="summary-group" data-value="{{values.summary_group}}">{{values.summary_group}}</td>
+            <td class="yfcorer-data-td" data-purpose="brand" data-value="{{values.brand}}">{{values.brand|default_if_none:""}}</td>
+            <td class="yfcorer-data-td" data-purpose="cc-material" data-value="{{cc_material}}">{{cc_material}}</td>
+            <td class="yfcorer-data-td" data-purpose="sorting-group" data-value="{{values.sorting_group}}">{{values.sorting_group|default_if_none:""}}</td>
+            <td class="yfcorer-data-td" data-purpose="rr-sorting-group" data-value="{{values.sorting_group_results}}">{{values.sorting_group_results|to_percentage:"0"}}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+
+</table>
+
+<div id="report-context-menu">
+    <img class="excel-icon" src="{% static 'excel-ico.png' %}">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    var data_tds = document.querySelectorAll('td[class="yfcorer-data-td"]')
+    var context_menu = document.getElementById('report-context-menu')
+    var excel_export = document.querySelector('[class="excel-icon"]')
+    var url = "{% url 'report_yfcorer' %}"
+    var month = {{month}}
+    var year = {{year}}
+
+    document.getElementById('month').value = month
+    document.getElementById('year').value = year
+
+    add_listeners()
+
+
+</script>
+
+{% endblock %}

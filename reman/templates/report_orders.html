@@ -1,0 +1,76 @@
+{% extends 'reman_base.html' %}
+
+{% load reman_tags %}
+
+{% block content %}
+
+<table class="orders">
+    <thead>
+        <th>Zakázka</th>
+        <th>Typ</th>
+        <th>Materiál</th>
+        <th>Množství zakázky</th>
+        <th>Dodáno</th>
+    </thead>
+{% for order in orders %}
+    <tr>
+        <td class="order-cell">{{order.order_number}}</td>
+        <td>{{order.order_type}}</td>
+        <td>{{order.material}}</td>
+        <td>{{order.order_quantity}}</td>
+        <td>{{order.quantity_delivered}}</td>
+    </tr>
+    <tbody data-order="{{order.order_number}}" class="hidden">
+        <tr class="title-row">
+            <td>Materiál</td>
+            <td>Potřebné množství</td>
+            <td>Odebrané množství</td>
+            {% if order.order_type == 'YRM4' %}
+                <td>Teoretické množství</td>
+            {% endif %}
+        </tr>
+    {% for component in order.component_set.all %}
+        <tr>
+            <td>{{component.material}}</td>
+            <td>{{component.requirement_quantity}}</td>
+            <td>{{component.quantity_withdrawn}}</td>
+            {% if order.order_type == 'YRM4' %}
+                <td>{% target_quantity component.material order.material order.order_quantity %}</td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+{% endfor %}
+
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var order_tds = document.querySelectorAll('[class="order-cell"]')
+    order_tds.forEach(td => {
+        td.addEventListener('click', (e) => {
+            let details_block = document.querySelector(`tbody[data-order="${e.target.innerText}"]`);
+            details_block.classList.toggle("hidden");
+            details_block.classList.toggle("highlighted");
+            e.target.classList.toggle("highlighted");
+        });
+        td.addEventListener('mouseover', (e) => {
+            e.target.parentElement.classList.add("highlighted");
+        })
+        td.addEventListener('mouseout', (e) => {
+            e.target.parentElement.classList.remove("highlighted");
+            })
+    })
+
+    document.addEventListener('scroll', () => {
+        if (window.scrollY > 0) {
+            document.getElementsByTagName('thead')[0].style.top = '0';
+        } else {
+            document.getElementsByTagName('thead')[0].style.top = '5vh';
+        }
+    })
+</script>
+
+{% endblock %}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 8vw">PartNo</th>
+                <th style="width: 8vw">retez</th>
+                <th style="width: 4vw"># na vstupu</th>
+                <th style="width: 4vw"># na výstupu</th>
+                <th style="width: 15vw">konzumace rodičů</th>
+                <th style="width: 15vw">produkce detí</th>
+                <th style="width: 4vw">zakázky</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for material in materials %}
+            <tr>
+                <td>{{material.material_number}}</td>
+                <td>{{material.chain_position}}</td>
+                <td>{{material.quantity_as_input|floatformat:"0"}}</td>
+                <td>{{material.quantity_as_output|floatformat:"0"}}</td>
+                <td style="padding-inline: 2rem";>
+                    {% for parent, consumption in material.parent_consumption.items %}
+                    <div style="display: flex; justify-content: space-between;"><span>{{parent}}</span><span>{{consumption|floatformat:"0"}}</span></div>
+                    {% endfor %}
+                </td>
+                <td style="padding-inline: 2rem";>
+                    {% for child, production in material.child_production.items %}
+                    <div style="display: flex; justify-content: space-between;"><span>{{child}}</span><span>{{production}}</span></div>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for order in material.orders %}
+                        <div>{{order}}</div>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
+<!-- <div>
+    <h1>{{material.material_number}}</h1>
+    <p>As input: {{material.quantity_as_input}}</p>
+    <p>As output: {{material.quantity_as_output}}</p>
+    <p>Parent materials: {{material.parent_materials}}</p>
+    <p>Child materials: {{material.child_materials}}</p>
+    <p>Parent consumption: {{material.parent_consumption}}</p>
+    <p>Child production: {{material.child_production}}</p>
+    <p>Orders: {{material.orders}}</p>
+    <p>Renovation rate: {{material.get_renovation_rate}}</p>
+    <p>Chain position: {{material.get_chain_position}}</p>
+</div> -->

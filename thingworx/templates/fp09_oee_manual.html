@@ -1,0 +1,189 @@
+{% extends 'fp09_base.html' %}
+
+
+{% block content %}
+    <div class="fp09-oee-calendar-wrapper" id="active-calendar">
+    <div style="display: grid; place-items: center; font-size: 4rem;">
+        <a href='{% url "fp09_oee_manual_entries" %}?month={{month|add:"-1"}}'>&#8668;</a>
+    </div>{{calendar|safe}}
+    <div style="display: grid; place-items: center; font-size: 4rem;">
+        <a href='{% url "fp09_oee_manual_entries" %}?month={{month|add:"1"}}'>&#8669;</a>
+    </div>
+    </div>
+
+    <div class="fp09-manual-oee-bottom">
+        <div></div>
+        <div class="fp09-oee-manual-form">
+
+            <div>
+                <label>Datum</label>
+                    <input readonly type="date" id="date-input">
+            </div>
+
+            <div>
+                <label>Vzorkování</label>
+                    <select id="sampling">
+                        <option selected> --- </option>
+                        <option>06:00 - 14:00</option>
+                        <option>14:00 - 22:00</option>
+                        <option>22:00 - 06:00</option>
+                    </select>
+            </div>
+
+            <div>
+                <label>Oprava / Test</label>
+                    <select id="repair">
+                        <option selected> --- </option>
+                        <option>06:00 - 14:00</option>
+                        <option>14:00 - 22:00</option>
+                        <option>22:00 - 06:00</option>
+                    </select>
+            </div>
+
+            <div>
+                <label>Stanice (optional)</label>
+                    <input type="text" id="station">
+            </div>
+
+            <div>
+                <label>Co (optional)</label>
+                    <input type="text" id="what">
+            </div>
+
+            <div>
+                <label>Řešíme v A3 (optional)</label>
+                    <select id="a3">
+                        <option selected> --- </option>
+                        <option>Ano</option>
+                        <option>Ne</option>
+                    </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 1em">
+                <input type="button" value="Odeslat" style="width: 100%; margin: 1em 0; padding: 1em 0; font-size: 1rem">
+                <input type="button" value="Smazat" style="width: 100%; margin: 1em 0; padding: 1em 0; font-size: 1rem">
+            </div>
+
+
+        </div>
+
+        <div class="fp09-oee-manual-records">
+            <table class="fp09-oee-records-table">
+                <tr>
+                    <td>Datum</td>
+                    <td>Vzorkování</td>
+                    <td>Oprava/Test</td>
+                    <td>Stanice</td>
+                    <td>Co</td>
+                    <td>A3</td>
+                </tr>
+                <tr id="records-row">
+                    <td>--</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>--</td>
+                </tr>
+            </table>
+        </div>
+        <div></div>
+    
+    
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var selected_month = {{month|safe}}
+    var active_header_div = document.getElementById('manual_oee')
+    var active_calendar = document.getElementById('active-calendar')
+    active_header_div.style.backgroundColor = 'rgba(0,255,0,0.1)'
+    var records_row = document.getElementById('records-row')
+    var entries = []
+    
+    const url = '{% url "fp09_oee_manual_entries" %}'
+    
+    var date_input = document.getElementById('date-input')
+    
+    
+    var active_date = new Date();
+    var active_day = active_date.getDate();
+    var active_month = selected_month;
+    var submit_button = document.querySelector('input[type=button][value="Odeslat"]')
+    var delete_button = document.querySelector('input[type=button][value="Smazat"]')
+    
+    get_entries(url).then(data => place_entries(data, active_calendar, active_month))
+
+    submit_button.addEventListener('click', () => {
+        let form_data = {}
+        form_data['entry_date'] = date_input.value;
+        form_data['sampling_shift'] = document.getElementById('sampling').value
+        form_data['repair_shift'] = document.getElementById('repair').value
+        form_data['station'] = document.getElementById('station').value
+        form_data['what'] = document.getElementById('what').value
+        form_data['a3'] = document.getElementById('a3').value
+
+        post_manual_oee_data(url, form_data).then(data => { show_created_entry(data, records_row) }).then(() => get_entries(url)).then(resp => place_entries(resp, active_calendar, active_month))
+    })
+
+    delete_button.addEventListener('click', () => {
+        let date = date_input.value;
+        delete_manual_oee_entry(url, {'date': date}).then(() => {reset_records()});
+    })
+    
+    function reset_records() {
+        let records = records_row.getElementsByTagName('td')
+        for (record of records) {
+            record.innerText = "--";
+        }
+        console.log(active_day)
+        let calendar_days = active_calendar.getElementsByTagName('td');
+        for (day of calendar_days) {
+            if (day.innerText == active_day) {
+                day.style.backgroundColor = 'transparent'
+            }
+        }
+    }
+
+    let month_days = document.querySelectorAll('td[class]')
+
+    month_days.forEach(day => {
+        day.addEventListener('click', (e) => {
+            month_days.forEach(day => {
+                day.style.border = '1px solid transparent';
+            })
+            let record_row_cells = records_row.getElementsByTagName('td')
+            for (td of record_row_cells) {
+                td.innerText = '--';
+            }
+            active_date.setDate(e.target.innerText);
+            active_date.setMonth(selected_month - 1);
+            active_month = selected_month
+            active_day = e.target.innerText;
+            e.target.style.border = '1px solid black';
+            date_input.value = active_date.toISOString().slice(0, 10)
+            get_entries(url).then(data => {
+                let all_entries = data['entries'];
+                all_entries.forEach(entry => {
+                    if (entry['entry_date'] == date_input.value) {
+                        let data = {};
+                        data['entry'] = entry;
+                        show_created_entry(data, records_row);
+                    }
+                })
+            })
+            
+
+
+            // show_created_entry(data, records_row)
+        })
+        if (day.innerText == active_day) {
+            day.style.border = '1px solid black';
+        }
+    })
+
+    date_input.value = active_date.toISOString().slice(0, 10)
+</script>
+
+{% endblock %}

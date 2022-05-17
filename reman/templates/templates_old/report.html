@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regeneration rate report</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<style>
+.even-column {
+    background-color: rgba(0, 0, 0, 0.05)
+}
+.regeneration-rate-table-highlight{
+    background-color: rgba(0, 0, 0, 0.05)
+}
+.head{
+    background-color:rgba(0, 0, 0, 0.0)
+}
+
+
+</style>
+</head>
+
+<body>
+
+    {% load reman_tags %}
+
+    <table class="regeneration-rate-table" style="display: block">
+        <thead>
+            <tr>
+                <th class="head" onclick="sortTable_reports(0)">CC Material</th>
+                <th class="head" onclick="sortTable_reports(1)">FG Material</th>
+                <th class="head" onclick="sortTable_reports(2)">R Material</th>
+                <th class="head" onclick="sortTable_reports(3)">Material Plant View</th>
+                <th class="head" onclick="sortTable_reports(4)">RR Sorting (group)</th>
+                <th class="head" onclick="sortTable_reports(5)">CC consumption</th>
+                <th class="head" onclick="sortTable_reports(6)">FG receiving</th>
+                <th class="head" onclick="sortTable_reports(7)">RR Disassembly</th>
+                <th class="head" onclick="sortTable_reports(8)">RR Disassembly (group)</th>
+                <th class="head" onclick="sortTable_reports(9)">FG consumption</th>
+                <th class="head" onclick="sortTable_reports(10)">R receiving</th>
+                <th class="head" onclick="sortTable_reports(11)">RR Recondition</th>
+                <th class="head" onclick="sortTable_reports(12)">RR Recondition (group)</th>
+                <th class="head" onclick="sortTable_reports(13)">RR Process</th>
+                <th class="head" onclick="sortTable_reports(14)">RR Process (group)</th>
+                <th class="head" onclick="sortTable_reports(15)">RR External (group)</th>
+            </tr>
+            <tr>
+                <td><input class="input-filter" type="text" data-column-index="0"></td>
+                <td><input class="input-filter" type="text" data-column-index="1"></td>
+                <td><input class="input-filter" type="text" data-column-index="2"></td>
+                <td><input class="input-filter" type="text" data-column-index="3"></td>
+            </tr>
+
+
+        </thead>
+
+        <tbody>
+            {% for item in data %}
+            <tr>
+                <td class="column-1" data-column="1" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.0}}</td>
+                <td class="column-2 even-column" data-column="2" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.1}}</td>
+                <td class="column-3" data-column="3" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.2}}</td>
+                <td class="column-4 even-column" data-column="4" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.3}}</td>
+                <td class="column-5" data-column="5" data-row={{forloop.counter0}} data-group="{{item.1}}" data-metrics="sorting">{{item.4|to_percentage:"0"}}</td>
+                <td class="column-6 even-column" data-column="6" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.5|default_if_none:0}}</td>
+                <td class="column-7" data-column="7" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.6|default_if_none:0}}</td>
+                <td class="column-8 even-column" data-column="8" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.7|default_if_none:0|to_percentage:"0"}}</td>
+                <td class="column-9" data-column="9" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.8|default_if_none:0|to_percentage:"0"}}</td>
+                <td class="column-10 even-column" data-column="10" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.9}}</td>
+                <td class="column-11" data-column="11" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.10}}</td>
+                <td class="column-12 even-column" data-column="12" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.11|default_if_none:0|to_percentage:"0"}}</td>
+                <td class="column-13" data-column="13" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.12|default_if_none:0|to_percentage:"0"}}</td>
+                <td class="column-14 even-column" data-column="14" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.13|default_if_none:0|to_percentage:"0"}}</td>
+                <td class="column-15" data-column="15" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.14|default_if_none:0|to_percentage:"0"}}</td>
+                <td class="column-16 even-column" data-column="16" data-row={{forloop.counter0}} data-group="{{item.1}}">{{item.15|default_if_none:0|to_percentage:"0"}}</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</body>
+
+<script>
+
+    function removeRowspan(col_idx) {
+        let cells_with_rowspan = document.querySelectorAll(`[rowspan][class=column-${col_idx}]`)
+        let cells_with_rowspan_array = Array.from(cells_with_rowspan)
+
+
+        cells_with_rowspan_array.forEach((cell) => {
+            let affected_rows = cell.rowSpan;
+            let previous_affected_row = cell.parentElement;
+            // let previous_affected_row_array = Array.from(previous_affected_row)
+            let index = cell.cellIndex;
+            // console.log(previous_affected_row);
+
+            for (let i = 1; i < affected_rows; i++) {
+                let next_affected_row = previous_affected_row.nextElementSibling;
+                let inserted_cell = next_affected_row.insertCell(index);
+                inserted_cell.classList = cell.classList;
+                inserted_cell.innerHTML = cell.innerText;
+                previous_affected_row = next_affected_row;
+                cell.rowSpan -= 1;
+            }
+        })
+    }
+
+    function addRowSpan() {
+        // const number_of_cols = [1, 4, 5, 9, 13, 15, 16]
+        const number_of_cols = [4];
+        var table = document.querySelector('.regeneration-rate-table')
+
+        number_of_cols.forEach(function (x) {
+            let material_plant_view_column = document.querySelectorAll(`tr:not([class*=invisible]) > td`);
+            // console.log(material_plant_view_column);
+            let material_plant_view_column_array = Array.from(material_plant_view_column);
+
+            let filtered_array = material_plant_view_column_array.filter(elem => elem.classList.contains(`column-${x}`));
+            var current_cell_value;
+            var index_of_mother_cell = 1;
+            var colorSelector = 0;
+            filtered_array.forEach((cell) => {
+                if (cell.innerHTML == current_cell_value) {
+                    cell.classList.add('to_delete');
+                    filtered_array[index_of_mother_cell].rowSpan += 1;
+                    filtered_array[index_of_mother_cell].dataset.group += cell.dataset.group;
+                } else {
+                    current_cell_value = cell.innerHTML;
+                    index_of_mother_cell = filtered_array.indexOf(cell);
+                }
+            })
+
+            let to_delete = document.querySelectorAll('.to_delete');
+
+            for (elem of to_delete) {
+                elem.remove();
+            }
+            table.style.display = "block";
+        });
+    };
+
+
+    let table_cells = document.querySelectorAll('td');
+    table_cells.forEach((cell) => {
+        cell.addEventListener('mouseover', () => {
+            let table_cells = document.querySelectorAll('td');
+            let cell_parent = cell.parentElement;
+            let siblings = cell_parent.getElementsByTagName('td');
+            for (sibling of siblings) {
+                sibling.classList.add('regeneration-rate-table-highlight')
+            }
+
+            let crazy_cells = document.querySelectorAll(`[rowspan][data-group*="${cell.dataset.group}"]`);
+            for (cell of crazy_cells) {
+                cell.classList.add('regeneration-rate-table-highlight')
+            }
+        })
+
+        cell.addEventListener('mouseout', () => {
+            table_cells.forEach(el => el.classList.remove('regeneration-rate-table-highlight'))
+        })
+    })
+
+    window.addEventListener('load', () => {
+
+        let input_filters = document.querySelectorAll(".input-filter");
+        window.table = document.getElementsByTagName("table")[0];
+        input_filters.forEach((input_filter) => {
+            input_filter.addEventListener('input', () => filterColumn(input_filter.value, input_filter.dataset.columnIndex))
+        })
+    });
+
+    function filterColumn(valueToFind, colIndex) {
+        let rows = table.getElementsByTagName("tr");
+
+        Array.from(rows).slice(2).forEach((tr) => {
+            let filtered_cell = tr.getElementsByTagName("td")[colIndex];
+            if (!filtered_cell.textContent.includes(valueToFind)) {
+                tr.classList.add("invisible-by-" + colIndex);
+            } else {
+                tr.classList.remove("invisible-by-" + colIndex);
+            }
+        })
+    }
+
+    function sortTable_reports(colIndex) {
+        var rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        switching = true;
+        dir = "asc";
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 2; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("td")[colIndex];
+                y = rows[i + 1].getElementsByTagName("td")[colIndex];
+                if (dir =="asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } 
+                else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount ++;
+        } else {
+            if (switchcount == 0 && dir == "asc") {
+            dir = "desc";
+            switching = true;
+          }
+        }
+      }
+    }
+
+</script>
+
+</html>

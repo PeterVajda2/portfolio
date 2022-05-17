@@ -1,0 +1,171 @@
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,800,900&display=swap" rel="stylesheet">
+    <style>
+#do_legend{
+   height:62px;
+}
+
+#do_legend{
+    width:100%;     
+}
+
+#do_legend> ul{
+    padding: 0;
+    text-align: center;
+}
+ 
+
+#do_legend {   
+  width:100%;
+  bottom:10%;
+}
+#do_legend li {
+    cursor: pointer;
+    margin: 4px 3px;
+    display: inline-table;
+}
+#do_legend li span {
+    position: relative;
+    padding: 3px 10px;
+    border-radius: 13px;
+    color: white;
+    z-index: 2;
+    font-size: 11px;
+}
+
+#do_legend{
+    height: 62px;
+    overflow-y: auto;
+}
+
+.donut-area{
+    height:calc(100% - 62px)
+}
+    </style>
+</head>
+
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+
+
+<div>
+    <div id="do_legend"></div>
+    <canvas id="canvas"></canvas>
+</div>
+</body>
+
+<script>
+var configd = {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: [
+                50,
+                60,
+                20
+            ],           
+            backgroundColor: [
+                '#33b35a',
+                "#ffce56",
+                "#4bc0c0",
+                "#CDDC39",
+                "#9C27B0",
+                "#fb7145",
+                "#5971f9"
+            ],
+            label: 'Energy usage'
+        }],
+        labels: [
+            'E1',
+            'E2',
+            'E3'
+        ]
+    },
+    options: {
+        responsive: true,
+        legend: {
+            display: false
+        },
+        legendCallback: function (chart) {             
+            // Return the HTML string here.
+            console.log(chart.data.datasets);
+            var text = [];
+            text.push('<ul class="' + chart.id + '-legend">');
+            for (var i = 0; i < chart.data.datasets[0].data.length; i++) {
+                text.push('<li><span id="legend-' + i + '-item" style="background-color:' + chart.data.datasets[0].backgroundColor[i] + '"   onclick="updateDataset(event, ' + '\'' + i + '\'' + ')">');
+                if (chart.data.labels[i]) {
+                    text.push(chart.data.labels[i]);
+                }
+                text.push('</span></li>');
+            }
+            text.push('</ul>');
+            return text.join("");
+        },
+        title: {
+            display: false,
+            text: 'Chart.js Doughnut Chart'
+        },
+        animation: {
+            animateScale: true,
+            animateRotate: true
+        },
+        tooltips: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+                label: function (tooltipItem, data) {
+                    let label = data.datasets[tooltipItem.datasetIndex].label + ' - ' + data.labels[tooltipItem.index];
+                    let datasetLabel = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                    return label + ': ' + datasetLabel.toLocaleString();
+                }
+            }
+        },
+    }
+};
+
+ var ctxd = document.getElementById('canvas').getContext('2d');
+    
+    window.myDoughnut = new Chart(ctxd, configd);
+    $("#do_legend").html(window.myDoughnut.generateLegend());
+
+// Show/hide chart by click legend
+updateDataset = function (e, datasetIndex) {    
+    var index = datasetIndex;
+    var ci = e.view.myDoughnut;
+    var meta = ci.getDatasetMeta(0);    
+    var result= (meta.data[datasetIndex].hidden == true) ? false : true;
+    if(result==true)
+    {
+        meta.data[datasetIndex].hidden = true;
+        $('#' + e.path[0].id).css("text-decoration", "line-through");
+    }else{
+        $('#' + e.path[0].id).css("text-decoration","");
+        meta.data[datasetIndex].hidden = false;
+    }
+     
+    ci.update();   
+};
+var line_defects_percent = '10%'
+textCenter4(line_defects_percent);
+function textCenter4(val) {
+  Chart.pluginService.register({
+    beforeDraw: function(chart) {
+    var width = chart.chart.width,
+        height = chart.chart.height,
+        ctx = chart.chart.ctx;
+
+    ctx.restore();
+    var fontSize = (height / 114).toFixed(2);
+    ctx.font = fontSize + "em sans-serif";
+    ctx.textBaseline = "middle";
+    
+    var text = val,
+        textX = Math.round((width - ctx.measureText(text).width) / 2),
+        textY = height / 2;
+
+    ctx.fillText(text, textX, textY);
+    ctx.save();
+  }});
+}
+</script>

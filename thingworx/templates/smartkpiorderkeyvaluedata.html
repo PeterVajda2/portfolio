@@ -1,0 +1,11 @@
+{% for object in objects %}
+
+{% if object.propertykey == 'tgMaxTime' or object.propertykey == 'tgMaxTime-0010' %}
+
+<h1>
+{{object.floatvalue}} - {{object.textvalue}} - {{object.ordernumber}}
+</h1>
+
+{% endif %}
+
+{% endfor %}

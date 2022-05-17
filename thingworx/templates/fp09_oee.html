@@ -1,0 +1,69 @@
+{% extends 'fp09_base.html' %}
+
+
+{% block content %}
+
+
+    <div class="fp09-alarms-charts-wrapper green-border">
+        <div class="fp09-alarms-period-wrapper">
+            <div class="fp09-alarms-period">-7 days</div>
+            <div style="grid-column: 1/2;"><canvas class="fp09_oee_twx" id="fp09_oee_twx_7" data-days="7"></canvas></div>
+            <div style="grid-column: 2/3;"><canvas class="fp09_oee_adjusted" id="fp09_oee_adjusted_7" data-days="7"></canvas></div>
+        </div>
+
+        <div class="fp09-alarms-period-wrapper">
+            <div class="fp09-alarms-period">-30 days</div>
+            <div style="grid-column: 1/2;"><canvas class="fp09_oee_twx" id="fp09_oee_twx_30" data-days="30"></canvas></div>
+            <div style="grid-column: 2/3;"><canvas class="fp09_oee_adjusted" id="fp09_oee_adjusted_30" data-days="30"></canvas>
+            </div>
+        </div>
+
+        <div class="fp09-alarms-period-wrapper">
+            <div class="fp09-alarms-period">-90 days</div>
+            <div style="grid-column: 1/2;"><canvas class="fp09_oee_twx" id="fp09_oee_twx_90" data-days="90"></canvas></div>
+            <div style="grid-column: 2/3;"><canvas class="fp09_oee_adjusted" id="fp09_oee_adjusted_90" data-days="90"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+
+    var active_header_div = document.getElementById('oee_stats')
+    active_header_div.style.backgroundColor = 'rgba(0,255,0,0.1)'
+
+    const url = "{% url 'fp09_oee_data' %}"
+
+    const twx_7 = document.querySelector('#fp09_oee_twx_7')
+    const twx_30 = document.getElementById('fp09_oee_twx_30')
+    const twx_90 = document.getElementById('fp09_oee_twx_90')
+
+    const adjusted_7 = document.getElementById('fp09_oee_adjusted_7')
+    const adjusted_30 = document.getElementById('fp09_oee_adjusted_30')
+    const adjusted_90 = document.getElementById('fp09_oee_adjusted_90')
+
+
+    get_twx_oee(url, {days: 7 }).then(data => { draw_twx_oee(data) })
+    get_twx_oee(url, {days: 30 }).then(data => { draw_twx_oee(data) })
+    get_twx_oee(url, { days: 90 }).then(data => { draw_twx_oee(data) })
+
+    get_adjusted_oee(url, { days: 7 , adjusted: true}).then(data => { draw_adjusted_oee(data) })
+    get_adjusted_oee(url, { days: 30 , adjusted: true }).then(data => { draw_adjusted_oee(data) })
+    get_adjusted_oee(url, { days: 90, adjusted: true }).then(data => { draw_adjusted_oee(data) })
+
+    var wrappers = document.getElementsByClassName('fp09-alarms-period-wrapper')
+    var periods = document.getElementsByClassName('fp09-alarms-period')
+
+    for (const wrapper of wrappers) {
+        wrapper.addEventListener('mouseover', () => { addBackground(wrapper, color_code = 'rgba(0, 255, 0, 0.1)'); }, false);
+        wrapper.addEventListener('mouseout', removeBackground);
+    }
+
+
+</script>
+
+{% endblock %}

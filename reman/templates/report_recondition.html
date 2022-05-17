@@ -1,0 +1,60 @@
+{% extends 'reman_base.html' %}
+
+{% load reman_tags %}
+
+{% load static %}
+
+{% block content %}
+
+<table>
+    <thead>
+        <th>CC materiál</th>
+        <th>FG materiál</th>
+        <th>R materiál</th>
+        <th>RR recondition</th>
+        <th>Order qty</th>
+        <th>Qty delivered</th>
+        <th>Defective qty</th>
+        <th>Difference</th>
+    </thead>
+    <tbody>
+        {% for r_material, values in data.items %}
+        <tr>
+            <td class="recondition-data-td" data-purpose="cc-material" data-value="{{values.cc_materials}}">{{values.cc_materials|list_to_string|safe}}</td>
+            <td class="recondition-data-td" data-purpose="fg-material" data-value="{{values.fg_materials}}">{{values.fg_materials|queryset_to_list|list_to_string|safe}}</td>
+            <td class="recondition-data-td" data-purpose="r-material" data-value="{{r_material.material_number}}">{{r_material}}</td>
+            <td class="recondition-data-td" data-purpose="rr-recondition" data-value="{{values.recondition_rate}}">{{values.recondition_rate|string_to_int|to_percentage:"0"}}</td>
+            <td>{{values.order_quantity|floatformat:"0"}}</td>
+            <td>{{values.quantity_delivered|floatformat:"0"}}</td>
+            <td>{{values.defective_quantity|default_if_none:"0"|floatformat:"0"}}</td>
+            <td>{{values.difference|floatformat:"0"}}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div id="report-context-menu">
+    <img class="excel-icon" src="{% static 'excel-ico.png' %}">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    var data_tds = document.querySelectorAll('td[class="recondition-data-td"]')
+    var context_menu = document.getElementById('report-context-menu')
+    var excel_export = document.querySelector('[class="excel-icon"]')
+    var url = "{% url 'report_recondition' %}"
+    
+    var month = {{ month }}
+    var year = {{ year }}
+
+    document.getElementById('month').value = month
+    document.getElementById('year').value = year
+
+    add_listeners()
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'reman_base.html' %}
+
+{% block content %}
+
+{% load reman_tags %}
+
+<table class="materials">
+    <thead>
+        <th>FG materiál</th>
+        <th>Nepočítat</th>
+        <th style="width: 30%">Kategorie</th>
+        <th>CC materiály</th>
+    </thead>
+    <tbody>
+        {% for material in fg_materials %}
+        <tr>
+            <td class="fg-material">
+                {{material.material_number}}</td>
+            <td><input data-fg-material="{{material.material_number}}" type="checkbox" {% if material.disabled %} checked {% endif %}></td>
+            <td class="fg-material" contenteditable="true" data-fg-material="{{material.material_number}}" data-purpose="category">{{material.category|default_if_none:""}}</td>
+            <td class="fg-material">{{material.material_number|get_cc_materials|join:", "}}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var inputs = document.querySelectorAll('input[type=checkbox]')
+    var url = "{% url 'visualize_fg' %}"
+    inputs.forEach(input => {
+        input.addEventListener('click', (e) => {
+            let fg_material = e.target.dataset.fgMaterial;
+            let post_data = {};
+            post_data['purpose'] = 'fg_material'
+            post_data['fg_material'] = fg_material;
+            post_data['disabled'] = e.target.checked;
+            // postData(url, post_data).then(() => location.reload());
+            postData(url, post_data);
+        })
+    })
+
+    var category_tds = document.querySelectorAll('[data-purpose="category"]')
+        category_tds.forEach(td => {
+            td.addEventListener('keypress', (e) => {
+                e.preventDefault;
+                if (e.key === 'Enter') {
+                    e.target.blur();
+                    let fg_material = e.target.dataset.fgMaterial;
+                    let post_data = {};
+                    post_data['purpose'] = 'category';
+                    post_data['fg_material'] = fg_material;
+                    post_data['category'] = e.target.innerText;
+                    postData(url, post_data)
+                }
+        })
+    })
+
+    var fg_material_tds = document.querySelectorAll('[class="fg-material"]')
+        fg_material_tds.forEach(td => {
+            td.addEventListener('mouseover', (e) => {
+                e.target.parentElement.classList.add("highlighted");
+            })
+            td.addEventListener('mouseout', (e) => {
+                e.target.parentElement.classList.remove("highlighted");
+            })
+        })
+
+
+    document.addEventListener('scroll', () => {
+        if (window.scrollY > 0) {
+            document.getElementsByTagName('thead')[0].style.top = '0';
+        } else {
+            document.getElementsByTagName('thead')[0].style.top = '5vh';
+        }
+    })
+
+</script>
+
+{% endblock %}

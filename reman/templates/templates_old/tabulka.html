@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regeneration rate report</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+    <style>
+        .p-table {
+            width: 97vw;
+            margin: 0 auto;
+            box-sizing: border-box;
+            border: 1px solid lightgray;
+            display: grid;
+            grid-template-columns: repeat(16, minmax(min-content, 5vw));
+        }
+
+        .p-table a {
+            cursor: pointer;
+        }
+
+        .even-column {
+            background-color: rgba(0, 0, 0, 0.05)
+        }
+
+        .column-5,
+        .column-6,
+        .column-7,
+        .column-8,
+        .column-9,
+        .column-10,
+        .column-11,
+        .column-12,
+        .column-13,
+        .column-14,
+        .column-15,
+        .column-16 {
+            display: flex;
+            justify-content: center;
+        }
+
+        .p-cell {
+            text-align: left;
+            padding: 0 .2em;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .title-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 .25em;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+
+        .light-background {
+            background-color: rgba(0, 125, 255, 0.025);
+        }
+
+        .selectors {
+            width: 97vw;
+            margin: 0 auto;
+            display: flex;
+        }
+
+        .invisible0 {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .invisible1 {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .invisible2 {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .invisible3 {
+            position: absolute;
+            left: -9999px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <section class="selectors">
+        <div class="selector"><input type="number" style="width: 2rem" value="7" min="1" max="12" step="1"></div>
+        <div class="selector"><input type="number" style="width: 4rem" value="2021" min="2021" step="1"></div>
+        <div class="selector"><input type="submit" style="width: 4rem" value="Vybrat"></div>
+    </section>
+
+    {% load reman_tags %}
+
+    <div class="p-table" id="table" style="display: none;">
+        <div class="title-cell odd-column" onclick="sortTable(0)"><span>CC Material</span><input id="filter0"
+                type="text" oninput='filterData(0, this.value)' data-column-index="0">
+        </div>
+        <div class="title-cell even-column" onclick="sortTable(1)">FG Material<input id="filter1" type="text"
+                oninput='filterData(1, this.value)' data-column-index="1"></div>
+        <div class="title-cell" onclick="sortTable(2)">R Material<input id="filter2" type="text"
+                oninput='filterData(2, this.value)' data-column-index="2"></div>
+        <div class="title-cell even-column" onclick="sortTable(3)">Material Plant View<input id="filter3" type="text"
+                oninput='filterData(3, this.value)' data-column-index="3"></div>
+        <div class="title-cell" onclick="sortTable(4)">RR Sorting (group)</div>
+        <div class="title-cell even-column" onclick="sortTable(5)">CC consumption</div>
+        <div class="title-cell" onclick="sortTable(6)">FG receiving</div>
+        <div class="title-cell even-column" onclick="sortTable(7)">RR Disassembly</div>
+        <div class="title-cell" onclick="sortTable(8)">RR Disassembly (group)</div>
+        <div class="title-cell even-column" onclick="sortTable(9)">FG consumption</div>
+        <div class="title-cell" onclick="sortTable(10)">R receiving</div>
+        <div class="title-cell even-column" onclick="sortTable(11)">RR Recondition</div>
+        <div class="title-cell" onclick="sortTable(12)">RR Recondition (group)</div>
+        <div class="title-cell even-column" onclick="sortTable(13)">RR Process</div>
+        <div class="title-cell" onclick="sortTable(14)">RR Process (group)</div>
+        <div class="title-cell even-column" onclick="sortTable(15)">RR External (group)</div>
+
+        {% for item in data %}
+        <div class="p-cell column-1" data-column="1" data-row={{forloop.counter0}} data-span="1">
+            {{item.0|default_if_none:"missing"}}
+        </div>
+        <div class="p-cell column-2 even-column" data-column="2" data-row={{forloop.counter0}} data-span="1">{{item.1}}
+        </div>
+        <div class="p-cell column-3" data-column="3" data-row={{forloop.counter0}} data-span="1">{{item.2}}</div>
+        <div class="p-cell column-4 even-column" data-column="4" data-row={{forloop.counter0}} data-span="1">{{item.3}}
+        </div>
+        <div class="p-cell column-5" data-column="5" data-row={{forloop.counter0}} data-span="1" data-metrics="sorting">
+            <a
+                href="{% url 'source_data_api' %}?metrics=sorting&group={{item.3}}&month=7&year=2021">{{item.4|to_percentage:"0"}}</a>
+        </div>
+        <div class="p-cell column-6 even-column" data-column="6" data-row={{forloop.counter0}} data-span="1">
+            {{item.5|default_if_none:0}}</div>
+        <div class="p-cell column-7" data-column="7" data-row={{forloop.counter0}} data-span="1">
+            {{item.6|default_if_none:0}}</div>
+        <div class="p-cell column-8 even-column" data-column="8" data-row={{forloop.counter0}} data-span="1">
+            {{item.7|default_if_none:0|to_percentage:"0"}}</div>
+        <div class="p-cell column-9" data-column="9" data-row={{forloop.counter0}} data-span="1">
+            {{item.8|default_if_none:0|to_percentage:"0"}}</div>
+        <div class="p-cell column-10 even-column" data-column="10" data-row={{forloop.counter0}} data-span="1">
+            {{item.9}}</div>
+        <div class="p-cell column-11" data-column="11" data-row={{forloop.counter0}} data-span="1">
+            {{item.10|default_if_none:0}}</div>
+        <div class="p-cell column-12 even-column" data-column="12" data-row={{forloop.counter0}} data-span="1">
+            {{item.11|default_if_none:0|to_percentage:"0"}}
+        </div>
+        <div class="p-cell column-13" data-column="13" data-row={{forloop.counter0}} data-span="1">
+            {{item.12|default_if_none:0|to_percentage:"0"}}</div>
+        <div class="p-cell column-14 even-column" data-column="14" data-row={{forloop.counter0}} data-span="1">
+            {{item.13|default_if_none:0|to_percentage:"0"}}
+        </div>
+        <div class="p-cell column-15" data-column="15" data-row={{forloop.counter0}} data-span="1">
+            {{item.14|default_if_none:0|to_percentage:"0"}}</div>
+        <div class="p-cell column-16 even-column" data-column="16" data-row={{forloop.counter0}} data-span="1">
+            {{item.15|default_if_none:0|to_percentage:"0"}}
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+
+
+</body>
+
+<script>
+
+    const range = (end, start = 0, step = 1) => {
+        function* generateRange() {
+            let x = start - step;
+            while (x < end - step) yield x += step;
+        }
+        return {
+            [Symbol.iterator]: generateRange
+        };
+    }
+
+    var table = document.getElementById('table');
+    // var columns = [...range(17)]
+    var columns = [1, 3, 4, 5, 9, 13, 15, 16]
+
+    addSpan();
+
+    function addSpan() {
+        columns.forEach(column_number => addColumnSpan(column_number));
+        table.style.display = "grid";
+    }
+
+    function addColumnSpan(column_number) {
+        let column_cells = document.querySelectorAll(`.column-${column_number}:not(.invisible0):not(.invisible1):not(.invisible2):not(.invisible3)`);
+        column_cells.forEach((cell, index) => {
+            if (index == 0) {
+                previous_cell = cell
+            }
+            else if (cell.innerText == previous_cell.innerText) {
+                cell.classList.add('to-delete');
+                previous_cell.dataset.span = enlargeSpan(previous_cell.dataset.span);
+                previous_cell.dataset.row += `|${cell.dataset.row}`;
+            }
+            else {
+                previous_cell = cell;
+            }
+        })
+        column_cells.forEach((cell) => {
+            if (cell.classList.contains('to-delete')) {
+                cell.remove();
+            }
+            else {
+                cell.style.gridRow = `span ${cell.dataset.span}`;
+                cell.style.display = 'flex';
+                cell.style.alignItems = 'center';
+            }
+        })
+    }
+
+    function enlargeSpan(span_string) {
+        return (parseInt(span_string) + 1).toString()
+    }
+
+    var table_cells = table.querySelectorAll('.p-cell')
+    table_cells.forEach((cell) => {
+        if (cell.dataset.span == "1") {
+            cell.addEventListener('mouseover', () => {
+                let row_cells = document.querySelectorAll(`[data-row="${cell.dataset.row}"]`)
+                row_cells.forEach((row_cell) => {
+                    row_cell.classList.add('light-background');
+                })
+                let span_cells = document.querySelectorAll('[data-row]:not([data-row="1"])');
+                span_cells.forEach((span_cell) => {
+                    let row_numbers = span_cell.dataset.row.split("|");
+                    if (row_numbers.includes(cell.dataset.row)) {
+                        span_cell.classList.add('light-background');
+                    }
+                })
+            })
+            cell.addEventListener('mouseout', () => {
+                let table_cells = table.querySelectorAll('.p-cell')
+                table_cells.forEach((cell) => {
+                    cell.classList.remove('light-background');
+                })
+            })
+        } else {
+            cell.addEventListener('mouseover', () => {
+                cell.classList.add('light-background');
+                let row_numbers = cell.dataset.row.split("|");
+                for (row_number of row_numbers) {
+                    let row_cells = document.querySelectorAll(`[data-row="${row_number}"]`)
+                    row_cells.forEach((cell) => {
+                        cell.classList.add('light-background');
+                    })
+                    let row_cells_with_span = document.querySelectorAll('[data-row]:not([data-row="1"])');
+                    row_cells_with_span.forEach((cell_with_span) => {
+                        let cell_with_span_rows = cell_with_span.dataset.row.split("|");
+                        cell_with_span_rows.forEach((row) => {
+                            if (row_numbers.includes(row)) {
+                                cell_with_span.classList.add('light-background');
+                            }
+                        })
+                    })
+
+                }
+            })
+
+            cell.addEventListener('mouseout', () => {
+                let table_cells = table.querySelectorAll('.p-cell')
+                table_cells.forEach((cell) => {
+                    cell.classList.remove('light-background');
+                })
+            })
+        }
+    })
+
+    function filterData(idxOfCol, filteredValue) {
+        removeSpan()
+        filteredValueUpperCase = filteredValue.toUpperCase();
+        let rows = table.getElementsByClassName(`column-${idxOfCol + 1}`);
+        var arrayOfRows = Array.from(rows);
+        arrayOfRows.forEach((filteredDiv) => {
+            let textOfDiv = filteredDiv.innerHTML.toUpperCase();
+            if (textOfDiv.includes(filteredValueUpperCase)) {
+                filteredDiv.classList.remove("invisible" + idxOfCol);
+                let numberOfRow = filteredDiv.dataset.row;
+                let rowOfFilteredDiv = document.querySelectorAll(`div[data-row='${numberOfRow}']`);
+                rowOfFilteredDiv.forEach((filteredDiv1) => {
+                    filteredDiv1.classList.remove("invisible" + idxOfCol)
+                })
+            }
+            else {
+                filteredDiv.classList.add("invisible" + idxOfCol);
+                let numberOfRow = filteredDiv.dataset.row;
+                let rowOfFilteredDiv = document.querySelectorAll(`div[data-row='${numberOfRow}']`);
+                rowOfFilteredDiv.forEach((filteredDiv1) => {
+                    filteredDiv1.classList.add("invisible" + idxOfCol);
+                })
+
+            }
+
+        })
+        addSpan()
+    }
+
+    function removeSpan() {
+        columns.forEach(column_number => removeColumnSpan(column_number));
+        table.style.display = "grid";
+    }
+
+    function removeColumnSpan(column_number) {
+
+        let column_cells = document.querySelectorAll(`[data-span]:not([data-span="1"])[data-column="${column_number}"]`);
+        column_cells.forEach((cell) => {
+            span_size = parseInt(cell.style.gridRow.replace(/[^\d.]/g, ''));
+            original_text = cell.innerHTML;
+            let origin_row = parseInt(cell.dataset.row.split("|")[0])
+            let origin_col = parseInt(cell.dataset.column);
+            if (column_number == 1) {
+                let cells_to_right = document.querySelectorAll(`[data-column="${column_number + 1}"]`);
+                var counter = 0
+                cells_to_right.forEach((cell_to_right) => {
+                    if (parseInt(cell_to_right.dataset.row) >= origin_row && parseInt(cell_to_right.dataset.row) < origin_row + span_size) {
+                        let new_cell = document.createElement('div')
+                        new_cell.innerHTML = original_text;
+                        new_cell.style.span = 'span 1';
+                        new_cell.classList = cell.classList;
+                        new_cell.dataset.row = `${origin_row + counter}`
+                        new_cell.dataset.column = origin_col
+                        new_cell.dataset.span = '1'
+                        cell_to_right.before(new_cell)
+                        counter += 1
+                    }
+                })
+            }
+            else {
+                let cells_to_left = document.querySelectorAll(`[data-column="${column_number - 1}"]`);
+                var counter = 0
+                cells_to_left.forEach((cell_to_left) => {
+                    if (parseInt(cell_to_left.dataset.row) >= origin_row && parseInt(cell_to_left.dataset.row) < origin_row + span_size) {
+                        let new_cell = document.createElement('div')
+                        new_cell.innerHTML = original_text;
+                        new_cell.style.span = 'span 1';
+                        new_cell.classList = cell.classList;
+                        new_cell.dataset.row = `${origin_row + counter}`
+                        new_cell.dataset.column = origin_col
+                        new_cell.dataset.span = '1'
+                        cell_to_left.after(new_cell)
+                        counter += 1
+                    }
+                })
+            }
+            cell.remove();
+        })
+
+
+    }
+
+    function sortTable(colIndex) {
+        removeSpan()
+        var rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        switching = true;
+        needToBeSorted = document.getElementsByClassName(`column-${colIndex + 1}`)
+        dir = "asc";
+
+        while (switching) {
+
+            switching = false;
+            rows = needToBeSorted;
+
+            for (i = 1; i < (rows.length - 1); i++) {
+
+                shouldSwitch = false;
+                x = needToBeSorted[i];
+                y = needToBeSorted[i + 1];
+
+                if (dir == "asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+
+                else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+
+            if (shouldSwitch) {
+                let new_div = document.createElement('div')
+                new_div.classList = x.classList;
+                new_div.dataset.column = x.dataset.column;
+                new_div.dataset.row = x.dataset.row;
+                new_div.style.span = '1'
+                new_div.innerHTML = x.innerHTML;
+                y.after(new_div);
+                x.remove()
+                switching = true;
+                switchcount++;
+            } else {
+                if (switchcount == 0 && dir == "asc") {
+                    dir = "desc";
+                    switching = true;
+                }
+            }
+        }
+        //addSpan()
+    }
+</script>
+
+
+</html>

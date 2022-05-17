@@ -1,0 +1,538 @@
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,800,900&display=swap" rel="stylesheet">
+    <style>
+  :root {
+    --main-radius: 5px;
+    --main-padding: 5px;
+  }
+  
+  body {
+    font-family: "Inter", sans-serif;
+  }
+  
+  * {
+  margin: 0;
+  padding: 0;
+  }
+  
+  .container {
+    display: grid;
+    height: 100vh;
+    grid-template-columns: 0.075fr 1fr 1.2fr 0.9fr 0.65fr 1.45fr 0.3fr 1fr 0.075fr;
+    grid-template-rows: 0.1fr 0.2fr 1fr 1fr 1fr 1fr 1fr 1fr 0.1fr; 
+    grid-template-areas:
+      "border_top border_top border_top border_top border_top border_top border_top border_top border_top"
+      "border_left machine_name scrolling_text scrolling_text scrolling_text status status time border_right"
+      "border_left responsible_person total_production total_production total_production total_production_order total_production_order total_production_order border_right"
+      "border_left responsible_person total_production total_production total_production total_production_order total_production_order total_production_order border_right"
+      "border_left line_info buttons buttons buttons buttons2 buttons2 buttons2 border_right"
+      "border_left line_info buttons buttons buttons buttons2 buttons2 buttons2 border_right"
+      "border_left line_info buttons buttons buttons buttons2 buttons2 buttons2 border_right"
+      "border_left line_info buttons buttons buttons buttons2 buttons2 buttons2 border_right"
+      "border_bottom border_bottom border_bottom border_bottom border_bottom border_bottom border_bottom border_bottom border_bottom";
+    grid-gap: 0.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 1em;
+    color: #004d40;
+    text-align: center;
+  
+  }
+  
+  #scrolling_text {
+    background: #AAAAAA;
+    grid-area: scrolling_text;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  
+  .GeneratedMarquee {
+  line-height:2em;
+  color:#000000;
+}
+  
+  #machine_name {
+    background: #AAAAAA;
+    grid-area: machine_name;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  
+  #status {
+    background: #AAAAAA;
+    grid-area: status;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  
+  #time {
+    background: #AAAAAA;
+    grid-area: time;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  
+  #responsible_person {
+    background: #AAAAAA;
+    grid-area: responsible_person;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  
+  #line_info {
+    background: #AAAAAA;
+    grid-area: line_info;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  
+  #total_production {
+    background: #6fffd2;
+    grid-area: total_production;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  
+  #total_production_order {
+    background: #6fffd2;
+    grid-area: total_production_order;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  #buttons {
+    background: #6fffd2;
+    grid-area: buttons;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  
+  #buttons2 {
+    background: #6fffd2;
+    grid-area: buttons2;
+    border-radius: var(--main-radius);
+    padding-top: var(--main-padding);
+  }
+  .btn-2 {
+      width: 100px;
+      height: 90px;
+      border:none;
+      color: white;
+      font-family: 'Source Sans Pro', sans-serif;
+      letter-spacing: 4px;
+      background-color: rgb(220,20,60);
+      border-radius: 4px;
+      transition: ease-out 0.3s;
+      font-size: 0.8rem;
+      outline: none;
+      border: 3px solid #6fffd2;
+      position: relative;
+      z-index: 1;
+      text-transform: uppercase;
+      border-radius: 5%;
+      font-size: medium;
+    
+  }
+  .btn-2:hover{
+      color: #fff;
+      cursor: pointer;
+  }
+
+  .btn-2:before{
+      transition: 0.5s all ease;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      right: 50;
+      bottom: 0;
+      opacity: 0;
+      content: "";
+      background-color:	rgb(255, 0, 60);
+  }
+
+  .btn-2:hover:before {
+      transition: 0.5s all ease;
+      left: 0;
+      right: 0;
+      opacity: 1;
+      z-index: -1;
+
+  }
+
+  .btn-1 {
+      width: 100px;
+      height: 90px;
+      border:none;
+      color: white;
+      font-family: 'Source Sans Pro', sans-serif;
+      letter-spacing: 4px;
+      background-color: #FFA500;
+      border-radius: 4px;
+      transition: ease-out 0.3s;
+      font-size: 0.8rem;
+      outline: none;
+      border: 3px solid #6fffd2;
+      position: relative;
+      z-index: 1;
+      text-transform: uppercase;
+      border-radius: 5%;
+      font-size: medium;
+
+    
+  }
+  .btn-1:hover{
+      color: #fff;
+      cursor: pointer;
+  }
+
+  .btn-1:before{
+      transition: 0.5s all ease;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      right: 50;
+      bottom: 0;
+      opacity: 0;
+      content: "";
+      background-color:	#FF8C00;
+  }
+
+  .btn-1:hover:before {
+      transition: 0.5s all ease;
+      left: 0;
+      right: 0;
+      opacity: 1;
+      z-index: -1;
+
+  }
+  .container_btn{
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-evenly;
+      align-items: center;
+      text-align: center;
+      min-height: 20vh;
+  }
+  .container_btn>* {
+        flex: 1 1 160px;
+    }
+  a {
+    text-align: center;
+    display: block;
+    font-family: inherit;
+    text-decoration: none;
+    font-weight: bold;
+    margin: 1rem;
+  }
+  
+  .photo > img {
+    object-fit: cover;
+    width: 90%;
+    max-height: 100%;
+    border-radius: 50%;
+  }
+  
+  .textA{
+  padding-top: 0.3em; 
+  font-size: large; 
+  color: rgba(0, 77, 64, 0.7)
+}
+
+.textB {
+  /* padding-top: 5px; */
+  font-size: x-large;
+  border-bottom: 2px solid #DDDDDD;
+}
+
+.textB:last-of-type {
+  border-bottom: none;
+}
+
+
+.textC{
+  padding-top: 5px;
+  font-size: medium;
+}
+.text-wrapper:not(:last-child){
+  border-bottom: 2px solid white;
+}
+.responsible_person{
+  color: rgba(0, 77, 64, 0.7)
+}
+
+  @media only screen and (max-width: 550px) {
+    .container {
+      grid-template-columns: 1fr;
+      grid-template-rows: 0.2fr 0.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+      grid-template-areas:
+        "scrolling_text"
+        "machine_name"
+        "time"
+        "responsible_person"
+        "line_info"
+        "total_production"
+        "total_production_order"
+        "buttons"
+        "buttons2"
+  
+    }
+  }
+    </style>
+  </head>
+  
+  <div class="container" id = "container_background" style="background-color: red;">
+    <div id="machine_name">{{machine}}</div>
+    <div id="time" style="padding-top: 0.7em;">{{time}}</div>
+    <div id="scrolling_text">
+      <marquee class="GeneratedMarquee" direction="left" scrollamount="20" behavior="scroll">Scrolling text...</marquee>
+    </div>
+    <div id="responsible_person">
+      <div class="responsible_person">Responsible Person</div>
+      <div class="name" style="padding-top: 20px; font-size: x-large;">Alice Holubová</div>
+      <div class="photo" style="padding-top: 20px; padding-bottom: 20px;">
+        <img src="https://img.freepik.com/fotos-kostenlos/froehliches-lockiges-geschaeftsmaedchen-das-brille-traegt_176420-206.jpg?size=626&ext=jpg">
+      </div>
+    </div>
+    <div id="line_info">
+      <div id="line_info">
+        <div class="text-wrapper">
+          <div class="textA">Days without accident</div>
+          <div class="textB">123</div>
+        </div>
+        <div class="text-wrapper">
+          <div class="textA">Monthly OEE</div>
+          <div class="textB">{{monthly_OEE}}%</div>
+        </div>
+        <div class="text-wrapper">
+          <div class="textA">Monthly RQ</div>
+          <div class="textB">{{monthly_RQ}}%</div>
+        </div>
+        <div class="text-wrapper">
+          <div class="textA">Actual Order</div>
+          <div class="textB">{{last_ordernumber}}</div>
+        </div>
+        <div class="text-wrapper">
+          <div class="textA">Order Production</div>
+          <div class="textB">{{total_production_order}} / {{Target_order_full}}</div>
+        </div>
+          <div class="text-wrapper">
+            <div class="textA">Actual Partnumber</div>
+            <div class="textB">{{last_partnumber}}</div>
+        </div>
+        <div class="text-wrapper">
+          <div class="textA">Actual Operators</div>
+          <div class="textB">{{operators}}</div>
+      </div>
+        <div class="text-wrapper">
+            <div class="textA">Est. Shift Production (APO)</div>
+            <div class="textB">{{Estimated_total_shift_production_sap_apo}}</div>
+        </div>
+        <div class="text-wrapper">
+            <div class="textA">Est. Order Production (APO)</div>
+            <div class="textB">{{Estimated_total_order_production_sap_apo}}</div>
+        </div>
+      </div>
+    </div>
+
+    
+    <div id="status">
+      <div class = "textC" id = "actual_line_status">{{actual_line_status}}</div>
+    </div>
+    <div class="chartBox" id="total_production">
+      <div style="padding-bottom: 10px;">Total Shift Production</div>
+      <canvas id="Total_production_chart" height="90px"></canvas>
+    </div>
+    <div class="chartBox" id="total_production_order">
+      <div style="padding-bottom: 10px;">Total Order Production In Shift</div>
+      <canvas id="Total_production_order_chart" height="90px"></canvas>
+    </div>
+    <div class="container_btn" id="buttons">
+        <button class="btn-1">Lisování malého O-ringu</button>
+        <button class="btn-1">Malé množství granulátu</button>
+        <button class="btn-1">Malý O-ring kamera</button>
+        <button class="btn-1">Množství granulátu</button>
+        <button class="btn-1">Montáž filtru</button>
+        <button class="btn-1">Orientovaný kontejner</button>
+        <button class="btn-1">Pružina lis. pavouka</button>
+        <button class="btn-1">Velké množství granulátu</button>
+        <button class="btn-1">Velký O-ring</button>
+        <button class="btn-1">Nedosažen testovací tlak</button>
+        <button class="btn-1">Nedosažen tlak lis. pavouka</button>
+        <button class="btn-1">Nespecifik. chyba</button>
+        <button class="btn-1">1. laserování - LOGO</button>
+        <button class="btn-1">2. laserování - ID</button>
+        <button class="btn-1">Dummy</button>
+        <button class="btn-1">Dummy kam. test pins, laser</button>
+        <button class="btn-1">Neznámý kus</button>
+        <button class="btn-1">Odebráno ručně a smazán</button>
+        <button class="btn-1">Opakovaný test těsnosti nosiče</button>
+        <button class="btn-1">Překročen testovací tlak</button>
+        <button class="btn-1" style="width: 400px; height: 110px;">Další možnosti</button>
+    </div>
+    <div class="container_btn" id="buttons2">
+        <button class="btn-2">Údržba 1. stupeň - TPM</button>
+        <button class="btn-2">Úklid/5s</button>
+        <button class="btn-2">Chybějící materiál</button>
+        <button class="btn-2">Pracovní návodka</button>
+        <button class="btn-2">Nářadí</button>
+        <button class="btn-2">Chybějící program</button>
+        <button class="btn-2">Přesun operátorů na jinou směnu</button>
+        <button class="btn-2">Předání směny</button>
+        <button class="btn-2">Prodej balení</button>
+        <button class="btn-2">Ověřování DUMMY kusů</button>
+        <button class="btn-2">Operátor v zaučení</button>
+        <button class="btn-2">Chybějící operátor</button>
+        <button class="btn-2">COVID test</button>
+        <button class="btn-2">Trénink ostatní</button>
+        <button class="btn-2">Trénink na pracovišti</button>
+        <button class="btn-2">Q-First</button>
+        <button class="btn-2">První seřízení</button>
+        <button class="btn-2">Přestávka</button>
+        <button class="btn-2">Ostatní dostupnost</button>
+        <button class="btn-2">Přestavba na jiný typ</button>
+        <button class="btn-2" style="width: 400px; height: 110px">Další možnosti</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+  <script> 
+//Line Status
+  var actual_line_status = "{{actual_line_status|safe}}";
+  var line_status = document.getElementById('actual_line_status')
+  var line_status_time = document.getElementById('actual_line_status_time')
+  if (actual_line_status == "Výroba"){
+    line_status.style.color = '#228B22'
+  }
+  else {
+    line_status.style.color = '#FF0000'
+  }
+  </script>
+  <script>
+var estimated_total_production = {{Total_shift_production_estimated|safe}}
+var total_production = {{Total_shift_production_actual|safe}}
+new Chart(document.getElementById("Total_production_chart"), {
+    type: 'horizontalBar',
+    data: {
+      labels: ["Actual", "Target"],
+      datasets: [
+        {
+          label: "Finished Pieces",
+          backgroundColor: ["#3366CC", "#DC3912"],
+          data: [total_production,estimated_total_production]
+        }
+      ]
+    },
+    options: {
+      legend: { display: false },
+      title: {
+        display: false,
+        text: 'Total Pieces',
+      },
+      scales: {
+        xAxes: [{
+          ticks: {
+            min: 0
+          }
+        }],
+        yAxes: [{
+          ticks: {
+            fontSize: 16
+          }
+        }]
+      },
+      animation: {
+          duration: 1,
+            onComplete: function() {
+              let chartInstance = this.chart,
+                  ctx = chartInstance.ctx;
+
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+
+              this.data.datasets.forEach(function(dataset, i)
+                                         {
+                let meta = chartInstance.controller.getDatasetMeta(i);
+                meta.data.forEach(function(bar, index) {
+                  let data = dataset.data[index];
+                  ctx.fillStyle = 'white';
+                  ctx.font = "25px Arial";
+                  if (bar._model.x < 125){
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(Math.round(data), bar._model.x + 40 , bar._model.y + 15);
+                  }
+                  else{
+                    ctx.fillText(Math.round(data), bar._model.x - 40 , bar._model.y + 15);
+                  }
+                });
+              });
+            }
+        }
+    },
+});
+
+var total_production_order = {{actual_total_order_production_in_shift|safe}}
+var total_production_order_estimated = {{total_production_order_estimated|safe}}
+var target_order = {{Target_order|safe}}
+new Chart(document.getElementById("Total_production_order_chart"), {
+    type: 'horizontalBar',
+    data: {
+      labels: ["Actual", "Target"],
+      datasets: [
+        {
+          backgroundColor: ["#3366CC", "#DC3912"],
+          data: [total_production_order,target_order],
+        }
+      ]
+    },
+    options: {
+      legend: { 
+        display: false,
+        labels:{
+          fontSize: 16
+        }
+      },
+      title: {
+        display: false,
+        text: 'Total Pieces',
+      },
+      scales: {
+        xAxes: [{
+          ticks: {
+            min: 0
+          }
+        }],
+        yAxes: [{
+          ticks: {
+            fontSize: 16
+          }
+        }]
+      },
+      animation: {
+          duration: 1,
+            onComplete: function() {
+              let chartInstance = this.chart,
+                  ctx = chartInstance.ctx;
+
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+
+              this.data.datasets.forEach(function(dataset, i)
+                                         {
+                let meta = chartInstance.controller.getDatasetMeta(i);
+                meta.data.forEach(function(bar, index) {
+                  let data = dataset.data[index];
+                  ctx.fillStyle = 'white';
+                  ctx.font = "25px Arial";
+                  if (bar._model.x < 125){
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(Math.round(data), bar._model.x + 40 , bar._model.y + 15);
+                  }
+                  else{
+                    ctx.fillText(Math.round(data), bar._model.x - 40 , bar._model.y + 15);
+                  }
+                });
+              });
+            }
+        }
+    },
+});
+  </script>

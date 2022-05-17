@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regeneration rate report</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+</head>
+
+<body>
+
+    {% load reman_tags %}
+
+    <table class="regeneration-rate-table" id="BeforeTable">
+        <thead>
+            <th>CC Material</th>
+            <th>FG Material</th>
+            <th>R Material</th>
+            <th>Material Plant View</th>
+            <th>RR Sorting (group)</th>
+            <th>CC consumption</th>
+            <th>FG receiving</th>
+            <th>RR Disassembly</th>
+            <th>RR Disassembly (group)</th>
+            <th>FG consumption</th>
+            <th>R receiving</th>
+            <th>RR Recondition</th>
+            <th>RR Recondition (group)</th>
+            <th>RR Process</th>
+            <th>RR Process (group)</th>
+            <th>RR External (group)</th>
+
+
+        </thead>
+
+        <tbody>
+            {% for item in data %}
+            <tr>
+                <td class="column-1">{{item.0}}</td>
+                <td class="column-2">{{item.1}}</td>
+                <td class="column-3">{{item.2}}</td>
+                <td class="column-4">{{item.3}}</td>
+                <td class="column-5" data-group="{{item.3}}" data-metrics="sorting"><a
+                        href="{% url 'source_data_api' 'sorting' item.3 7 2021%}">{{item.4|to_percentage:"1"}}</a></td>
+                <td class="column-6">{{item.5|default_if_none:0}}</td>
+                <td class="column-7">{{item.6|default_if_none:0}}</td>
+                <td class="column-8">{{item.7|default_if_none:0|to_percentage:"1"}}</td>
+                <td class="column-9">{{item.8|default_if_none:0|to_percentage:"1"}}</td>
+                <td class="column-10">{{item.9}}</td>
+                <td class="column-11">{{item.10}}</td>
+                <td class="column-12">{{item.11|default_if_none:0|to_percentage:"1"}}</td>
+                <td class="column-13">{{item.12|default_if_none:0|to_percentage:"1"}}</td>
+                <td class="column-14">{{item.13|default_if_none:0|to_percentage:"1"}}</td>
+                <td class="column-15">{{item.14|default_if_none:0|to_percentage:"1"}}</td>
+                <td class="column-16">{{item.15|default_if_none:0|to_percentage:"1"}}</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</body>
+
+
+
+</html>

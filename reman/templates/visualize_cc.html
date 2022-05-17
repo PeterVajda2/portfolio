@@ -1,0 +1,152 @@
+{% extends 'reman_base.html' %}
+
+{% block content %}
+    
+<table class="materials">
+    <thead>
+        <th>CC materiál</th>
+        <th>Nepočítat</th>
+        <th>Summary group</th>
+        <th>Sorting group</th>
+        <th>Brand</th>
+        <th>New</th>
+    </thead>
+    <tbody>
+        {% for material in cc_materials %}
+        <tr>
+            <td class="cc-material{% if material.fg_material_set.all %} has-children{% endif %}">{{material.material_number}}</td>
+            <td><input data-cc-material="{{material.material_number}}" type="checkbox" data-purpose="disabled" {% if material.disabled %} checked {% endif %}></td>
+            <td class="cc-material" contenteditable="true" data-cc-material="{{material.material_number}}" data-purpose="summary-group">{{material.summary_group|default_if_none:""}}</td>
+            <td class="cc-material" contenteditable="true" data-cc-material="{{material.material_number}}" data-purpose="sorting-group">{{material.sorting_group|default_if_none:""}}</td>
+            <td class="cc-material" contenteditable="true" data-cc-material="{{material.material_number}}" data-purpose="brand">{{material.brand|default_if_none:""}}</td>
+            <td><input data-cc-material="{{material.material_number}}" data-purpose="new" type="checkbox" {% if material.new %} checked {% endif %}></td>
+        </tr>
+            {% if material.fg_material_set.all %}
+                <tbody data-purpose="fg" data-cc-material="{{material.material_number}}" class="hidden">
+                <tr class="title-row">
+                    <td>FG materiál</td>
+                    <td>Multiplikátor</td>
+                </tr>
+                {% for fg_material in material.fg_material_set.all %}
+                <tr>
+                    <td>{{fg_material.material_number}}</td>
+                    <td><input data-fg-material="{{fg_material.material_number}}" data-cc-material="{{material.material_number}}" data-purpose="multiplicator" type="number" step="0.5" value="{{fg_material.multiplicator}}"></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var actual_fgs = {{actual_fg_materials|safe}};
+    var inputs_disabled = document.querySelectorAll('input[type=checkbox][data-purpose="disabled"]')
+    var url = "{% url 'visualize_cc' %}"
+    inputs_disabled.forEach(input => {
+        input.addEventListener('input', (e) => {
+            let cc_material = e.target.dataset.ccMaterial;
+            let post_data = {};
+            post_data['purpose'] = 'cc_material'
+            post_data['cc_material'] = cc_material;
+            post_data['disabled'] = e.target.checked;
+            postData(url, post_data).then(() => location.reload());
+        })
+    })
+
+    var inputs_new = document.querySelectorAll('input[type=checkbox][data-purpose="new"]')
+        var url = "{% url 'visualize_cc' %}"
+        inputs_new.forEach(input => {
+            input.addEventListener('input', (e) => {
+                let cc_material = e.target.dataset.ccMaterial;
+                let post_data = {};
+                post_data['purpose'] = 'cc_material_new'
+                post_data['cc_material'] = cc_material;
+                post_data['new'] = e.target.checked;
+                postData(url, post_data).then(() => location.reload());
+            })
+        })
+
+    var cc_material_tds = document.querySelectorAll('[class*="has-children"]')
+    cc_material_tds.forEach(td => {
+        td.addEventListener('click', (e) => {
+            let fg_block = document.querySelector(`tbody[data-cc-material="${e.target.innerText}"]`);
+            if (e.ctrlKey) {
+                let fg_rows = fg_block.getElementsByTagName('tr');
+                for (fg_row of fg_rows) {
+                    if (!(actual_fgs.includes(fg_row.firstElementChild.textContent))) {
+                        fg_row.classList.add('hidden');
+                    }
+                }
+            } else {
+                let fg_rows = fg_block.getElementsByTagName('tr');
+                for (fg_row of fg_rows) {
+                    fg_row.classList.remove('hidden');
+                }
+            }
+            if (fg_block.classList.contains("hidden")) {
+                fg_block.classList.remove("hidden");
+            } else {
+                fg_block.classList.add("hidden");
+            }
+            fg_block.classList.toggle("highlighted");
+            e.target.classList.toggle("highlighted");
+        });
+        td.addEventListener('mouseover', (e) => {
+            e.target.parentElement.classList.add("highlighted");
+        })
+        td.addEventListener('mouseout', (e) => {
+            e.target.parentElement.classList.remove("highlighted");
+        })
+    })
+
+    var other_tds = document.querySelectorAll('[contenteditable="true"]')
+    other_tds.forEach(td => {
+        td.addEventListener('mouseover', (e) => {
+            e.target.parentElement.classList.add("highlighted");
+        })
+        td.addEventListener('mouseout', (e) => {
+            e.target.parentElement.classList.remove("highlighted");
+        })
+        td.addEventListener('keypress', (e) => {
+            e.preventDefault;
+            if (e.key === 'Enter') {
+                e.target.blur();
+                let cc_material = e.target.dataset.ccMaterial;
+                let post_data = {};
+                post_data['purpose'] = e.target.dataset.purpose;
+                post_data['cc_material'] = cc_material;
+                post_data['value'] = e.target.innerText;
+                postData(url, post_data)
+            }
+            })
+        }
+    )
+
+    var multiplicator_tds = document.querySelectorAll('[data-purpose="multiplicator"]')
+    multiplicator_tds.forEach(td => {
+        td.addEventListener('input', (e) => {
+            let fg_material = e.target.dataset.fgMaterial;
+            let post_data = {};
+            post_data['purpose'] = 'multiplicator';
+            post_data['fg_material'] = fg_material;
+            post_data['cc_material'] = e.target.dataset.ccMaterial;
+            post_data['multiplicator'] = e.target.value;
+            postData(url, post_data).then(() => console.log('hotovo'))
+        })
+    })
+
+    document.addEventListener('scroll', () => {
+        if (window.scrollY > 0) {
+            document.getElementsByTagName('thead')[0].style.top = '0';
+        } else {
+            document.getElementsByTagName('thead')[0].style.top = '5vh';
+        }
+    })
+
+</script>
+
+{% endblock %}

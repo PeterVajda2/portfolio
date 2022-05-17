@@ -1,0 +1,64 @@
+{% extends 'reman_base.html' %}
+
+{% block content %}
+
+{% load static %}
+
+{% load reman_tags %}
+
+<table>
+    <thead>
+        <th>Category</th>
+        <th>FG material</th>
+        <th>RR disassembly</th>
+        <th>Theoretical gain</th>
+        <th>Real gain</th>
+        <th>Deffective qty</th>
+        <th>Difference</th>
+        <th>RR disassembly (group)</th>
+        <th>CC materiál</th>
+        <th>Summary group</th>
+    </thead>
+    <tbody>
+        {% for fg_material, fg_values in data.items %}
+            <tr>
+                <td class="disassembly-data-td" data-purpose="category" data-value="{{fg_material.category}}">{{fg_material.category}}</td>
+                <td class="disassembly-data-td" data-purpose="fg-material" data-value="{{fg_material}}">{{fg_material}}</td>
+                <td class="disassembly-data-td" data-purpose="rr-disassembly" data-value="{{fg_values.regeneration_rate}}">{{fg_values.regeneration_rate|to_percentage:"2"}}</td>
+                <td>{{fg_values.theoretical_gain|floatformat:"0"}}</td>
+                <td>{{fg_values.real_gain|floatformat:"0"}}</td>
+                <td>{{fg_values.deffective_quantity|default_if_none:"0"}}</td>
+                <td></td>
+                <td class="disassembly-data-td" data-purpose="rr-disassembly-group" data-value="{{fg_values.regeneration_rate_group}}">{{fg_values.regeneration_rate_group|to_percentage:"2"}}</td>
+                <td class="disassembly-data-td" data-purpose="cc-material" data-value="{{fg_material.cc_material}}">{{fg_material.cc_material}}</td>
+                <td>{{fg_material.cc_material.summary_group}}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div id="report-context-menu">
+    <img class="excel-icon" src="{% static 'excel-ico.png' %}">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    var data_tds = document.querySelectorAll('td[class="disassembly-data-td"]')
+    var context_menu = document.getElementById('report-context-menu')
+    var excel_export = document.querySelector('[class="excel-icon"]')
+    var url = "{% url 'report_disassembly' %}"
+
+    var month = {{ month }}
+    var year = {{ year }}
+
+    document.getElementById('month').value = month
+    document.getElementById('year').value = year
+
+    add_listeners()
+
+</script>
+
+{% endblock %}

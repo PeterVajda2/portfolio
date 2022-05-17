@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load twx_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="{% static 'all.js' %}"></script>
+<script
+  src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+  integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs="
+  crossorigin="anonymous"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+
+{% endblock %}
+
+{% block body %}
+
+<div class="mass-norm-wrapper">
+
+        <form method="POST" id="mass-norm" class="mass-norm-header">{% csrf_token %}
+            <div>
+                <input type="datetime-local" class="datefrom" name="date_from" id="datefrom" {% if date_from %} value="{{date_from|date:"Y-m-d"}}T{{date_from|date:"H:i"}}" {% endif %} required>
+            </div>
+            <div>
+                <input type="datetime-local" class="datefrom" name="date_to" id="dateto" {% if date_to %} value="{{date_to|date:"Y-m-d"}}T{{date_to|date:"H:i"}}" {% endif %} required>
+            </div>
+            <div style="padding-top: 0.6em">
+                <select class="select-2-machines" style="width: 85%" name="machines" id="machines" multiple>
+                    {% for machine in machines %}
+                    <option>{{machine|make_machine_name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <i class="fa fa-paper-plane" aria-hidden="true" onclick="formsubmit()"></i>
+            </div>
+        </form>
+
+        {% if ofset.items %}
+        <div style="display: flex; justify-content: space-evenly; align-items:center; padding: 0 25%">
+            <span style="background-color: rgba(0,255,0,0.9)">míň než 10% rozdíl</span>
+            <span style="background-color: rgba(255,255,0,0.9)">rozdíl 10 - 20%</span>
+            <span style="background-color: rgba(255,0,0,0.9)">víc než 20% rozdíl</span>
+        </div>
+
+        {% endif %}
+        <table class="mass-norm" id="mass-norm">
+        <tr>
+            <th onclick="sortTable(this, 0)">Linka</th>
+            <th onclick="sortTable(this, 1)">Part Number</th>
+            <th onclick="sortTable(this, 2)">Postup</th>
+            <th onclick="sortTable(this, 3)">APO čas</th>
+            <th onclick="sortTable(this, 4)">TG Max čas</th>
+            <th onclick="sortTable(this, 5)">Průměrný čas<sub>v APO</sub></th>
+            <th onclick="sortTable(this, 6)">Medián<sub>v TG Max</sub></th>
+            <th onclick="sortTable(this, 7)">Kusů</th>
+            <th onclick="sortTable(this, 8)">APO vs průměr</th>
+            <th onclick="sortTable(this, 9)">TG Max vs medián</th>
+            <th onclick="sortTable(this, 10)">Pracnost</th>
+            <th onclick="sortTable(this, 11)">Operátoři</th>
+        </tr>
+    {% for key, value in ofset.items %}
+        <tr>
+            <td>{{value.machine|make_machine_name}}</td>
+            <td>{{key.0}}</td>
+            <td>{{value.production_group}}</td>
+            <td>{{value.apo|floatformat:"2"}}</td>
+            <td>{{value.tgmax|floatformat:"2"}}</td>
+            {% autoescape off %}
+            <td {% get_color_from_difference value.average value.apo %}>{{value.average|floatformat:"2"}}</td>
+            <td {% get_color_from_difference value.median value.tgmax %}>{{value.median|floatformat:"2"}}</td>
+            {% endautoescape %}
+            <td>{{value.count|floatformat:"0"}}</td>
+            <td>{{value.apo_vs_average|floatformat:"2"}}</td>
+            <td>{{value.tgmax_vs_median|floatformat:"2"}}</td>
+            <td>{{value.effort|floatformat:"0"}}</td>
+            <td title="{{value.operators|floatformat:"3"}}" style="cursor: help">{{value.operators|floatformat:"0"}}</td>
+        </tr>
+        {% endfor %}
+
+
+    </table>
+
+</div>
+
+
+<script>
+    function sortTable(elem, col) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = elem.parentNode.parentNode.parentNode;
+        switching = true;
+        dir = "asc";
+        while (switching) {
+    
+          switching = false;
+          rows = table.rows;
+    
+          for (i = 1; i < (rows.length - 1); i++) {
+    
+            shouldSwitch = false;
+    
+            x = rows[i].getElementsByTagName("TD")[col];
+            y = rows[i + 1].getElementsByTagName("TD")[col];
+
+            if (col > 1 && !col == 2) {
+    
+            if (dir == "asc") {
+                if (Number(x.innerHTML.replace(',','.')) > Number(y.innerHTML.replace(',','.'))) {
+                    shouldSwitch = true;
+                    break;
+                }
+            } else if (dir == "desc") {
+                if (Number(x.innerHTML.replace(',','.')) < Number(y.innerHTML.replace(',','.'))) {
+              
+              shouldSwitch = true;
+              break;
+            }
+          }
+        } else {
+            if (dir == "asc") {
+                if (x.innerHTML > y.innerHTML) {
+                    shouldSwitch = true;
+                    break;
+                }
+            } else if (dir == "desc") {
+                if (x.innerHTML < y.innerHTML) {
+                    shouldSwitch = true;
+                    break;
+            }
+          }
+        }
+        }
+         if (shouldSwitch) {
+    
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true;
+            switchcount ++;
+          } else {
+            if (switchcount == 0 && dir == "asc") {
+            dir = "desc";
+            switching = true;
+            }
+          }
+        }
+      }
+    </script>
+
+<script>
+    function formsubmit() {
+        var x = document.getElementsByTagName('form')[0]['datefrom'].value;
+        let machines = document.getElementById('machines')
+        if (x == "") {
+            alert("Zadejte, prosím, rozsah datumů")
+            return false;
+        } else {
+            document.getElementById('mass-norm').submit();
+        }
+    }
+</script>
+
+<script>
+$(document).ready(function() {
+    $('.select-2-machines').select2({
+        placeholder: "Vyberte linku/linky",
+        allowClear: true
+    });
+    
+});
+</script>
+
+{% if machines_to_input %}
+<script>
+var values = {{machines_to_input|safe}}
+var options = Array.from(document.querySelectorAll('#machines option'));
+
+values.forEach(function(v) {
+  options.find(c => c.value == v).selected = true;
+});
+
+</script>
+
+{% endif %}
+
+
+{% endblock %}

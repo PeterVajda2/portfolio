@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+{% load twx_tags %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<form style="display: none">{% csrf_token %}
+</form>
+
+<div class="twx-production-advisor-wrapper">
+
+    <div class="twx-production-advisor-table">
+        <div>Lines/Machines</div>
+        <div>Parts</div>
+        <div>RQ</div>
+        <div>Workers</div>
+        <div>DLP 1</div>
+        <div>OEE</div>
+        <div style="text-align: left">Info</div>
+        <div style="text-align: right;">Status</div>
+        <div style="display: flex; justify-content: space-between">
+            <div>OK díly</div>
+            <div>Target delta</div>
+        </div>
+        <div style="text-align: right;">NOK díly<br/>retesty</div>
+        <div style="text-align: right;">Planned</div>
+        <div style="text-align: right;">Target</div>
+        <div> </div>
+        <div>Časová základna</div>
+        
+        
+        {% for line in lines %}
+        
+        <div class="machine-line" id="{{line}}">{% adjust_name line "KBLIB" "MachineThing" %}</div>
+        <div style="display: flex; justify-content: space-between" id="{{line}}-parts" class="parts-container"> 
+            <div id="{{line}}-okparts">--</div>
+            <div id="{{line}}-delta">--</div>
+        </div>
+        <div style="display: flex; justify-content: space-between"> 
+            <div id="{{line}}-rqico"></div>
+            <div style="text-align: right" id="{{line}}-rq">--</div>
+            <div style="text-align: right" id="{{line}}-nokparts">--</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 0 1em"> 
+            <div>0</div>
+            <div>2</div>
+        </div>
+        <div> </div>
+        <div style="display: flex; justify-content: space-between; padding: 0 1em">
+            <div id="{{line}}-oeechart"></div>
+            <div style="text-align: right" id="{{line}}-oee">--</div>
+        </div>
+        <div> </div>
+                
+        {% endfor %}
+
+    </div>
+
+    <div id="status-div" style="text-align: center;"></div>
+
+</div>
+
+<script>
+    var percentage_option = {
+        style: 'percent',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1
+    }
+    var active_orders = [];
+    var formatter = new Intl.NumberFormat("en-US", percentage_option);
+    var current_time = new Date()
+    var shift_start = new Date(2020, 11, 8, 6, 0, 0)
+    var machine_shift_running_time = (current_time - shift_start) / 1000
+</script>
+
+<script>
+    function load_parts() {
+    
+        document.getElementById('status-div').innerText = "Načítám počty vyrobených kusů a RQ"
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                for (const [key, value] of Object.entries(JSON.parse(xhttp.responseText))) {
+                    try {
+                        document.getElementById(key + '-okparts').innerText = value['ok'];
+                        document.getElementById(key + '-nokparts').innerText = value['nok'];
+                        document.getElementById(key + '-delta').dataset.ordernumber = value['order'];
+                        active_orders.push(value['order']);
+                        let rq = value['ok'] / (value['ok'] + value['nok']);
+                        document.getElementById(key + '-rq').innerText = formatter.format(rq);
+                        set_rq_charts(document.getElementById(key + '-rqico'), rq);
+                    }
+
+                    catch {
+                        console.log(key)
+                    }
+                }
+
+                load_deltas();
+            }
+        };
+    
+        url = '{% url "ajax_parts_to_production_advisor" %}'
+
+        xhttp.open("POST", url, true)
+        xhttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        xhttp.setRequestHeader('X-CSRFToken', token)
+        xhttp.send()
+    }
+
+    function set_rq_charts(element, rq) {
+        element.style.backgroundImage = 'conic-gradient(lightgreen ' +  rq * 360 + 'deg, red 0)';
+        element.style.width = '18px';
+        element.style.height = '18px';
+        element.style.borderRadius = '50%';
+    }
+
+    function set_oee_chart(element, oee) {
+        element.style.backgroundImage = 'conic-gradient(lightgreen ' +  oee * 360 + 'deg, red 0)';
+        element.style.width = '18px';
+        element.style.height = '18px';
+        element.style.borderRadius = '50%';
+    }
+
+    function get_scheduled_start(order_start) {
+        if (order_start < shift_start) {
+            return shift_start
+        } 
+        return order_start
+    }
+
+    function get_seconds_ran(scheduled_start, setup_time) {
+        if (scheduled_start <= shift_start ) {
+            return (current_time - shift_start) / 1000
+        } else {
+            return ((current_time - scheduled_start) / 1000) + setup_time
+        }
+    }
+
+    function set_delta_background(delta_field, difference) {
+        if (difference < 0) {
+            delta_field.parentElement.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+        } else {
+            delta_field.parentElement.style.backgroundColor = 'rgb(144, 238, 144)';
+        }
+    }
+
+    function load_deltas() {
+        
+        document.getElementById('status-div').innerText = "Načítám výrobní cíle a aktuální deltu"
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                for (const [key, value] of Object.entries(JSON.parse(xhttp.responseText))) {
+                    let delta_field = document.querySelectorAll('[data-ordernumber="' + key + '"')[0]
+                    let machine = delta_field.id.replace('-delta', '')
+                    let already_produced = document.getElementById(machine + '-okparts').innerText;
+                    let scheduled_start = get_scheduled_start(new Date(Date.parse(value['start'])))
+                    let seconds_ran_so_far = get_seconds_ran(scheduled_start, value['setup'])
+                    let should_produce = seconds_ran_so_far / value['apo'];
+                    delta_field.dataset.apotime = value['apo'];
+                    let difference =  Math.round(-1 * (should_produce - already_produced))
+                    delta_field.innerText = difference;
+                    set_delta_background(delta_field, difference)
+                }   
+                set_oees();
+            }
+
+        };
+    
+        url = '{% url "ajax_target_delta" %}'
+
+        xhttp.open("POST", url, true)
+        xhttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        xhttp.setRequestHeader('X-CSRFToken', token)
+        xhttp.send('orders=' + active_orders)
+    }
+
+function set_oees() {
+    document.getElementById('status-div').innerText = "Počítám OEE";
+
+    let lines = document.querySelectorAll('.machine-line');
+    for (const machine of lines) {
+        let machine_name = machine.id;
+        let produced_parts = document.getElementById(machine_name + '-okparts').innerText;
+        let apo_time = document.getElementById(machine_name + '-delta').dataset.apotime;
+        let time_load = produced_parts * apo_time;
+        let oee = time_load / machine_shift_running_time;
+        if (!isNaN(oee)) {
+            set_oee_chart(document.getElementById(machine_name + '-oeechart'), oee)
+        }
+        !isNaN(oee) ? document.getElementById(machine_name + '-oee').innerText = formatter.format(oee) : document.getElementById(machine_name + '-oee').innerText = "--";
+    }
+    document.getElementById('status-div').innerText = "Hotovo";
+}
+
+    load_parts()
+</script>
+
+
+
+{% endblock %}

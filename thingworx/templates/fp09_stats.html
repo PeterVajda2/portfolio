@@ -1,0 +1,117 @@
+{% extends 'fp09_base.html' %}
+
+
+    {% block content %}
+    <div class="fp09-alarms-charts-wrapper red-border">
+
+        <div class="fp09-alarms-period-wrapper" id="group-charts">
+            <div class="fp09-alarms-period">groups -90 days</div>
+            <div style="grid-column: 1/2;" id="pareto-canvas-parent"><canvas class="fp09_pareto" id="group-pareto" data-days="90" data-type="group-pareto"></canvas></div>
+            <div style="grid-column: 2/3;" id="line-canvas-parent"><canvas class="fp09_line" id="group-line" data-days="90" data-type="group-line"></canvas></div>
+        </div>
+
+        <div class="fp09-alarms-period-wrapper">
+            <div class="fp09-alarms-period">-7 days</div>
+            <div style="grid-column: 1/2;"><canvas class="fp09_pareto" id="pareto_7" data-days="7" data-type="pareto"></canvas></div>
+            <div style="grid-column: 2/3;"><canvas class="fp09_line" id="line_7" data-days="7" data-type="line"></canvas></div>
+        </div>
+
+        <div class="fp09-alarms-period-wrapper">
+            <div class="fp09-alarms-period">-30 days</div>
+            <div style="grid-column: 1/2;"><canvas class="fp09_pareto" id="pareto_30" data-days="30" data-type="pareto"></canvas></div>
+            <div style="grid-column: 2/3;"><canvas class="fp09_line" id="line_30" data-days="30" data-type="line"></canvas></div>
+        </div>
+
+            <!-- <div class="fp09-alarms-period-wrapper">
+                <div class="fp09-alarms-period">-90 days</div>
+                <div style="grid-column: 1/2;"><canvas class="fp09_pareto" id="pareto_90" data-days="90" data-type="pareto"></canvas></div>
+                <div style="grid-column: 2/3;"><canvas class="fp09_line" id="line_90" data-days="90" data-type="line"></canvas></div>
+            </div> -->
+
+        </div>
+
+        {% endblock %}    
+
+{% block scripts %}
+<script>
+
+    function create_blank_pareto_canvas() {
+        var blank_canvas_pareto = document.createElement('canvas')
+        blank_canvas_pareto.classList.add('fp09_pareto')
+        blank_canvas_pareto.id = 'group-pareto'
+        blank_canvas_pareto.dataset.days = '90'
+        blank_canvas_pareto.dataset.type = 'group-pareto'
+
+        return blank_canvas_pareto
+    }
+
+    function create_blank_line_canvas() {
+
+        var blank_canvas_line = document.createElement('canvas')
+        blank_canvas_line.classList.add('fp09_line')
+        blank_canvas_line.id = 'group-line'
+        blank_canvas_line.dataset.days = '90'
+        blank_canvas_line.dataset.type = 'group-line'
+
+        return blank_canvas_line
+    }
+
+    var group_charts_div = document.getElementById('group-charts')
+    group_charts_div.onwheel = scale_data
+
+    var active_header_div = document.getElementById('alarm_stats')
+    active_header_div.style.backgroundColor = 'rgba(255,0,0,0.1)'
+
+    const colors = {{colors|safe}};
+
+    const borders = {{colors|safe}};
+
+    const url = "{% url 'fp09_data' %}"
+
+    const pareto_7 = document.querySelector('[data-days="7"][data-type="pareto"]')
+    const pareto_30 = document.querySelector('[data-days="30"][data-type="pareto"]')
+    // const pareto_90 = document.querySelector('[data-days="90"][data-type="pareto"]')
+    const group_pareto_90 = document.querySelector('[data-days="90"][data-type="group-pareto"]')
+
+    const line_7 = document.querySelector('[data-days="7"][data-type="line"]')
+    const line_30 = document.querySelector('[data-days="30"][data-type="line"]')
+    // const line_90 = document.querySelector('[data-days="90"][data-type="line"]')
+    const group_line_90 = document.querySelector('[data-days="90"][data-type="group-line"]')
+
+
+    get_pareto_data(url, { type: 'pareto', days: 7 }).then(data => { draw_pareto(data) })
+    get_pareto_data(url, { type: 'pareto', days: 30 }).then(data => { draw_pareto(data) })
+    // get_pareto_data(url, { type: 'pareto', days: 90 }).then(data => { draw_pareto(data) })
+    get_pareto_data(url, { type: 'group_pareto', days: 90 }).then(data => { draw_group_pareto(data) })
+
+    get_line_data(url, { type: 'line', days: 7 }).then(data => { draw_line(data) })
+    get_line_data(url, { type: 'line', days: 30 }).then(data => { draw_line(data) })
+    // get_line_data(url, { type: 'line', days: 90 }).then(data => { draw_line(data) })
+    get_line_data(url, { type: 'group_line', days: 90 }).then(data => { draw_group_line_2(data) })
+
+    var wrappers = document.getElementsByClassName('fp09-alarms-period-wrapper')
+    var periods = document.getElementsByClassName('fp09-alarms-period')
+
+    for (const wrapper of wrappers) {
+        wrapper.addEventListener('mouseover', () => {addBackground(wrapper, color_code = 'rgba(255, 0, 0, 0.1)');}, false);
+        wrapper.addEventListener('mouseout', removeBackground);
+    }
+
+    function scale_data(event) {
+        let days = Math.abs(parseInt(group_charts_div.firstElementChild.innerText.split(" ")[1]))
+        if (days > 7) {
+            event.preventDefault();
+            document.getElementById("group-pareto").remove()
+            document.getElementById("group-line").remove()
+            document.getElementById("pareto-canvas-parent").append(create_blank_pareto_canvas())
+            document.getElementById("line-canvas-parent").append(create_blank_line_canvas())
+            group_charts_div.firstElementChild.innerText = event.deltaY < 0 ? `groups -${days - 7} days ` : `groups -${days + 7} days `;
+            let new_days = Math.abs(parseInt(group_charts_div.firstElementChild.innerText.split(" ")[1]))
+            get_line_data(url, { type: 'group_line', days: new_days }).then(data => { draw_group_line(data) })
+            get_pareto_data(url, { type: 'group_pareto', days: new_days }).then(data => { draw_group_pareto(data) })
+        }
+    }
+
+</script>
+
+{% endblock %}

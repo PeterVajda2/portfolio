@@ -1,0 +1,33 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}
+    <title>FP 09</title>
+    {% endblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+    <script src="{% static 'fp09.js' %}"></script>
+
+</head>
+
+<body>
+    <div class="fp09-base-header" id="fp09-base-header">
+        <div id="alarm_stats"><a href="{% url 'fp09_stats' %}">Statistika alarmů</a></div>
+        <div id="alarm_codes"><a href="{% url 'fp09_alarm_descriptions' %}">Kódovník alarmů</a></div>
+        <div id="oee_stats"><a href="{% url 'fp09_oee' %}">Statistika OEE</a></div>
+        <div id="manual_oee"><a href="{% url 'fp09_oee_manual_entries' %}">Ruční úprava OEE</a></div>
+    </div>
+{% block content %}
+{% endblock %}
+</body>
+
+{% block scripts %}
+{% endblock %}
+
+</html>

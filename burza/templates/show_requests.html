@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% load l10n %}
+
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.1/css/buttons.dataTables.min.css">
+<script src="https://cdn.datatables.net/buttons/1.6.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.1/js/buttons.flash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.1/js/buttons.print.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+
+<table class="assignments" style="width:100%">
+    <thead>
+        <th>
+            Den
+        </th>
+        <th>
+            Směna
+        </th>
+        <th>
+            Cílové PU
+        </th>
+        <th>
+            Byla poptávka nabídnuta?
+        </th>
+        <th>
+            Byla poptávka realizována?
+        </th>
+    </thead>
+    <tbody>
+    {% for request in requests %}
+    <tr>
+        <td>{{request.day|date:"Y-m-d"}}</td>
+        <td>{{request.shift}}</td>
+        <td>{{request.target_costcenter.name}}</td>
+        <td>{{request.used|yesno:"Ano,Ne,Nevíme"}}</td>
+        <td>{{request.realised|yesno:"Ano,Ne,Nevíme"}}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<a href="{% url 'burza:burza' %}" style="padding-left: 10px">Zpátky na burzu</a>
+
+<script>
+    $(document).ready( function () {
+    $('.assignments').DataTable( {
+        dom: 'Bfrltip',
+        "order": [],
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ],
+        "language": {
+                "info": "Zobrazuji stránku _PAGE_ z _PAGES_",
+                "lengthMenu": "Ukázat _MENU_ záznamů na stránku",
+                "search": "Hledat",
+                "oPaginate": {
+                    "sFirst":    "První",
+                    "sLast":     "Poslední",
+                    "sNext":     "Další",
+                    "sPrevious": "Předchozí"
+    },
+            },
+    } );
+} );
+</script>
+
+{% endblock %}

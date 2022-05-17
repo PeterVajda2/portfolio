@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+
+{% load extras %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://kit.fontawesome.com/e2d4eaf832.js" crossorigin="anonymous"></script>
+
+{% endblock %}
+
+{% block body %}
+  <div class="burza_charts_wrapper">
+
+    <div class="burza_charts_header">
+      <form method="POST" id="visuals_form">{% csrf_token %}
+      <div class="date-pickers">
+        <div>
+            <input type="date" class="datefrom" name="date_from" id="datefrom" {% if date_from %} value="{{date_from}}" {% endif %}>
+        </div>
+        <div>
+            <input type="date" class="datefrom" name="date_to" id="dateto" {% if date_to %} value="{{date_to}}" {% endif %}>
+        </div>
+        <div>
+            <i class="fa fa-paper-plane" aria-hidden="true" onclick="formsubmit()"></i>
+        </div>
+      </div>
+      </form>
+    </div>
+
+    <div id="time_line">
+    </div>
+
+    <div id="pie_chart_offers">
+    </div>
+
+    <div id="pie_chart_requests">
+    </div>
+
+  </div>
+
+<script>
+ 
+  var trace1 = {
+    type: "scatter",
+    mode: "lines",
+    name: 'Nabídky',
+    x: {{plotly_offers_x|safe}},
+    y: {{plotly_offers_y|safe}},
+    line: {color: '#17BECF'}
+  }
+
+  var trace2 = {
+    type: "scatter",
+    mode: "lines",
+    name: 'Poptávky',
+    x: {{plotly_offers_x|safe}},
+    y: {{plotly_requests_y|safe}},
+    line: {color: '#17BECF'}
+  }
+
+  var trace3 = {
+    type: "bar",
+    name: 'Zápůjčky',
+    x: {{plotly_assignments_x|safe}},
+    y: {{plotly_assignments_y|in_hours|safe}},
+    text: {{plotly_assignments_y|in_hours|safe}}.map(String),
+    textposition: 'auto',
+    yaxis: 'y2',
+    marker: {
+      color: 'rgb(0,255,0)',
+      opacity: 0.1
+    }
+  }
+
+  
+  var data = [trace1, trace2, trace3];
+  
+  var layout = {
+  title: 'Poptávky a nabídky v čase',
+  xaxis: {
+    autorange: true,
+  },
+  yaxis2: {
+    overlaying: 'y',
+    side: 'right'
+  }
+};
+  
+  Plotly.newPlot('time_line', data, layout);
+</script>
+
+<script>
+ 
+  var data = [{
+    values: {{pie_chart_offers.0.values|safe}},
+    labels: {{pie_chart_offers.0.labels|safe}},
+    type: 'pie'
+  }];
+
+  var layout = {
+    title: 'Využité a nevyužité nabídky',
+  };
+
+  Plotly.newPlot('pie_chart_offers', data, layout);
+
+</script>
+
+<script>
+ 
+  var data = [{
+    values: {{pie_chart_requests.0.values|safe}},
+    labels: {{pie_chart_requests.0.labels|safe}},
+    type: 'pie'
+  }];
+
+  var layout = {
+    title: 'Využité a nevyužité poptávky',
+  };
+
+  Plotly.newPlot('pie_chart_requests', data, layout);
+
+</script>
+
+<script>
+  function formsubmit() {
+    document.getElementById('visuals_form').submit();
+  }
+</script>
+{% endblock %}

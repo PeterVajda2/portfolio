@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load extras %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<link rel="stylesheet" href="{% static 'awesomplete.css' %}">
+<script src="{% static 'awesomplete.min.js' %}"></script>
+<script src="{% static 'all.js' %}"></script>
+{% endblock %}
+
+{% block body %}
+
+<div class="accidents-overview-wrapper">
+
+    <div class="carpool-breadcrumb"><a href="{% url 'accidents_home' %}">Domů</a> > Přehled úrazů a nápravních opatření</div>
+
+<h2 style="margin-left: 1em">Přehled registrovaných úrazů a přijatých opatření</h2>
+
+<form>{% csrf_token %}
+    <table class="accidents-overview-table">
+        <thead>
+            <tr>
+                <th class="sticky">Záznam</th>
+                <th class="sticky">Datum</th>
+                <th class="sticky">Pracoviště</th>
+                <th class="sticky">Klasifikace úrazu</th>
+                <th class="sticky">Popis úrazu</th>
+                <th class="sticky">Příčiny úrazu</th>
+                <th class="sticky">Druh příčin úrazu</th>
+                <th class="sticky">Zraněná část těla</th>
+                <th class="sticky">Druh zranění</th>
+                <th class="sticky">Přijatá opatření</th>
+                <th class="sticky">Termín splnění</th>
+                <th class="sticky">Odpovědný</th>
+                <th class="sticky">Status</th>
+                <th class="sticky">Důkazy o splnění</th>
+            </tr>
+            <tr>
+                {% if user.is_authenticated %}
+                <th></th>
+                <th><input type="text" onkeyup="filterColumn0()"></th>
+                <th><input type="text" onkeyup="filterColumn0()"></th>
+                <th><input type="text" onkeyup="filterColumn0()"></th>
+                <th><input type="text" onkeyup="filterColumn0()"></th>
+                <th><input type="text" onkeyup="filterColumn0()"></th>
+                <th><input type="text" onkeyup="filterColumn0()"></th>
+                <th><input type="text" onkeyup="filterColumn0()"></th>
+                <th><input type="text" onkeyup="filterColumn0()"></th>
+                <th><input type="text" onkeyup="filterColumn0('input')"></th>
+                <th><input type="text" onkeyup="filterColumn0('input')"></th>
+                <th><input type="text" onkeyup="filterColumn0('input')"></th>
+                <th style="display: flex; justify-content: center; height: 1.2em"><select onchange="filterColumnStatus0()" style="font-family: HarveyBalls; height: 1.2em; padding: 0; margin-top: 0.1em"><option style="font-family: HarveyBalls">0</option ><option style="font-family: HarveyBalls">1</option><option style="font-family: HarveyBalls">2</option><option style="font-family: HarveyBalls">3</option><option style="font-family: HarveyBalls">4</option></select></th>
+                <th onkeyup="filterColumn0('input')"><input type="text"></th>
+                {% endif %}
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for corrective_action in corrective_actions %}
+
+            {% if corrective_action.accident %}
+
+            <tr>
+                <td><a href="{% url 'form_injury' accident_id=corrective_action.accident.id %}" target="_blank"><i class="fas fa-file"></i></a>{% if corrective_action.nearmiss.fmea_relevant %} <span title="{{corrective_action.accident.fmea_implementation}}">F</span> {% endif %}</td>
+                <td title="{{corrective_action.accident.accident_datetime|date:'H:i'}}">{{corrective_action.accident.accident_datetime|date:'Y-m-d'}}</td>
+                <td>{{corrective_action.accident.place}} {% if corrective_action.accident.area %} ({{corrective_action.accident.area}}) {% endif %}</td>
+                <td>{{corrective_action.accident.injury_type}}</td>
+                <td>{{corrective_action.accident.accident_description}}</td>
+                <td>{{corrective_action.accident.injury_launcher}}</td>
+                <td>{{corrective_action.accident.injury_rootcause}}</td>
+                <td>{{corrective_action.accident.injured_bodypart}}</td>
+                <td>{{corrective_action.accident.accident_injury_type}}</td>
+                <td><textarea {% if not user.is_authenticated %} readonly {% endif %} onfocusout='storeToDB({{corrective_action.id}}, "longterm_corrective_measure")'>{{corrective_action.longterm_corrective_measure|default_if_none:""}}</textarea></td>
+                <td><input {% if not user.is_authenticated %} readonly {% endif %} type="date" value="{{corrective_action.measure_implementation_date|date:'Y-m-d'}}" onfocusout='storeToDB({{corrective_action.id}}, "measure_implementation_date")'></td>
+                <td><input {% if not user.is_authenticated %} readonly {% endif %} type="text" value="{{corrective_action.responsible|default_if_none:""}}" onfocusout='storeToDB({{corrective_action.id}}, "responsible")'</td>
+                <td><select onfocusout='storeToDB({{corrective_action.id}}, "status")' style="font-family: HarveyBalls; font-size: 1.3em" {% if not user.is_authenticated %} disabled {% endif %}>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 0 %} selected {% endif %}>0</option>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 1 %} selected {% endif %}>1</option>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 2 %} selected {% endif %}>2</option>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 3 %} selected {% endif %}>3</option>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 4 %} selected {% endif %}>4</option>
+                </select></td>
+                <td style="border-right: 1px solid black;"><input type="text" value="{{corrective_action.measure_effectiveness|default_if_none:""}}" onchange='storeToDB({{corrective_action.id}}, "measure_effectiveness")'  {% if not user.is_authenticated %} readonly {% endif %} ></td>
+                {% if user.is_authenticated %}
+                <td style="border: 1px solid white; border-left: 1px solid black;"><div onclick="addCorrectiveMeasureForAccident({{corrective_action.accident.id}})" style="cursor: pointer">+ přidat opatření</div></td>
+                {% endif %}
+            </tr>
+
+            {% endif %}
+            {% endfor %}
+        
+        </tbody>
+    </table>
+</form>
+
+<h2 style="margin-left: 1em; margin-top: 2em">Přehled skoronehod a přijatých opatření</h2>
+
+<form>{% csrf_token %}
+    <table class="accidents-overview-table">
+        <thead>
+            <tr>
+                <th class="sticky">Záznam</th>
+                <th class="sticky">Datum</th>
+                <th class="sticky">Pracoviště</th>
+                <th class="sticky">Popis skoronehody</th>
+                <th class="sticky">Příčiny skoronehody</th>
+                <th class="sticky">Druh příčin</th>
+                <th class="sticky">Přijatá opatření</th>
+                <th class="sticky">Termín splnění</th>
+                <th class="sticky">Odpovědný</th>
+                <th class="sticky">Status</th>
+                <th class="sticky">Důkazy o splnění</th>
+            </tr>
+
+            
+            <tr>
+                {% if user.is_authenticated %}
+                <th></th>
+                <th><input type="text" onkeyup="filterColumn1()"></th>
+                <th><input type="text" onkeyup="filterColumn1()"></th>
+                <th><input type="text" onkeyup="filterColumn1()"></th>
+                <th><input type="text" onkeyup="filterColumn1()"></th>
+                <th><input type="text" onkeyup="filterColumn1()"></th>
+                <th><input type="text" onkeyup="filterColumn1()"></th>
+                <th><input type="text" onkeyup="filterColumn1()"></th>
+                <th><input type="text" onkeyup="filterColumn1()"></th>
+                <th style="display: flex; justify-content: center; height: 1.2em"><select onchange="filterColumnStatus1()" style="font-family: HarveyBalls; height: 1.2em; padding: 0; margin-top: 0.1em"><option style="font-family: HarveyBalls">0</option ><option style="font-family: HarveyBalls">1</option><option style="font-family: HarveyBalls">2</option><option style="font-family: HarveyBalls">3</option><option style="font-family: HarveyBalls">4</option></select></th>
+                <th onkeyup="filterColumn1()"><input type="text"></th>
+                {% endif %}
+            </tr>
+
+
+        </thead>
+
+        <tbody>
+
+            {% for corrective_action in corrective_actions %}
+
+            {% if corrective_action.nearmiss %}
+
+            <tr>
+                <td><a href="{% url 'form_nearmiss' nearmiss_id=corrective_action.nearmiss.id %}" target="_blank"><i class="fas fa-file"></i></a>{% if corrective_action.nearmiss.fmea_relevant %} <span title="{{corrective_action.nearmiss.fmea_implementation}}">F</span> {% endif %}</td></td>
+                <td title="{{corrective_action.nearmiss.datetime_of_nearmiss|date:'H:i'}}">{{corrective_action.nearmiss.datetime_of_nearmiss|date:'Y-m-d'}}</td>
+                <td>{{corrective_action.nearmiss.place}} {% if corrective_action.nearmiss.area %} ({{corrective_action.nearmiss.area}}) {% endif %}</td>
+                <td>{{corrective_action.nearmiss.nearmiss_description}}</td>
+                <td>{{corrective_action.nearmiss.nearmiss_launcher}}</td>
+                <td>{{corrective_action.nearmiss.nearmiss_rootcause}}</td>
+                <td><textarea {% if not user.is_authenticated %} readonly {% endif %} onfocusout='storeToDB({{corrective_action.id}}, "longterm_corrective_measure")'>{{corrective_action.longterm_corrective_measure|default_if_none:""}}</textarea></td>
+                <td><input {% if not user.is_authenticated %} readonly {% endif %} type="date" value="{{corrective_action.measure_implementation_date|date:'Y-m-d'}}" onfocusout='storeToDB({{corrective_action.id}}, "measure_implementation_date")'></td>
+                <td><input {% if not user.is_authenticated %} readonly {% endif %} type="text" value="{{corrective_action.responsible|default_if_none:""}}" onfocusout='storeToDB({{corrective_action.id}}, "responsible")'</td>
+                <td><select {% if not user.is_authenticated %} disabled {% endif %} onfocusout='storeToDB({{corrective_action.id}}, "status")'style="font-family: HarveyBalls; font-size: 1.3em">
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 0 %} selected {% endif %}>0</option>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 1 %} selected {% endif %}>1</option>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 2 %} selected {% endif %}>2</option>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 3 %} selected {% endif %}>3</option>
+                    <option style="font-family: HarveyBalls" {% if corrective_action.status == 4 %} selected {% endif %}>4</option>
+                </select></td>
+                <td style="border-right: 1px solid black;"><input {% if not user.is_authenticated %} readonly {% endif %} type="text" value="{{corrective_action.measure_effectiveness|default_if_none:""}}" onchange='storeToDB({{corrective_action.id}}, "measure_effectiveness")'></td>
+                {% if user.is_authenticated %}
+                <td style="border: 1px solid white; border-left: 1px solid black;"><div onclick="addCorrectiveMeasureForNearmiss({{corrective_action.nearmiss.id}})" style="cursor: pointer">+ přidat opatření</div></td>
+                {% endif %}
+            </tr>
+
+            {% endif %}
+            {% endfor %}
+        
+        </tbody>
+    </table>
+</form>
+
+</div>
+
+<script>
+
+    var table0 = document.getElementsByTagName('table')[0]
+    var table0_rows = table0.getElementsByTagName('tr')
+
+    var table1 = document.getElementsByTagName('table')[1]
+    var table1_rows = table1.getElementsByTagName('tr')
+
+    function filterColumn0(input) {
+        let table_column = event.target.parentNode.cellIndex;
+        if (!input) {
+            for (let i = 2; i < table0_rows.length; i++) {
+                let tds = table0_rows[i].getElementsByTagName('td');
+                let checked_td = tds[table_column];
+                if (!checked_td.innerText.includes(event.target.value)) {
+                    checked_td.parentNode.style.display = 'none';
+                } else {
+                    checked_td.parentNode.style.display = 'table-row';
+                }
+            }
+        } else {
+            for (let i = 2; i < table0_rows.length; i++) {
+                let tds = table0_rows[i].getElementsByTagName('td');
+                let checked_td = tds[table_column];
+                if (!checked_td.childNodes[0].value.includes(event.target.value)) {
+                    checked_td.parentNode.style.display = 'none';
+                } else {
+                    checked_td.parentNode.style.display = 'table-row';
+                }
+            }
+        }
+    }
+
+    function filterColumnStatus0() {
+        let table_column = event.target.parentNode.cellIndex;
+        for (let i = 2; i < table0_rows.length; i++) {
+            let tds = table0_rows[i].getElementsByTagName('td');
+            let checked_td = tds[table_column];
+            if (!checked_td.value == event.target.value) {
+                checked_td.parentNode.style.display = 'none';
+            } else {
+                checked_td.parentNode.style.display = 'table-row';
+            }
+        }
+    }
+
+    function filterColumn1() {
+        let table_column = event.target.parentNode.cellIndex;
+        for (let i = 2; i < table1_rows.length; i++) {
+            let tds = table1_rows[i].getElementsByTagName('td');
+            let checked_td = tds[table_column];
+            if (!checked_td.innerText.includes(event.target.value)) {
+                checked_td.parentNode.style.display = 'none';
+            } else {
+                checked_td.parentNode.style.display = 'table-row';
+            }
+        }
+    }
+
+    function filterColumnStatus1() {
+        let table_column = event.target.parentNode.cellIndex;
+        for (let i = 2; i < table1_rows.length; i++) {
+            let tds = table1_rows[i].getElementsByTagName('td');
+            let checked_td = tds[table_column];
+            if (!checked_td.value == event.target.value) {
+                checked_td.parentNode.style.display = 'none';
+            } else {
+                checked_td.parentNode.style.display = 'table-row';
+            }
+        }
+    }
+</script>
+
+<script>
+    function storeToDB(corrective_action_id, attribute) {
+        console.log(event.target.value)
+        req = new XMLHttpRequest()
+
+        url = '{% url "store_data_to_db" %}'
+
+        req.open("POST", url, true)
+        req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        req.setRequestHeader('X-CSRFToken', token)
+        req.send("data=" + corrective_action_id + "///" + attribute + "///" + event.target.value)
+        req.onreadystatechange = function() {
+            if (req.readyState == 4 && req.status == 200) {
+                console.log(req.responseText)
+            }
+        }
+        return req
+    }
+</script>
+
+<script>
+    function addCorrectiveMeasureForAccident(accident_id) {
+
+        url_to_open = '{% url "add_corrective_measure_for_accident" accident_id=12345 %}'.replace(12345, accident_id)
+
+        window.open(url_to_open, "Přidat opatření", "width=400,height=600")
+
+    }
+
+    function addCorrectiveMeasureForNearmiss(nearmiss_id) {
+
+    url_to_open = '{% url "add_corrective_measure_for_nearmiss" nearmiss_id=12345 %}'.replace(12345, nearmiss_id)
+
+    window.open(url_to_open, "Přidat opatření", "width=400,height=600")
+
+    }
+</script>
+
+<script>
+    function HideDuplicateInfo() {
+        let array_of_elements_to_erase = []
+        for (let i = 2; i < table0_rows.length - 1; i++) {
+            let active_row_accident_target = table0_rows[i].getElementsByTagName('td')[0].childNodes[0].href
+            let next_row_accident_target = table0_rows[i+1].getElementsByTagName('td')[0].childNodes[0].href
+            if (active_row_accident_target == next_row_accident_target) {
+                array_of_elements_to_erase.push(table0_rows[i+1].getElementsByTagName('td')[0]);
+                array_of_elements_to_erase.push(table0_rows[i+1].getElementsByTagName('td')[14]);
+            }
+        }
+
+        for (let j = 0; j < array_of_elements_to_erase.length; j++) {
+            array_of_elements_to_erase[j].innerHTML = '';
+        }
+
+        for (let i = 2; i < table1_rows.length - 1; i++) {
+            let active_row_accident_target = table1_rows[i].getElementsByTagName('td')[0].childNodes[0].href
+            let next_row_accident_target = table1_rows[i+1].getElementsByTagName('td')[0].childNodes[0].href
+            if (active_row_accident_target == next_row_accident_target) {
+                array_of_elements_to_erase.push(table1_rows[i+1].getElementsByTagName('td')[0]);
+                array_of_elements_to_erase.push(table1_rows[i+1].getElementsByTagName('td')[11]);
+            }
+        }
+
+        for (let j = 0; j < array_of_elements_to_erase.length; j++) {
+            array_of_elements_to_erase[j].innerHTML = '';
+        }
+    }
+</script>
+
+<script>
+    window.onload = function() {
+        HideDuplicateInfo();
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,353 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load extras %}
+
+{% load static %} 
+<!-- <link rel="stylesheet" type="text/css" href="{% static 'carpool.css' %}"> -->
+
+{% endblock %}
+
+{% block body %}
+
+<header>
+
+</header>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+
+}
+
+a {
+    text-decoration: none;
+    color: black;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 2.5vh;
+}
+      
+.carpool-home-wrapper {
+    height: 100vh;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(5vw, 1fr));
+    grid-template-rows: repeat(auto-fit, minmax(10vh, 1fr));
+    /* grid-template-columns: repeat(6, minmax(10vw, 1fr));
+    grid-template-rows: 8vh repeat(3, minmax(10vh, 1fr)) 8vh; */
+    grid-gap: 1rem;
+    grid-auto-flow: column dense;
+    justify-content:center;
+    align-content: center;
+    text-align: center; 
+    cursor: pointer;
+    user-select: none;
+    /* overflow: hidden;  */
+}
+
+.carpool-home-tile:hover a {
+    color: white !important;
+}
+
+.carpool-login:hover a {
+    color: white !important;
+}
+
+
+.carpool-header {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    /* align-self:stretch; */
+    grid-column: 1 / -1;
+    grid-row: 1 / 2;
+    background-color: white;
+    border: 10px solid #00457e;
+    color: #00457e;
+    font-size: 4vh;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    line-height: 1.5;
+    background-image: url("{% static 'knorr-bremse_logo_screen.png' %}");
+    background-size: contain;
+    background-repeat: no-repeat;
+    height: 8vh;
+    
+
+}
+
+#knorr-bremse_logo_screen.png {
+    opacity: 0.5;
+
+}
+
+
+.item-login {
+    border: 4px ridge #00457e;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-self:stretch; */
+    width: 50vw;
+    /* grid-column: 1 / 4;
+    grid-row: 2 / 4; */
+    position: relative;
+    
+}
+
+/* .item-login:after {
+    content: "";
+    position: absolute;
+    background-image: url("{% static 'knorr-bremse_logo_screen.png' %}");
+    background-size: 50%;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.5;
+} */
+
+.item-login:hover {
+    background-color: #00457e;
+    color: white !important;
+    border: 3px solid #bfb497;
+}
+
+.item-calendar {
+    border: 4px ridge #00457e;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-self:stretch; */
+    width: 60vw;
+    /* grid-column: 1 / 2;
+    grid-row: 4 / 5; */
+
+}
+.item-calendar:hover {
+background-color: #00457e;
+color: white;
+border: 3px solid #bfb497;
+}
+
+.item-carloan {
+    border: 4px ridge #00457e;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-self:stretch; */
+    width: 40vw;
+    /* grid-column: 2 / 3;
+    grid-row: 4 / 5; */
+
+}
+.item-carloan:hover {
+background-color: #00457e;
+color: white;
+border: 3px solid #bfb497;
+}
+
+.item-return {
+    border: 4px ridge #00457e;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-self:stretch; */
+    width: 50vw;
+    /* grid-column: 3 / 4;
+    grid-row: 4 / 5; */
+
+}
+.item-return:hover {
+background-color: #00457e;
+color: white;
+border: 3px solid #bfb497;
+}
+
+.item-reports {
+    border: 4px ridge #00457e;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-self:stretch; */
+    width: 50vw;
+    /* grid-column: 4 / 5;
+    grid-row: 2 / 3; */
+
+}
+.item-reports:hover {
+background-color: #00457e;
+color: white;
+border: 3px solid #bfb497;
+}
+
+.item-show-repairs {
+    border: 4px ridge #00457e;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-self:stretch; */
+    width: 50vw;
+    /* grid-column: 5 / 6;
+    grid-row: 2 / 3; */
+}
+.item-show-repairs:hover {
+background-color: #00457e;
+color: white;
+border: 3px solid #bfb497;
+}
+
+.item-show-cars {
+    border: 4px ridge #00457e;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-self:stretch; */
+    width: 50vw;
+    /* grid-column: 6 / 7;
+    grid-row: 2 / 3; */
+}
+
+.item-show-cars:hover {
+background-color: #00457e;
+color: white;
+border: 3px solid #bfb497;
+}
+
+.item-admin {
+    border: 4px ridge #00457e;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* align-self:stretch; */
+    width: 50vw;
+    /* grid-column: 4 / 7;
+    grid-row: 3 / 5; */
+
+}
+.item-admin:hover {
+    background-color: #00457e;
+    color: white;
+    border: 3px solid #bfb497;
+}
+
+.carpool-footer {
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    align-self:stretch;
+    grid-column: 1 / -1;
+    grid-row-end: -1;
+    background-color: #00457e;
+    color: white;
+    font-size: 2vh;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.5;
+    height: 100%;
+    font-weight: bold;
+    cursor:initial;
+    height: 8vh;
+}
+::-webkit-scrollbar {
+    width: .5rem;
+    height: .5rem;
+}
+::-webkit-scrollbar-button {
+    display: none;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #00457e;
+    border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: #bfb497;;
+}
+::-webkit-scrollbar-track {
+    background-color: #ECE8DD;
+}
+
+
+        </style>
+
+    <footer></footer>
+    
+</div>
+
+<div class="carpool-home-wrapper">
+
+    <div class="carpool-header">CARPOOL</div>
+
+    <!-- <div style="background-color: #00457e; width: 50vw;">AHOJ</div>
+    <div style="background-color: #00457e; width: 50vw;">cau</div>
+    <div style="background-color: #00457e; width: 50vw;">hola</div> -->
+
+        <div class="carpool-login item-login">
+            {% if not user.is_authenticated %}
+            <a href="{% url 'login' %}?next={% url 'carpool_home' %}"><h2>Přihlásit se</h2></a>
+            {% else %}
+            <a href="{% url 'logout' %}?next={% url 'carpool_home' %}"><h2>Odhlásit se</h2></a>
+            {% endif %}
+        
+
+    </div>
+
+        <div class="carpool-home-tile item-calendar">
+        <a href="{% url 'carpool_calendar' %}"><h2>Chci si rezervovat služební auto</h2>
+            </a>
+        </div>
+
+        <div class="carpool-home-tile item-carloan">
+            <a href="{% url 'create_carloan' %}"><h2>Vyzvedávám služební auto</h2>
+            </a>
+        </div>
+
+        <div class="carpool-home-tile item-return">
+            <a href="{% url 'return_car' %}"><h2>Vracím služební auto</h2>
+            </a>
+        </div>
+
+        
+        <div class="carpool-home-tile item-reports">
+            <a href="{% url 'show_accident_reports' %}"><h2>Nehody a události</h2></a>
+        </div>
+
+        {% if carpool_user %}
+        
+            <div class="carpool-home-tile item-show-cars">
+                <a href="{% url 'show_cars' %}"><h2>Administrace autoparku</h2></a>
+            </div>
+
+            
+            <div class="carpool-home-tile item-show-repairs">
+                <a href="{% url 'show_repairs' %}"><h2>Evidence oprav</h2></a>
+            </div>
+
+        {% endif %}
+
+        {% if user.carprofile.is_superuser %}
+        <div class="carpool-home-tile item-admin">
+            <a href="{% url 'user_admin' %}"><h2>Administrace uživatelů</h2></a>
+        </div>
+        {% endif %}
+
+        <div class="carpool-footer">Knorr-Bremse</div>
+
+</div>
+
+
+
+{% endblock %}
+

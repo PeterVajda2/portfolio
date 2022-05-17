@@ -1,0 +1,253 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="carpool-calendar-wrapper">
+
+    <div class="carpool-calendar-header">
+
+        <div class="carpool-calendar-home-link">
+            <a href="{% url 'carpool_home' %}">Domů</a>
+        </div>
+
+        {% for day in week %}
+
+        <div class="carpool-calendar-weekday">
+
+            <div class="carpool-calendar-weekday-name" id="day-{{forloop.counter}}">{{day|date:"l"|title}}<br/> {{day}}</div>
+            <div class="carpool-calendar-day-hours-wrapper">
+
+                {% for hour in 8|range:17 %}
+                <div class="carpool-calendar-day-hour" id="{{hour}}-{{forloop.parentloop.counter}}-{{hour}}">
+                    {{hour}}
+                </div>
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    
+    <div class="carpool-calendar-body">
+        
+    {% for car in list_of_cars %}
+
+        <div class="carpool-calendar-car" id="{{forloop.counter}}">
+            <div class="carpool-calendar-car-name">{{car.car_license_plate|to_license_plate}}
+                <br />
+                {% if car.department %}
+                <span style="font-size: 0.8em">({{car.department}})</span>
+                {% endif %}
+            </div>
+
+            {% for day in 1|range:8 %}
+            <div class="carpool-calendar-car-day" id="{{forloop.parentloop.counter}}-{{day}}">
+                {% for hour in 8|range:17 %}
+
+                <div class="carpool-calendar-car-hour" id="{{forloop.parentloop.parentloop.counter}}-{{day}}-{{hour}}"></div>
+
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+
+        </div>
+
+    {% endfor %}
+        
+    </div>
+
+    <div class="carpool-calendar-navigation">
+        <a href="{% url 'carpool_calendar' year week_n|add:"-1" %}"><div class="previous-week">Předchozí týden</div></a>
+        <a href="{% url 'carpool_calendar' year week_n|add:"1" %}"><div class="next-week">Následující týden</div></a>
+    </div>
+
+</div>
+
+
+<script>
+
+    window.addEventListener('resize', resizeBars);
+
+
+    window.onload = startupScripts;
+    
+    function startupScripts() {
+        addEventListenersToHours();
+        addEventListenersToCars();
+        fillSlots({{list_of_dicts|safe}});
+    }
+
+    function addEventListenersToHours() {
+        var hour_elems = document.getElementsByClassName('carpool-calendar-car-hour');
+        for (var hour_elem of hour_elems) {
+            hour_elem.addEventListener("mouseover", highlightHour);
+            hour_elem.addEventListener("mouseout", unhighlightHour);
+            hour_elem.addEventListener("click", placeReservation);
+            hour_elem.param = hour_elem.id;
+        }
+    }
+
+    function addEventListenersToCars() {
+        var car_elems = document.getElementsByClassName('carpool-calendar-car');
+        for (var car_elem of car_elems) {
+            car_elem.addEventListener("mouseover", highlightCar);
+            car_elem.addEventListener("mouseout", unhighlightCar);
+            car_elem.param = car_elem.id;
+        }
+    }
+
+    function highlightHour(e) {
+        var hour_id = e.currentTarget.param.split('-')[2];
+        var day_id = e.currentTarget.param.split('-')[1];
+        var hour_elems = document.getElementsByClassName('carpool-calendar-car-hour');
+        var hour_names = document.getElementsByClassName('carpool-calendar-day-hour');
+        for (var hour_elem of hour_elems) {
+            if (hour_elem.id.split('-')[2] == hour_id && hour_elem.id.split('-')[1] == day_id) {
+                hour_elem.style.backgroundColor = 'rgba(255,0,0,0.05)';
+            }
+        }
+        for (var hour_name of hour_names) {
+            if (hour_name.id.split('-')[2] == hour_id && hour_name.id.split('-')[1] == day_id) {
+                hour_name.style.fontWeight = '700';
+            }
+        }
+        
+        var day_names = document.getElementsByClassName('carpool-calendar-weekday-name');
+        for (var day_name of day_names) {
+            if (day_name.id == "day-" + day_id) {
+                day_name.style.fontWeight = '700';
+            }
+        }
+    }
+
+    function placeReservation(e) {
+        var car = e.target.id.split("-")[0]
+        var day = e.target.id.split("-")[1]
+        var start = e.target.id.split("-")[2]
+        var year = {{year}}
+        var week = {{week_n}}
+        var h = 600
+        var w = 450
+
+        var y = window.outerHeight / 2 + window.screenY - (h / 2)
+        var x = window.outerWidth / 2 + window.screenX - (w / 2)
+
+        if (!e.target.classList.contains('carpool-booked-slot')) {
+
+            window.open('{% url 'create_reservation' "111" "222" "333" "444" "555" %}'.replace("333", car).replace("444", day).replace("555", start).replace("111", year).replace("222", week),'popup','width=' + w + ', height=' + h + ', top=' + y + ', left=' + x)
+        }
+    }
+
+    function highlightCar(e) {
+        var car_id = e.currentTarget.param;
+        var car_elems = document.getElementsByClassName('carpool-calendar-car');
+        for (var car_elem of car_elems) {
+            if (car_elem.id == car_id) {
+                car_elem.style.backgroundColor = 'rgba(255,0,0,0.05)';
+                car_elem.style.fontWeight = '700';
+            }
+        }
+    }
+
+
+    function unhighlightCar(e) {
+        var car_id = e.currentTarget.param;
+        var car_elems = document.getElementsByClassName('carpool-calendar-car');
+        for (var car_elem of car_elems) {
+            if (car_elem.id == car_id) {
+                car_elem.style.backgroundColor = 'white';
+                car_elem.style.fontWeight = '300';
+            }
+        }
+    }
+
+    function unhighlightHour(e) {
+        var hour_elems = document.getElementsByClassName('carpool-calendar-car-hour');
+        for (var hour_elem of hour_elems) {
+                hour_elem.style.backgroundColor = 'white';
+            }
+        var hour_names = document.getElementsByClassName('carpool-calendar-day-hour');
+        for (var hour_name of hour_names) {
+            hour_name.style.fontWeight = '300';
+            }
+
+        var day_names = document.getElementsByClassName('carpool-calendar-weekday-name');
+        for (var day_name of day_names) {
+            day_name.style.fontWeight = '300';
+        }
+    }
+
+    
+    function fillSlots(list_of_slot_dict) {
+        for (const slot_dict of list_of_slot_dict) {
+
+            var multiplier = slot_dict["duration"]
+            var hover_info = slot_dict["hover_info"]
+            var hover_info_plain_text = slot_dict["hover_info_plain_text"]
+            var start_id = slot_dict["start_id"]
+            var elem = document.createElement("div");
+            elem.id = "reservation" + slot_dict["id"];
+            elem.innerHTML = hover_info;
+            elem.classList.add("text-in-reservation")
+            elem.title = hover_info_plain_text;
+
+            width = (document.getElementById('6-1-9').offsetWidth * multiplier) - Math.floor(multiplier/9)
+            height = document.getElementById('6-1-9').offsetHeight
+
+            elem.classList.add('carpool-booked-slot')
+            elem.style.width = width + 'px';
+            elem.style.height = height + 'px';
+            
+            elem.addEventListener("click", editReservation)
+            elem.myParam = hover_info;
+
+            document.getElementById(start_id).appendChild(elem);
+        }
+    }
+
+    function resizeBars() {
+        document.querySelectorAll('.carpool-booked-slot').forEach(e => e.remove());
+        
+        fillSlots({{list_of_dicts|safe}});
+    }
+
+    function editReservation(e) {
+        console.log('edit reservation');
+        var h = 450
+        var w = 450
+
+        var y = window.outerHeight / 2 + window.screenY - (h / 2)
+        var x = window.outerWidth / 2 + window.screenX - (w / 2)
+
+        window.open('{% url 'edit_reservation' "111" %}'.replace("111", e.currentTarget.id),'popup','width=' + w + ', height=' + h + ', top=' + y + ', left=' + x)
+    }
+
+</script>
+
+<script>
+window.addEventListener('keydown', event => {
+    if (event.keyCode == 37) {
+        window.open("{% url 'carpool_calendar' year week_n|add:'-1' %}", "_self");
+    }
+    if (event.keyCode == 39) {
+        window.open("{% url 'carpool_calendar' year week_n|add:'1' %}", "_self");
+    }
+  })
+
+</script>
+{% endblock %}

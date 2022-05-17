@@ -1,0 +1,125 @@
+{% block head %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+{% endblock %}
+
+{% block body %}
+
+<div class="help">
+<h1>POMOC</h1>
+<p>Kliknutí na tému otevře video:</p>
+
+<h2 onclick="unhideVideo(this)" class="faq-hint">Přihlášení</h2>
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'prihlaseni.mp4' %}" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+
+<h2 onclick="unhideVideo(this)" class="faq-hint">Vytvoření nabídky</h2>
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'vytvoreni-nabidky.mp4' %}" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+
+<h2 onclick="unhideVideo(this)" class="faq-hint">Vytvoření poptávky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'vytvoreni-poptavky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+
+<h2 onclick="unhideVideo(this)" class="faq-hint">Využití poptávky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'vyuziti-poptavky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+
+<h2 onclick="unhideVideo(this)" class="faq-hint">Využití nabídky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'vyuziti-nabidky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+
+<h2 onclick="unhideVideo(this)" class="faq-hint">Vytvoření nabídky/poptávky na kratší/delší čas než směna</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'vytvoreni-nabidky-kratsi-delsi.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+
+<h2 onclick="unhideVideo(this)" class="faq-hint">Zrušení nevyužité nabídky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'zruseni-nevyuzite-nabidky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+<h2 onclick="unhideVideo(this)" class="faq-hint">Zrušení nevyužité poptávky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'zruseni-nevyuzite-poptavky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+<h2 onclick="unhideVideo(this)" class="faq-hint">Zrušení využité nabídky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'zruseni-vyuzite-nabidky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+<h2 onclick="unhideVideo(this)" class="faq-hint">Zrušení využité poptávky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'zruseni_vyuzite_poptavky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+<h2 onclick="unhideVideo(this)" class="faq-hint">Souhlas se zrušením nabídky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'souhlas-se-zrusenim-nabidky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+<h2 onclick="unhideVideo(this)" class="faq-hint">Souhlas se zrušením poptávky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'souhlas-se-zrusenim-poptavky.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+<h2 onclick="unhideVideo(this)" class="faq-hint">Změna realizace výpůjčky</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'zmena-realizace.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+
+<h2 onclick="unhideVideo(this)" class="faq-hint">Zapnutí/vypnutí emailových notifikací</h2>
+
+    <video width="640" height="360" controls class="not_displayed">
+        <source src="{% static 'notifikace.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+    </video>
+
+<h1>ČASTÉ OTÁZKY</h1>
+
+<h2>Jak získam přihlašovací údaje?</h2>
+<p>Existuje-li váš účet pro aplikace, přihlasujete se svými Windows přihlašovacími údaji. Jestli vás aplikace "nepozná", požádejte o vytvoření účtu svýho nadřízenýho.</p>
+
+<h2>Proč v mým počítači vypadá burza špatně?</h2>
+<p>Aplikace nepodporuje prohlížeč Internet Explorer. Použijte raději Chrome nebo Edge.</p>
+
+<h2>Kde získám pomoc?</h2>
+<p>Jestli ste nenašli odpovědi ve video návodech, obraťte se na správcu aplikace: peter.vajda@knorr-bremse.com</p>
+</div>
+
+<script>
+
+    function unhideVideo(element) {
+        if (element.nextElementSibling.classList.contains('not_displayed')) {
+            element.nextElementSibling.classList.remove('not_displayed');
+        } else {
+            element.nextElementSibling.classList.add('not_displayed');
+        }
+    }
+</script>
+
+{% endblock %}

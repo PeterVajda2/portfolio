@@ -1,0 +1,132 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="carpool-breadcrumb"><a href="{% url 'carpool_home' %}">Domů</a> > <a href="{% url 'show_repairs' %}">Evidence oprav</a> > Vytvoření opravy</div>
+
+<div class="carpool-repair-wrapper">
+    
+    <div class="carpool-information-div">
+
+        Vytváříte opravu, která nebude asociovaná se žádnou škodnou událostí. V případě, že jde o opravu po nehodě, vyberte auto v <a href="{% url 'show_cars' %}">administraci.</a>
+
+    </div>
+
+    <div>
+
+        <form class="carpool-create-repair" method="POST">{% csrf_token %}
+
+            <div style="width: 100%; display: flex; flex-flow:row; margin-bottom: 1em">
+
+                <label>SPZ
+                    <select name="car_license_plate">
+                        <option value="" selected></option>
+                        {% for car in cars %}
+                        <option value='{{car.car_license_plate}}'>{{car.car_license_plate|to_license_plate}}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label>Vozidlo
+                    <input type="text" readonly id="car_details">
+                </label>
+
+                <label>Důvod opravy
+                    <textarea style="resize: vertical; min-height: 1.2em" rows="1" cols="45" placeholder="Zadejte důvod opravy/prevence" name="repair_reason" required></textarea>
+                </label>
+            
+            </div>
+
+            <div style="width: 100%; display: flex; flex-flow:row; margin-bottom: 1em">
+
+                <label>Datum odeslání do servisu
+                    <input type="date" name="repair_start">
+                </label>
+
+                <label>Předběžný odhad ceny opravy
+                    <input type="number" name="cost_estimate">
+                </label>
+
+                <label>Předpokládané datum převzetí opraveného vozidla
+                    <input type="date" name="end_estimate">
+                </label>
+
+            </div>
+
+            <div style="width: 100%; display: flex; flex-flow:row; margin-bottom: 1em">
+            
+                <label>Skutečná cena opravy
+                    <input type="number" name="repair_cost">
+                </label>
+
+                <label>Skutečné datum převzetí vozidla
+                    <input type="date" name="repair_end">
+                </label>
+
+            </div>
+
+                <input type="submit" value="Vytvořit">
+
+
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+    var selected_plate
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', (_) => {         
+        document.querySelector('select').addEventListener('change', e => {
+            selected_plate = e.target.value;
+            getCarData();
+        });
+    });
+</script>
+
+<script>
+
+function getCarData(success) { 
+
+    data = {
+        'car': selected_plate
+    }
+
+    req = new XMLHttpRequest()
+    req.onreadystatechange = function() {
+        if (req.readyState == 4 && req.status == 200) {
+            if (req.responseText.length > 3) {
+                var jsonResponse = JSON.parse(req.responseText)
+                document.getElementById('car_details').value = jsonResponse['car_manufacturer'] + ' ' + jsonResponse['car_make']
+            }
+        }
+    }
+
+    url = '{% url "get_car_data" %}'
+
+    req.open("POST", url, true)
+    req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+    var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+
+    req.setRequestHeader('X-CSRFToken', token)
+    req.send("data=" + JSON.stringify(data))
+    return req
+}
+</script>
+
+
+{% endblock %}

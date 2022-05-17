@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+
+{% block title %}
+<title>Využít nabídku pracovníka</title>
+{% endblock %}
+
+
+{% endblock %}
+
+{% block body %}
+<h1 class="title">
+    Využití pracovníka {{worker.name}}
+</h1>
+<h2 class="title">
+    {{offer.shift}} směna<br />
+    z {{worker.costcenter.name}}<br />
+    {% if offer.standard == False %}
+    <br />
+    POZOR: {{offer.start|time:"H:i"}} - {{offer.end|time:"H:i"}}<br />
+    {% endif %}
+</h2>
+
+    <form method="POST" class="form" id="myform" onsubmit="return closeSelf(this);">{% csrf_token %}
+        <label for="target_cost_center">Využít pro středisko</label>
+        <select id="target_cost_center" name="target_cost_center" class="target_cost_center">
+            {% for cost_center in cost_centers %}
+            <option>{{cost_center}}</option>
+            {% endfor %}
+        </select>
+        
+    <div class="buttons">
+        {% if is_own %}
+        <input type="submit" name="btnSubmit" value="Smazat" class="submit_button" />
+        {% else %}
+        <input type="submit" name="btnSubmit" value="Využít nabídku" class="submit_button" />
+        {% endif %}
+    </div>
+    </form>
+
+
+    {% if messages %}
+    {% for message in messages %}
+        <div class="message">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+</form>
+
+<script>
+    window.onunload = refreshParent;
+    function refreshParent() {
+        window.opener.location.reload();
+        window.close();
+    }
+
+</script>
+
+<script>
+    function closeSelf(f) {
+       f.submit();
+    }
+  </script>
+
+
+{% endblock %}

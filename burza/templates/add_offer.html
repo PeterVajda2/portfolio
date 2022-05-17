@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'select2.min.css' %}">
+<script src="{% static 'jquery-3.5.0.min.js' %}"></script>
+<script src="{% static 'select2.min.js' %}"></script>
+
+    {% block title %}
+    <title>Vytvoření nabídky pracovníka</title>
+    {% endblock %}
+    
+    <script>
+    var workers = {{ workers|safe }}
+    </script>
+
+    <script>
+
+
+        function matchCustom(params, data) {
+
+        // If there are no search terms, return all of the data
+        if ($.trim(params.term) === '') {
+          return data;
+        }
+    
+        // Do not display the item if there is no 'text' property
+        if (typeof data.text === 'undefined') {
+          return null;
+        }
+    
+        // `params.term` should be the term that is used for searching
+        // `data.text` checked against
+        if (isNaN(params.term)) {
+            if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+              var modifiedData = $.extend({}, data, true);
+
+            // You can return modified objects from here
+            // This includes matching the `children` how you want in nested data sets
+            return modifiedData;
+            }
+        }
+
+        else {
+            if (data.id.indexOf(params.term) > -1) {
+              var modifiedData = $.extend({}, data, true);
+          
+            // You can return modified objects from here
+            // This includes matching the `children` how you want in nested data sets
+            return modifiedData;
+            }
+        }
+    
+        // Return `null` if the term should not be displayed
+        return null;
+    }
+    </script>
+
+{% endblock %}
+
+{% block body %}
+
+{{user_name}}
+<h1 class="title">Vytvoření nabídky pracovníka</h1>
+<form method='POST' class="form">{% csrf_token %}
+    <label for="worker_id">Pracovník:</label>
+    <select class="form-control" id="worker-select" name="worker-number" onchange="hideMessage()">
+        <option></option>
+        {% for id, value in workers.items %}
+        <option value="{{id}}">{{value.0}}</option>
+        {% endfor %}
+    </select>
+    <br />
+    <br />
+
+    <div id="window_details" style="display: none;">
+        <div id="manager_tag">Manažer: <span id="manager"></span></div>
+        Nákladové středisko: <span id="prod-unit"></span><br /><br />
+        
+        <div class="flex-wrapper">
+            <div class="form-dates-wrapper">
+                <div>
+                    <label for="date-of-availability-from">Dostupný od:</label>
+                    <input type="date" id="date-of-availability" name="date-of-availability" value="{{selected_year}}-{{selected_month}}-{{selected_day}}">
+                </div>
+                <div>
+                    <label for="date-of-availability-to">Dostupný do:</label>
+                    <input type="date" id="date-of-availability-to" name="date-of-availability-to" value="{{selected_year}}-{{selected_month}}-{{selected_day}}">
+                </div>
+            </div>
+
+            <div class="form-dates-wrapper">
+                <div>
+                    <label for="shift">Směna:</label>
+                    <select id="shift-select" name="shift-select" class="shift-select">
+                        <option>Ranní</option>
+                        <option>Odpolední</option>
+                        <option>Noční</option>
+                    
+                    </select>
+                </div>
+                <div style="width: 150px; display: flex; flex-direction: row; justify-content: space-between;">
+                    <div>
+                        <label for="start-time">Od: </label>
+                        <input type="time" id="start-time" name="start-time" value="06:00">
+                    </div>
+                    <div>
+                        <label for="end-time">Do: </label>
+                        <input type="time" id="end-time" name="end-time" value="14:00">
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        <div class="buttons">
+        <input type="submit" value="Vytvořit nabídku" class="submit_button">
+        </div>
+    </div>
+</form>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="message" id="message">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<script>
+    $(document).ready(function() {
+    $('#shift-select').select2();
+    $('#shift-select').on("select2:select", function (e) {
+        addTime(e.params.data.text);
+    });
+    $('.form-control').select2({
+  matcher: matchCustom,
+  dropdownAutoWidth: true,
+})});
+</script>
+
+<script>
+
+    $('.form-control').on("select2:select", function (e) {
+        var data = e.params.data;
+        document.getElementById("window_details").style.display = "block";
+        document.getElementById("manager").innerHTML = workers[data.id][1];
+        document.getElementById("prod-unit").innerHTML = workers[data.id][2];
+        // document.getElementById("date-of-availability").value = new Date().toISOString().slice(0, 10);
+    });
+</script>
+
+<script>
+    window.onunload = refreshParent;
+    function refreshParent() {
+        window.opener.location.reload();
+    }
+</script>
+
+<script>
+    function hideMessage() {
+    if (document.getElementById("message")) {
+        document.getElementById("message").style.display = "none";
+    }};
+
+    function addTime(text) {
+        var start_time = document.getElementById('start-time');
+        var end_time = document.getElementById('end-time');
+
+        switch(text) {
+            case "Ranní":
+                start_time.value = "06:00";
+                end_time.value = "14:00";
+                break;
+            case "Odpolední":
+                start_time.value = "14:00";
+                end_time.value = "22:00";
+                break;
+            case "Noční":
+                start_time.value = "22:00";
+                end_time.value = "06:00";
+                break;
+        }
+    };
+</script>
+
+
+
+{% endblock %}
+

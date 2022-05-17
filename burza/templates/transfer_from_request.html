@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'select2.min.css' %}">
+<script src="{% static 'jquery-3.5.0.min.js' %}"></script>
+<script src="{% static 'select2.min.js' %}"></script>
+
+<script>
+    var workers = {{ workers|safe }}
+</script>
+
+<script>
+
+
+    function matchCustom(params, data) {
+
+    // If there are no search terms, return all of the data
+    if ($.trim(params.term) === '') {
+      return data;
+    }
+
+    // Do not display the item if there is no 'text' property
+    if (typeof data.text === 'undefined') {
+      return null;
+    }
+
+    // `params.term` should be the term that is used for searching
+    // `data.text` checked against
+    if (isNaN(params.term)) {
+        if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+          var modifiedData = $.extend({}, data, true);
+
+        // You can return modified objects from here
+        // This includes matching the `children` how you want in nested data sets
+        return modifiedData;
+        }
+    }
+
+    else {
+        if (data.id.indexOf(params.term) > -1) {
+          var modifiedData = $.extend({}, data, true);
+      
+        // You can return modified objects from here
+        // This includes matching the `children` how you want in nested data sets
+        return modifiedData;
+        }
+    }
+
+    // Return `null` if the term should not be displayed
+    return null;
+}
+</script>
+
+
+{% endblock %}
+
+{% block body %}
+
+<h1 class="title">
+    Pokrytí poptávky
+</h1>
+
+<h2 class="title">
+    {{request.shift}} směna<br />
+    na {{request.target_costcenter.name}}<br />
+</h2>
+
+<form method='POST' class="form" id="form" name="form">{% csrf_token %}
+    <label for="worker_id">Pracovník:</label>
+    <select class="form-control" id="worker-select" style="width:40%" name="worker-number">
+        <option></option>
+        {% for id, value in workers.items %}
+        <option value="{{id}}">{{value.0}}</option>
+        {% endfor %}
+    </select>
+
+    <div style="display: flex; flex-flow: row; margin-top: 1em">
+        <div>
+            <label for="partial">Od: </label>
+            <input type="time" name="time_from" value="{{time_from}}">
+        </div>
+
+        <div>
+            <label for="partial">Do: </label>
+            <input type="time" name="time_to" value="{{time_to}}">
+        </div>
+    </div>
+    
+<br />
+{% if is_own %}
+<input name="btnSubmit" value="Smazat poptávku" class="submit_button" form="form" onclick="subAndClose()">
+{% else %}
+<input type="submit" name="btnSubmit" value="Nabídnout pracovníka" class="submit_button">
+{% endif %}
+</form>
+
+{% if messages %}
+{% for message in messages %}
+    <div class="message">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
+</form>
+
+<script>
+window.onunload = refreshParent;
+function refreshParent() {
+    window.opener.location.reload();
+    window.close();
+}
+</script>
+
+<script>
+    $(document).ready(function() {
+    $('.form-control').select2({
+  matcher: matchCustom,
+  dropdownAutoWidth: true,
+})});
+</script>
+
+<script>
+    function subAndClose() {
+        document.getElementById("form").submit();
+    }
+</script>
+
+{% endblock %}

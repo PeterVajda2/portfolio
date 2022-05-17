@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load extras %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="{% static 'all.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.3/jspdf.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+
+{% endblock %}
+
+{% block body %}
+
+<div class="burza-reports-wrapper">
+
+    <div class="burza-reports-header">
+        <form method="POST" id="burza_reports">{% csrf_token %}
+            <div>
+                <input type="date" class="datefrom" name="date_from" id="datefrom" value='{{date_from}}'>
+            </div>
+            <div>
+                <input type="date" class="datefrom" name="date_to" id="dateto"value='{{date_to}}'>
+            </div>
+            <div>
+                <i class="fa fa-paper-plane" aria-hidden="true" onclick="formsubmit()"></i>
+            </div>
+            <div>
+                <i title="Stáhnout report do PDF" class="fas fa-file-pdf" style="cursor: pointer" aria-hidden="true" onclick="getPDF()"></i>
+            </div>
+        </form>
+    </div>
+
+    <div class="burza-report-q" id="reference_div">
+
+        <div class="highlight-number">{{assignments|length}}</div>
+        <div class="highlight-text">{{assignments|used_verbed}}</div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr;">
+            <div class="importance">Cíl</div>
+            <div class="importance">Zdroj</div>
+            <div class="importance" title="{{assignments|top_target:"1"}}">{{assignments|top_target:"1"}}</div>
+            <div class="importance">{{assignments|top_source:"1"}}</div>
+            <div class="importance">{{assignments|top_target:"2"}}</div>
+            <div class="importance">{{assignments|top_source:"2"}}</div>
+
+
+            {% if assignments|top_target:"3" %}
+            <div class="importance">{{assignments|top_target:"3"}}</div>
+            {% else %}
+            <div class="importance"></div>
+            {% endif %}
+            
+            {% if assignments|top_source:"3" %}
+            <div class="importance">{{assignments|top_source:"3"}}</div>
+            {% else %}
+            <div class="importance"></div>
+            {% endif %}
+
+            {% if assignments|top_source:"4" or assignments|top_target:"4" %}
+            <div class="not_displayed" style="display: grid; grid-template-columns: 1fr 1fr; grid-column: 1/3;" id="targets"> 
+
+                {% if assignments|top_target:"4" %}
+                <div class="importance lower">{{assignments|top_target:"4"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+                
+                
+                {% if assignments|top_source:"4" %}
+                <div class="importance lower">{{assignments|top_source:"4"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+
+                {% if assignments|top_target:"5" %}
+                <div class="importance lower">{{assignments|top_target:"5"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+                
+                
+                {% if assignments|top_source:"5" %}
+                <div class="importance lower">{{assignments|top_source:"5"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+
+
+                {% if assignments|top_target:"6" %}
+                <div class="importance lower">{{assignments|top_target:"6"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+                
+                
+                {% if assignments|top_source:"6" %}
+                <div class="importance lower">{{assignments|top_source:"6"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+
+                {% if assignments|top_target:"7" %}
+                <div class="importance lower">{{assignments|top_target:"7"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+                
+                
+                {% if assignments|top_source:"7" %}
+                <div class="importance lower">{{assignments|top_source:"7"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+
+                {% if assignments|top_target:"8" %}
+                <div class="importance lower">{{assignments|top_target:"8"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+                
+                
+                {% if assignments|top_source:"8" %}
+                <div class="importance lower">{{assignments|top_source:"8"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+
+                {% if assignments|top_target:"9" %}
+                <div class="importance lower">{{assignments|top_target:"9"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+                
+                
+                {% if assignments|top_source:"9" %}
+                <div class="importance lower">{{assignments|top_source:"9"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+
+
+                {% if assignments|top_target:"10" %}
+                <div class="importance lower">{{assignments|top_target:"10"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+                
+                
+                {% if assignments|top_source:"10" %}
+                <div class="importance lower">{{assignments|top_source:"10"}}</div>
+                {% else %}
+                <div class="importance lower"></div>
+                {% endif %}
+
+            </div>
+
+            <div style="grid-column:1/3; text-align: center; cursor: pointer; font-weight: 700;" onclick="showMore('targets')">+ Ukázat víc</div>
+            {% endif %}
+        </div>
+
+    </div>
+
+
+    <div class="burza-report-q">
+        <div>
+            <div class="highlight-number">{{assignments|hours}}</div>
+            <div class="highlight-text">Zapůjčených hodin</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr;">
+            <div class="importance">Žádali</div>
+            <div class="importance">Dostali</div>
+
+            {% if req_dict|top_request:"0" %}
+            <div class="importance" title="{{req_dict|top_request:"0"|returnitem:0}} [{{req_dict|top_request:"0"|returnitem:1|value_by_key:"wanted"}}]">{{req_dict|top_request:"0"|returnitem:0}} [{{req_dict|top_request:"0"|returnitem:1|value_by_key:"wanted"}}]</div>
+            <div class="importance">{{req_dict|top_request:"0"|returnitem:1|value_by_key:"got"}}</div>
+            {% endif %}
+
+            {% if req_dict|top_request:"1" %}
+            <div class="importance">{{req_dict|top_request:"1"|returnitem:0}} [{{req_dict|top_request:"1"|returnitem:1|value_by_key:"wanted"}}]</div>
+            <div class="importance">{{req_dict|top_request:"1"|returnitem:1|value_by_key:"got"}}</div>
+            {% endif %}
+
+            {% if req_dict|top_request:"2" %}
+            <div class="importance">{{req_dict|top_request:"2"|returnitem:0}} [{{req_dict|top_request:"2"|returnitem:1|value_by_key:"wanted"}}]</div>
+            <div class="importance">{{req_dict|top_request:"2"|returnitem:1|value_by_key:"got"}}</div>
+            {% endif %}
+
+            {% if req_dict|top_request:"3" %}
+            <div class="not_displayed" style="display: grid; grid-template-columns: 1fr 1fr; grid-column: 1/3;" id="requested_hours"> 
+
+                {% if req_dict|top_request:"3" %}
+                <div class="importance lower">{{req_dict|top_request:"3"|returnitem:0}} [{{req_dict|top_request:"3"|returnitem:1|value_by_key:"wanted"}}]</div>
+                <div class="importance lower">{{req_dict|top_request:"3"|returnitem:1|value_by_key:"got"}}</div>
+                {% endif %}
+
+                {% if req_dict|top_request:"4" %}
+                <div class="importance lower">{{req_dict|top_request:"4"|returnitem:0}} [{{req_dict|top_request:"4"|returnitem:1|value_by_key:"wanted"}}]</div>
+                <div class="importance lower">{{req_dict|top_request:"4"|returnitem:1|value_by_key:"got"}}</div>
+                {% endif %}
+                
+                {% if req_dict|top_request:"5" %}
+                <div class="importance lower">{{req_dict|top_request:"5"|returnitem:0}} [{{req_dict|top_request:"5"|returnitem:1|value_by_key:"wanted"}}]</div>
+                <div class="importance lower">{{req_dict|top_request:"5"|returnitem:1|value_by_key:"got"}}</div>
+                {% endif %}
+
+                {% if req_dict|top_request:"6" %}
+                <div class="importance lower">{{req_dict|top_request:"6"|returnitem:0}} [{{req_dict|top_request:"6"|returnitem:1|value_by_key:"wanted"}}]</div>
+                <div class="importance lower">{{req_dict|top_request:"6"|returnitem:1|value_by_key:"got"}}</div>
+                {% endif %}
+                
+                {% if req_dict|top_request:"7" %}
+                <div class="importance lower">{{req_dict|top_request:"7"|returnitem:0}} [{{req_dict|top_request:"7"|returnitem:1|value_by_key:"wanted"}}]</div>
+                <div class="importance lower">{{req_dict|top_request:"7"|returnitem:1|value_by_key:"got"}}</div>
+                {% endif %}
+                
+                {% if req_dict|top_request:"8" %}
+                <div class="importance lower">{{req_dict|top_request:"8"|returnitem:0}} [{{req_dict|top_request:"8"|returnitem:1|value_by_key:"wanted"}}]</div>
+                <div class="importance lower">{{req_dict|top_request:"8"|returnitem:1|value_by_key:"got"}}</div>
+                {% endif %}
+                
+                {% if req_dict|top_request:"9" %}
+                <div class="importance lower">{{req_dict|top_request:"9"|returnitem:0}} [{{req_dict|top_request:"9"|returnitem:1|value_by_key:"wanted"}}]</div>
+                <div class="importance lower">{{req_dict|top_request:"9"|returnitem:1|value_by_key:"got"}}</div>
+                {% endif %}
+                
+                {% if req_dict|top_request:"10" %}
+                <div class="importance lower">{{req_dict|top_request:"10"|returnitem:0}} [{{req_dict|top_request:"10"|returnitem:1|value_by_key:"wanted"}}]</div>
+                <div class="importance lower">{{req_dict|top_request:"10"|returnitem:1|value_by_key:"got"}}</div>
+                {% endif %}
+                
+            </div>
+            
+            <div style="grid-column:1/3; text-align: center; cursor: pointer; font-weight: 700;" onclick="showMore('requested_hours')">+ Ukázat víc</div>
+            {% endif %}
+            
+        </div>
+    </div>
+
+    <div class="burza-report-q">
+
+        <div class="burza-report-chart">
+            <div id="chart1"></div>
+        </div>  
+    
+    </div>
+
+    <div class="burza-report-q">
+
+        <div class="burza-report-chart">
+            <div id="chart2"></div>
+        </div>  
+    
+    </div>
+    
+</div>
+
+
+<script>
+
+    var displayed = []
+
+    function showMore(div_id) {
+        if (displayed.includes(div_id)) {
+            event.target.innerText = "- Ukázat víc"   
+            document.getElementById(div_id).classList.add('not_displayed')
+            const index = displayed.indexOf(div_id);
+            if (index > -1) {
+                displayed.splice(index, 1);
+            }
+        } else {
+            displayed.push(div_id)
+            event.target.innerText = "- Ukázat míň"   
+            document.getElementById(div_id).classList.remove('not_displayed')
+        }
+    }
+
+</script>
+
+<script>
+
+    var height = document.getElementById("reference_div").offsetHeight
+
+    function formsubmit() {
+        document.getElementById('burza_reports').submit();
+    }
+
+</script>
+
+<script>
+
+    var data = {
+        x: {{assignments_months|safe}},
+        y: {{assignments_numbers|safe}},
+        name: 'Výpůjčky',
+        text: {{assignments_numbers|safe}}.map(String),
+        textposition: 'auto',
+        type: 'bar'
+    }
+
+    var layout = {
+        title: {
+            text: 'Zapůjčené hodiny měsíčně',
+        },
+        height: height,
+    }
+
+
+    Plotly.newPlot('chart1', [data], layout);
+</script>
+
+<script>
+
+    var trace1 = {
+        x: {{requests_months|safe}},
+        y: {{requests_wanted|safe}},
+        name: 'Žádané hodiny',
+        text: {{requests_wanted|safe}}.map(String),
+        textposition: 'auto',
+        type: 'bar'
+    }
+
+    var trace2 = {
+        x: {{requests_months|safe}},
+        y: {{requests_got|safe}},
+        name: 'Obdržené hodiny',
+        text: {{requests_got|safe}}.map(String),
+        textposition: 'auto',
+        type: 'bar'
+    }
+
+    var data = [trace1, trace2]
+
+    var layout = {
+        title: {
+            text: 'Žádané/obdržené hodiny měsíčně',
+        },
+        height: height,
+        barmode: 'group'
+    }
+
+
+    Plotly.newPlot('chart2', data, layout);
+</script>
+
+<script>
+    function getPDF(){
+
+        var HTML_Width = $(".burza-reports-wrapper").width();
+        var HTML_Height = $(".burza-reports-wrapper").height();
+        var top_left_margin = 15;
+        var PDF_Width = HTML_Width+(top_left_margin*2);
+        var PDF_Height = HTML_Height;
+        var canvas_image_width = HTML_Width;
+        var canvas_image_height = HTML_Height + 2 * top_left_margin;
+
+        var totalPDFPages = Math.ceil(HTML_Height/PDF_Height)-1;
+
+
+        html2canvas($(".burza-reports-wrapper")[0],{allowTaint:true}).then(function(canvas) {
+            canvas.getContext('2d');
+            
+            console.log(canvas.height+"  "+canvas.width);
+            
+            
+            var imgData = canvas.toDataURL("image/jpeg", 1.0);
+            var pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [PDF_Height + 4*top_left_margin, PDF_Width]
+            })
+            pdf.addImage(imgData, 'JPG', top_left_margin, top_left_margin,canvas_image_width,canvas_image_height);
+            
+            
+            for (var i = 1; i <= totalPDFPages; i++) { 
+                pdf.addPage(PDF_Width, PDF_Height);
+                pdf.addImage(imgData, 'JPG', top_left_margin, -(PDF_Height*i)+(top_left_margin*4),canvas_image_width,canvas_image_height);
+            }
+            
+            pdf.save("HTML-Document.pdf");
+        });
+    };
+</script>
+
+{% endblock %}

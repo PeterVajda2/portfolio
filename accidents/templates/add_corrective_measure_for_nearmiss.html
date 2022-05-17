@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load extras %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script type="text/javascript">
+    window.onunload = function(){
+      window.opener.location.reload();
+      window.close(); 
+    };
+</script>
+{% endblock %}
+
+{% block body %}
+
+<div class="add-measure-form">
+
+<form method="POST">{% csrf_token %}
+
+    <div class="add-measure-form-group">
+        <label>Opatření
+            <textarea placeholder="Zadejte text opatření" name="longterm_corrective_measure"></textarea>
+        </label>
+    </div>
+
+    <div class="add-measure-form-group">
+        <label>Termín splnění
+            <input type="date" name="measure_implementation_date">
+        </label>
+    </div>
+    
+    <div class="add-measure-form-group">
+        <label>Odpovědný
+            <input type="text" name="responsible">
+        </label>
+    </div>
+    
+    <div class="add-measure-form-group">
+        <label>Status
+            <select style="font-family: HarveyBalls; height: 1.5em; padding: 0; margin-top: 0.1em" name="status">
+                <option style="font-family: HarveyBalls">0</option>
+                <option style="font-family: HarveyBalls">1</option>
+                <option style="font-family: HarveyBalls">2</option>
+                <option style="font-family: HarveyBalls">3</option>
+                <option style="font-family: HarveyBalls">4</option>
+            </select>
+        </label>
+    </div>
+
+    <div class="add-measure-form-group">
+        <label>Důkazy o splnění
+            <textarea name="measure_effectiveness"></textarea>
+        </label>
+    </div>
+
+    <input type="submit">
+
+</form>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,224 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
+<link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet">
+
+{% endblock %}
+
+{% block body %}
+<div class="carpool-breadcrumb"><a href="{% url 'carpool_home' %}">Domů</a> > Vyzvedávám služební auto</div>
+<div class="carpool-create-carloan-wrapper">
+
+    {% if uploaded %}
+        <div style="text-align: center; margin-bottom: 1em; font-size: 1.5em">Auto je vaše. Šťastnou cestu!</div>
+        <div style="text-align: center;">Zpátky <a href="{% url 'carpool_home' %}">domů</a></div>
+        <div style="text-align: center;"><a href="{% url 'create_carloan_form' reservation.id %}">Upravit přebírací protokol</a></div>
+    
+    {% else %}
+
+    <form class="carpool-carloan-form" method="POST">{% csrf_token %}
+
+        
+        <fieldset>
+            <h2>Protokol - převzetí vozidla</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr">
+            
+                <div>
+                    <label>SPZ</label>
+                    <input type="text" readonly value="{{reservation.reserved_car.car_license_plate|to_license_plate}}">
+                </div>
+
+                <div>
+                    <label>Začátek zápůjčky</label>
+                    <input type="datetime-local" readonly name="carloan-start" value="{{reservation.reservation_datetime_start|date:"c"}}">
+                </div>
+
+                <div>
+                    <label>Konec zápůjčky</label>
+                    <input type="datetime-local" readonly name="carloan-end" value="{{reservation.reservation_datetime_end|date:"c"}}">
+                </div>
+
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr">
+                <div>
+                    <label>Shell #</label>
+                    <input type="text" readonly value="{{reservation.reserved_car.shell_number}}">
+                </div>
+            
+                <div>
+                    <label>Shell PIN</label>
+                    <input type="text" readonly value="{{reservation.reserved_car.pin}}">
+                </div>
+                
+                <div>
+                    <label>Čas převzetí vozidla</label>
+                    <input type="datetime-local" name="carloan-pickup-time" id="pickup-time">
+                </div>
+
+            </div>
+
+        </fieldset>
+
+        <fieldset style="border: 1px dashed red">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr">
+            
+                <div>
+                    <label>Čistota interiéru<br/>(10 - nové, 0 - nenastoupím)</label>
+                    <input type="number" step="1" max="10" min="0" name="carloan-interior-cleanness" style="text-align: center;" required>
+                </div>
+
+                <div>
+                    <label>Čistota exteriéru<br/>(10 - nové, 0 - nenastoupím)</label>
+                    <input type="number" step="1" max="10" min="0" name="carloan-exterior-cleanness" style="text-align: center;" required>
+                </div>
+
+                <div>
+                    <label>Stav paliva<br/>(10 - plná nádrž, 0 - prázdná nádrž)</label>
+                    <input type="number" step="1" max="10" min="0" name="carloan-fuel-status" style="text-align: center;" required>
+                </div>
+
+            </div>
+            
+            <div style="width: 100%">
+                <label>Poškození a vady</label>
+                <textarea name="carloan-pickup-damage" placeholder="Napište všechny vady a viditelná poškození, která nejsou zapsána v historii vozidla"></textarea>
+            </div>
+
+        </fieldset>
+
+        <div style="width: 100%" id="filepond-div">
+            <input type="file" class="filepond" name="filepond" multiple data-allow-reorder="true">
+        </div>
+        
+        <fieldset>
+            <label>Historie vozidla</label>
+            <textarea disabled placeholder="{% for key, value in reservation.reserved_car.car_history.items|order_by_key_time %}{{key}}: {{value}}&#10;{% endfor %}"></textarea>
+
+        </fieldset>
+    
+        
+        <fieldset>
+
+            <label>Odesláním formuláře vyhlašuji, že jsem vozidlo převzal ve výše popsaném stavu.</label>
+            <input type="submit">
+        </fieldset>
+
+    </form>
+
+<h3>
+    Předchozí protokoly
+</h3>
+
+<table style="text-align: center; width:100%; padding-bottom: 2em">
+    <thead>
+        <tr>
+            <th>Začátek</th>
+            <th>Konec</th>
+            <th>Čistota interiéru</th>
+            <th>Čistota exteriéru</th>
+            <th>Stav paliva</th>
+            <th>Kdo</th>
+            <th>Poškození a vady</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        {% for historical_carloan in historical_carloans %}
+        <tr>
+            <td>
+                {{historical_carloan.carloan_start|default_if_none:""}}<br />
+                 
+            </td>
+            <td>
+                {{historical_carloan.carloan_end|default_if_none:""}}<br />
+                 
+            </td>
+            <td>
+                {{historical_carloan.pickupreport_set.all.0.car_interior_cleannes}}
+            </td>
+            <td>
+                {{historical_carloan.pickupreport_set.all.0.car_exterior_cleannes}}
+            </td>
+            <td>{{historical_carloan.pickupreport_set.all.0.car_fuel}}</td>
+            <td>{{historical_carloan.car_loaner.first_name}} {{historical_carloan.car_loaner.last_name}}</td>
+            <td>
+                Při přebírání: {{historical_carloan.pickupreport_set.all.0.car_damage|default_if_none:""}}<br />
+                Při vrácení: {{historical_carloan.returnreport_set.all.0.car_damage|default_if_none:""}}
+            </td>
+        </tr>
+{% endfor %}
+
+    </tbody>
+</table>
+
+{% endif %}
+</div>
+
+<script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+<script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+
+<script>
+
+    FilePond.registerPlugin(FilePondPluginImagePreview);
+
+    const inputElement = document.querySelector('input[type="file"]');
+    const pond = FilePond.create(inputElement)
+
+    FilePond.setOptions({
+    labelFileWaitingForSize: 'Waiting for filesize',
+    labelFileSizeNotAvailable: 'Filesize not available'
+    });
+
+    FilePond.setOptions({
+    labelIdle: 'Přetáhněte soubory nebo je <span class="filepond--label-action"> vyberte v PC </span>',
+    server: {
+        process: {
+            url: '{% url "process" %}',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value
+            },
+            withCredentials: false,
+            onload: null,
+            onerror: null,
+            ondata: null
+        },
+        revert: {
+            url: './revert',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value
+            },
+            withCredentials: false,
+            onload: null,
+            onerror: null,
+            ondata: null
+        },
+        restore: null,
+        load: null,
+        fetch: null,
+    }
+});
+    
+</script>
+
+<script>
+    window.onload = function() {
+        var currentdate = new Date();
+        currentdate.setMinutes(currentdate.getMinutes() - currentdate.getTimezoneOffset())
+        document.getElementById('pickup-time').value = currentdate.toISOString().slice(0,16)
+    }
+</script>
+
+
+{% endblock %}

@@ -1,0 +1,137 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="carpool-create-reservation">
+
+    <form method="POST" id="my_form">{% csrf_token %}
+
+        <fieldset id="disable-me">
+
+            <input type="hidden" readonly=True value="{{car.car_license_plate|to_license_plate}}">
+            <h1>{{car.car_license_plate|to_license_plate}}</h1>
+
+            <label>Začátek
+                <input type="datetime-local" value="{{start.isoformat}}" id="start" name="datetime_start" step="3600">
+            </label>
+
+            <br />
+
+            <label>Konec
+                <input type="datetime-local" name="datetime_end" id="end" onchange="checkAvailability();" step="3600" value="{{end.isoformat}}">
+            </label>
+
+            <br />
+
+            <div class="carpool-edit-reservation-inputs">
+                <input name="Action" type="submit" id="submit-button" value="Upravit">
+                <input name="Action" type="submit" id="delete-button" value="Smazat">
+            </div>
+
+        </fieldset>
+
+    </form>
+
+    <div id="message-div"></div>
+
+</div>    
+<script>
+    window.onkeydown = function( event ) {
+        if (event.keyCode == 27) {
+        window.close();
+        }
+    }
+</script>
+
+<script>
+    var submit_button = document.getElementById('submit-button');
+    var message_div = document.getElementById('message-div');
+    var start_datetime = document.getElementById('start');
+    var end_datetime = document.getElementById('end');
+
+    window.onload = function() {
+        submit_button.disabled = true;
+        disable_fields("{{editable|safe}}");
+    }
+
+    function disable_fields(stringAnswer) {
+        if (stringAnswer == "No") {
+            document.getElementById("disable-me").disabled = true;
+        }
+    }
+</script>
+
+
+<script>
+    window.onunload = function() {
+        window.opener.location.reload();
+        window.close();
+    }
+</script>
+
+<script>
+function checkAvailability(success) 
+    {
+        if (start_datetime.value > end_datetime.value) {
+            greyOutSubmitButton();
+            return false;
+        }
+
+        data = {
+            'start': document.getElementById('start').value,
+            'end': document.getElementById('end').value,
+            'car': '{{car.car_license_plate|safe}}',
+            'reservation_id': '{{reservation_id}}',
+        }
+
+        req = new XMLHttpRequest()
+        req.onreadystatechange = function() {
+            if (req.readyState == 4 && req.status == 200) {
+                if (req.responseText.length > 3) {
+                    message_div.innerText = JSON.parse(req.responseText);
+                    document.getElementById('my_form').append(message_div);
+                    greyOutSubmitButton();
+                } else {
+                    message_div.innerText = '';
+                    document.getElementById('my_form').append(message_div);
+                    allowSubmitButton();
+                }
+            }
+        }
+
+        url = '{% url "validate_car_availability" %}'
+
+        req.open("POST", url, true)
+        req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        req.setRequestHeader('X-CSRFToken', token)
+        req.send("data=" + JSON.stringify(data))
+        return req
+    }
+
+</script>
+
+<script>
+    function greyOutSubmitButton() {
+        submit_button.disabled = true;
+    }
+
+    function allowSubmitButton() {
+        submit_button.disabled = false;
+    }
+
+</script>
+
+
+
+{% endblock %}

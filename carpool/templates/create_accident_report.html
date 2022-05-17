@@ -1,0 +1,85 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="{% static 'file-upload-with-preview.min.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'file-upload-with-preview.css' %}">
+
+{% endblock %}
+
+
+{% block body %}
+
+<div class="accident-report-wrapper">
+
+    {% if not uploaded %}
+
+    <form enctype="multipart/form-data" method="POST" class="accident-report-form">{% csrf_token %}
+
+        <div style="display: flex; flex-direction: row;">
+
+            <label>Odpovědná osoba
+                <input type="text" value="{{carloan.car_loaner.first_name}} {{carloan.car_loaner.last_name}}" readonly>
+            </label>
+
+            <label>Zasažené vozidlo
+                <input type="text" value="{{carloan.reservation.reserved_car.car_license_plate|to_license_plate}}" readonly>
+            </label>
+
+            <label>Datum nehody
+                <input name="accident_date" type="date" id="datetime-carpool" required>
+            </label>
+
+            <label>Moje role
+                <select name="driver_role">
+                    <option value="Viník">Viník</option>
+                    <option value="Spoluviník">Spoluviník</option>
+                    <option value="Poškozený">Poškozený</option>
+                </select>
+            </label>
+
+        </div>
+
+        <label>
+            Popište nehodu<br />
+            <textarea name="description" style="width: 100%; padding: 0.25em 0.5em; box-sizing: border-box; resize: vertical" placeholder="Popis nehody, pokuď není součástí nahrávaných dokumentů"></textarea>
+        </label>
+
+
+        <div class="custom-file-container" data-upload-id="myUniqueUploadId">
+            <label>Nahrajte fotky a dokumenty 
+                <a href="javascript:void(0)" class="custom-file-container__image-clear" title="Clear Image">&times;</a>
+            </label>
+            <label class="custom-file-container__custom-file">
+                <input name="files" type="file"       class="custom-file-container__custom-file__custom-file-input" accept="*" multiple aria-label="Choose File"
+                />
+                <input type="hidden" name="MAX_FILE_SIZE" value="10485760" />
+                <span
+                    class="custom-file-container__custom-file__custom-file-control"
+                ></span>
+            </label>
+            <div class="custom-file-container__image-preview"></div>
+        </div>
+
+        <input type="submit" value="Odeslat">
+
+    </form>
+
+    {% else %}
+
+    Vaše hlášení škodné události bylo odesláno na zpracování. Editovat ho můžete <a href="{% url 'show_accident_reports' %}">zde</a>.
+
+    {% endif %}
+    
+</div>
+
+<script>
+    var upload = new FileUploadWithPreview("myUniqueUploadId");
+</script>
+
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="{% static 'all.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'select2.min.css' %}">
+<script src="{% static 'jquery-3.5.0.min.js' %}"></script>
+<script src="{% static 'select2.min.js' %}"></script>
+
+    {% block title %}
+    <title>Formulář pro přidání požadavku</title>
+    {% endblock %}
+
+
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 600px">
+<h1 class="title">Poptávka pracovníka</h1>
+
+<form method='POST' class="form">{% csrf_token %}
+    <label for="production-unit">Středisko: </label>
+    <select id="production-unit-select" name="production-unit-select" class="production-unit-select">
+        {% for production_unit in production_units %}
+        <option>{{production_unit}}</option>
+        {% endfor %}
+    </select>
+    <br />
+    <br />
+    
+    <div class="flex-wrapper">
+        <div class="form-dates-wrapper">
+            <div>
+                <div>
+                <label for="requested-date">Datum od:</label>
+                <input type="date" id="requested-date" name="requested-date" value="{{selected_year}}-{{selected_month}}-{{selected_day}}">
+                </div>
+
+                <div>
+                <label for="requested-date-to">Datum do:</label>
+                <input type="date" id="requested-date-to" name="requested-date-to" value="{{selected_year}}-{{selected_month}}-{{selected_day}}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-dates-wrapper">
+            <div>
+                <label for="shift">Směna:</label>
+                <select id="shift-select" name="shift-select" class="shift-select">
+                    <option>Ranní</option>
+                    <option>Odpolední</option>
+                    <option>Noční</option>
+                
+                </select>
+            </div>
+            <div style="width: 150px; display: flex; flex-direction: row; justify-content: space-between;">
+                <div>
+                    <label for="start-time">Od: </label>
+                    <input type="time" id="start-time" name="start-time" value="06:00">
+                </div>
+                <div>
+                    <label for="end-time">Do: </label>
+                    <input type="time" id="end-time" name="end-time" value="14:00">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 1em; text-align: center; font-size: 1em">
+        <label>Poptávám víc operátorů
+            <select style="padding: 0em 0.5em" name="count-of-workers">
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+                <option>6</option>
+                <option>7</option>
+                <option>8</option>
+            </select>
+        </label>
+    </div>
+
+    <input type="submit" value="Vytvořit poptávku" class="submit_button">
+
+</form>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="message">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+</div>
+
+<script>
+    $(document).ready(function() {
+    $('.shift-select').select2();
+    $('#shift-select').on("select2:select", function (e) {
+        addTime(e.params.data.text);
+    });
+    $('.production-unit-select').select2();
+});
+</script>
+
+<script>
+    function addWorker(n) {
+        document.getElementById('count-of-workers').value = n;
+        document.getElementById('worker-' + n).style.border="1px solid black";
+        document.getElementById('worker-' + n).style.backgroundColor="rgba(0,0,255,0.05)";
+        for (var i = 1; i < 5; i++) {
+            if (!i == n) {
+                document.getElementById('worker-' + i).style.border="none";
+                document.getElementById('worker-' + i).style.background="none";
+            }
+        }
+    }
+</script>
+
+<script>
+    window.onunload = refreshParent;
+    function refreshParent() {
+        window.opener.location.reload();
+    }
+
+    function addTime(text) {
+        var start_time = document.getElementById('start-time');
+        var end_time = document.getElementById('end-time');
+        var end_date = document.getElementById('requested-date-to')
+        var start_date = document.getElementById('requested-date')
+
+        switch(text) {
+            case "Ranní":
+                start_time.value = "06:00";
+                end_time.value = "14:00";
+                break;
+            case "Odpolední":
+                start_time.value = "14:00";
+                end_time.value = "22:00";
+                break;
+            case "Noční":
+                start_time.value = "22:00";
+                end_time.value = "06:00";
+                end_date.value = datePlusOne(start_date.value);
+                break;
+        }
+    };
+
+    function datePlusOne(start_date) {
+        var myDate = new Date(start_date);
+        myDate.setDate(myDate.getDate() + 1);
+        return myDate.toISOString().substring(0,10);
+
+    }
+</script>
+
+{% endblock %}
+

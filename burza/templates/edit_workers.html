@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% load extras %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+    {% block title %}
+    <title>Burza práce - Operátoři</title>
+    {% endblock %}
+
+<style>
+    td {
+        cursor: pointer;
+    }
+
+    th {
+        text-align: left;
+    }
+    
+    #parent {
+        display: grid;
+        grid-template-columns: 5fr 10fr 5fr;
+    }
+
+    #parent > div:not(#send-change) {
+        width: 80%;
+        margin: 0 auto;
+        height: 10vh;
+        display: flex;
+        place-content: center;
+        place-items: center;
+        background-color: lightgreen;
+        cursor: pointer;
+        font-size: 2rem;
+        position: sticky;
+        top: 0;
+    }
+
+    #send-change {
+        display: flex;
+        width: 80%;
+        margin: 0 auto;
+        height: 10vh;
+        place-content: center;
+        place-items: center;
+        background-color: lightgreen;
+        cursor: pointer;
+        font-size: 2rem;
+        position: sticky;
+        top: 0;
+        display: none;
+    }
+
+    .operator-window {
+        height: 20vh;
+        width: 50vw;
+        top: 50%;
+        left: 50%;
+        background-color: white;
+        border: 1px solid red;
+        box-sizing: border-box;
+        z-index: 5;
+        position: absolute;
+        box-shadow: 0 0 50px 50px darkgray;
+        transform: translate(-50%, -50%);
+        display: grid;
+        grid-template-rows: 1fr 40fr;
+    }
+
+    .close-red-cross {
+        grid-row: 1/2;
+        text-align: right;
+        padding-right: 1rem;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: red;
+        font-weight: 900;
+    }
+
+    .disabled-parent {
+        position: fixed;
+        top: 0;
+        left: 0;
+        background: gray;
+        pointer-events: none;
+        opacity: 20%;
+        height: 100%;
+        width: 100%;
+    }
+
+    #add-worker-form {
+        margin: auto;
+    }
+
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="parent"> 
+
+    <div id="add-operator">Přidat operátora</div>
+
+    <table style="border-collapse: collapse; width: 100%; margin: 0 auto; grid-column: 2/3;">
+        <thead>
+            <th>Osobní číslo</th>
+            <th>Jméno</th>
+            <th>Středisko</th>
+            <th>Odešel/odešla</th>
+        </thead>
+        <tbody>
+        {% for operator in operators %}
+
+        <tr data-operator-id="{{operator.id}}">
+            <td class="operator-data" data-original-value="{{operator.personal_number}}" data-purpose="personal-number" contenteditable="true">{{operator.personal_number}}</td>
+            <td class="operator-data" data-original-value="{{operator.name}}" data-purpose="name" contenteditable="true">{{operator.name}}</td>
+            <td class="operator-data" data-original-value="{{operator.cost_center}}" data-purpose="cost-center" contenteditable="true">{{operator.cost_center}}</td>
+            <td class="checkbox-parent" data-original-value="{{operator.left}}"><input type="checkbox" name="left" {% if operator.left %} checked {% endif %}></td>
+
+        </tr>
+
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div id="send-change">Odeslat změny</div>
+</div>
+
+<form style="display: none" id="add-worker-form" method="POST">{% csrf_token %}
+    <label>Osobní číslo
+        <input type="text" name="personal-number" required>
+    </label>
+
+    <label>Příjmení a jméno
+        <input type="text" name="name" required>
+    </label>
+
+    <label>Středisko
+        <input type="text" name="cost-center" required>
+    </label>
+
+    <input type="submit">
+</form>
+
+<script>
+    var operator_data_tds = document.querySelectorAll(".operator-data")
+    var left_checkboxes = document.querySelectorAll("input[type=checkbox]")
+    var checkbox_tds = document.querySelectorAll('.checkbox-parent')
+    var add_operator_button = document.getElementById('add-operator')
+    var send_changes_button = document.getElementById('send-change')
+    var data = {}
+    var url = '{% url "burza:edit_workers" %}'
+
+    left_checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('click', (e) => {
+            if (e.target.parentElement.dataset.originalValue == "False") {
+                var orig_value = false
+            }
+            if (e.target.parentElement.dataset.originalValue == "True") {
+                var orig_value = true
+            }
+
+            if (orig_value == e.target.checked) {
+                e.target.parentElement.style.backgroundColor = "transparent";
+                changes = 0
+                operator_data_tds.forEach(data_td => {
+                    if (data_td.style.backgroundColor == "lightgray") {
+                        changes += 1;
+                    }
+                })
+                checkbox_tds.forEach(checkbox_td => {
+                    if (checkbox_td.style.backgroundColor == "lightgray") {
+                        changes += 1;
+                    }
+                })
+                    
+                if (changes == 0) {
+                        send_changes_button.style.display = "none";
+                }
+            } else {
+                send_changes_button.style.display = "flex";
+                e.target.parentElement.style.backgroundColor = "lightgray";
+            }
+        })
+    })
+    
+    operator_data_tds.forEach(data_td => {
+        data_td.addEventListener('input', (data_td) => {
+            let parent_row = data_td.target.parentElement
+            if (data_td.target.innerText != data_td.target.dataset.originalValue) {
+                data_td.target.style.backgroundColor = "lightgray";
+                send_changes_button.style.display = "flex";
+            } else {
+                data_td.target.style.backgroundColor = "transparent";
+                changes = 0
+                operator_data_tds.forEach(data_td => {
+                    if (data_td.style.backgroundColor == "lightgray") {
+                        changes += 1;
+                    }
+                checkbox_tds.forEach(checkbox_td => {
+                    if (checkbox_td.style.backgroundColor == "lightgray") {
+                        changes += 1;
+                    }
+                })
+                
+                if (changes == 0) {
+                    send_changes_button.style.display = "none";
+                }
+                })
+            }
+        });
+        data_td.onkeydown = (e) => {
+           if (e.key === "Enter") {
+               e.preventDefault();
+               e.target.blur();
+           }
+        }
+    })
+
+    add_operator_button.addEventListener('click', () => {
+        let add_operator_window = document.createElement('div');
+        add_operator_window.classList.add('operator-window')
+        document.body.append(add_operator_window);
+        document.getElementById('parent').classList.add('disabled-parent');
+        
+        let close_cross = document.createElement('div')
+        close_cross.innerText = "X"
+        close_cross.classList.add('close-red-cross')
+        close_cross.addEventListener('click', () => {
+            document.getElementById('parent').classList.remove('disabled-parent');
+            add_operator_window.remove();
+        })
+        add_operator_window.append(close_cross);
+
+        let add_operator_form = document.getElementById('add-worker-form');
+        add_operator_form.style.display = "block";
+        add_operator_window.append(add_operator_form);
+    })
+
+
+    send_changes_button.addEventListener('click', () => {
+        let cells_with_change = document.querySelectorAll('[style="background-color: lightgray;"')
+        let rows_with_change = []
+
+        cells_with_change.forEach(cell => {
+            rows_with_change.push(cell.parentElement);
+        })
+
+        rows_with_change.forEach(row => {
+            let tds = row.getElementsByTagName('td')
+            data[row.dataset.operatorId] = {}
+            data[row.dataset.operatorId]['personal_number'] = tds[0].innerText
+            data[row.dataset.operatorId]['name'] = tds[1].innerText
+            data[row.dataset.operatorId]['cost_center'] = tds[2].innerText
+            let checkbox = tds[3].getElementsByTagName('input')[0]
+            data[row.dataset.operatorId]['left'] = checkbox.checked
+        })
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        }).then(() => {location.reload()})
+    })
+</script>
+
+{% endblock %}

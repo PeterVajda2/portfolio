@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load extras %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<link rel="stylesheet" href="{% static 'awesomplete.css' %}">
+<script src="{% static 'awesomplete.min.js' %}"></script>
+<link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
+<link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.3/jspdf.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+
+
+{% endblock %}
+
+{% block body %}
+
+<div style="width: 80%; margin: 0 auto">
+
+<div class="carpool-breadcrumb"><a href="{% url 'accidents_home' %}">Domů</a> > Nová skoronehoda</div>
+
+{% if message %}
+
+<div style="text-align: center; margin-bottom: 1em"><h3>Záznam byl úspěšně vytvořen/upraven</h3></div>
+
+{% endif %}
+
+<div class="accidents-form-wrapper" id="form-wrapper-pdf">
+    <h3 style="text-transform: uppercase" onclick="getPDF()">Záznam o skoronehodě</h3>
+    <form method="POST" class="accidents-form" id="nearmiss-form">{% csrf_token %}
+
+        <div class="form-group">
+            <label>Jméno a příjmení ohlašovatele</label>
+            <input type="text" class="awesomplete" data-list="{{workers}}" id="awesomplete-input" name="worker_name" value="{{form.reporter}}">
+        </div>
+
+        <div class="form-group">
+            <label>Osobní číslo</label>
+            <input type="text" id="personal_number" name="personal_number" value="{{form.reporter.personal_number}}">
+        </div>
+
+        <div class="form-group">
+            <label>Pracovné zařazení</label>
+            <input type="text" name="reporter_role" value="{{form.reporter_role}}">
+        </div>
+
+        <div class="form-divider"></div>
+
+        <div class="form-group">
+            <label>Datum</label>
+            <input type="date" name="nearmiss_date" value="{{form.datetime_of_nearmiss|date:'Y-m-d'}}">
+        </div>
+
+        <div class="form-group">
+            <label>Čas</label>
+            <input type="time" name="nearmiss_time" value="{{form.datetime_of_nearmiss|date:'H:i'}}">
+        </div>
+
+        <div class="form-divider"></div>
+
+        <div class="form-group double">
+            <label>Přesné určení místa</label>
+            <input type="text" name="place" value="{{form.place}}">
+        </div>
+
+        <div class="form-group double">
+            <label>Činnost, při které došlo k skoronehodě</label>
+            <input type="text" name="activity_nearmiss" value="{{form.activity_nearmiss}}">
+        </div>
+
+        <div class="form-group double">
+            <label>Co způsobilo skoronehodu</label>
+            <input type="text" name="nearmiss_launcher" value="{{form.nearmiss_launcher}}">
+        </div>
+
+        <div class="form-group double">
+            <label>Příčiny skoronehody</label>
+            <input type="text" name="nearmiss_rootcause" value="{{form.nearmiss_rootcause}}">
+        </div>
+
+        <div class="form-group full-width double-height">
+            <label>Popis skoronehody</label>
+            <textarea name="nearmiss_description">{{form.nearmiss_description}}</textarea>
+        </div>
+
+        <div class="form-group full-width">
+            <label>Provedená nápravná opatření</label>
+            <input type="text" name="immediate_corrective_measures" value="{{form.immediate_corrective_measures}}">
+        </div>
+
+        <div class="form-group">
+            <label>Záznam sepsán</label>
+            <input type="datetime-local" name="protocol_datetime" value="{{form.protocol_datetime|date:'Y-m-d'}}T{{form.protocol_datetime|date:'H:i'}}">
+        </div>
+
+        <div class="form-group double">
+            <label>Záznam sepsal (jméno, zařazení, podpis)</label>
+            <input type="text" name="protocol_author_role" value="{{form.protocol_author_role}}">
+        </div>
+
+        <div class="form-group {% if not form.sos_revision %} not_displayed {% endif %}" id="fmea-1">
+            <label>Revize SOS</label>
+            <input type="date" name="sos_revision" id="fmea-1-input" value="{{form.sos_revision|date:'Y-m-d'}}">
+        </div>
+
+        <div class="form-group {% if not form.sos_revision %} not_displayed {% endif %}" id="fmea-2">
+            <label>FMEA implementace</label>
+            <input type="date" name="fmea_implementation" id="fmea-2-input" value="{{form.fmea_implementation|date:'Y-m-d'}}">
+        </div>
+
+        <div style="font-size: 0.8em; cursor: pointer; padding: 0.25em 0.5em; color: blue" id="fmea-question" onclick="showFMEA()">FMEA relevantní?</div>
+
+        <div style="width: 100%" id="filepond-div">
+            <input type="file" class="filepond" name="filepond" multiple data-allow-reorder="true">
+        </div>
+
+        {% if form.image_urls %}
+
+        {% for filename, filepath in form.image_urls.items %}
+        <div class="image-container">
+            <a target="_blank" href="{{filepath}}">
+                <img class="accident-image-thumbnail" src="{{filepath}}">
+            </a>
+                <div class="after"><div data-filename="{{filename}}" class="cross-delete" onclick="removePhoto(this)">X</div></div>
+        </div>
+
+        {% endfor %}
+
+        {% endif %}
+
+        <input type="submit" id="accident-submit-button" style="width: 100%; height: 2em">
+
+        
+    </form>
+    
+</div>
+
+</div>
+
+<script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+<script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+
+<script>
+
+    var formData = new FormData(document.getElementById('nearmiss-form'))
+    var fmea_shown = false
+
+    FilePond.registerPlugin(FilePondPluginImagePreview);
+
+    const inputElement = document.querySelector('input[type="file"]');
+    const pond = FilePond.create(inputElement)
+
+    FilePond.setOptions({
+    labelFileWaitingForSize: 'Waiting for filesize',
+    labelFileSizeNotAvailable: 'Filesize not available'
+    });
+
+    FilePond.setOptions({
+    labelIdle: 'Přetáhněte soubory nebo je <span class="filepond--label-action"> vyberte v PC </span>',
+    server: {
+        process: {
+            url: '{% url "process" %}',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value
+            },
+            withCredentials: false,
+            onload: null,
+            onerror: null,
+            ondata: null
+        },
+        revert: {
+            url: './revert',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value
+            },
+            withCredentials: false,
+            onload: null,
+            onerror: null,
+            ondata: null
+        },
+        restore: null,
+        load: null,
+        fetch: null,
+    }
+});
+    
+</script>
+
+<script>
+    function getPDF(){
+
+        var HTML_Width = document.getElementById("form-wrapper-pdf").offsetWidth;
+        var HTML_Height = document.getElementById("form-wrapper-pdf").offsetHeight;
+        var PDF_Width = 595;
+        var PDF_Height = 842;
+        var canvas_image_width = HTML_Width;
+        var canvas_image_height = HTML_Height;
+
+    html2canvas($("#form-wrapper-pdf")[0],{allowTaint:true}).then(function(canvas) {
+    canvas.getContext('2d');    
+    var imgData = canvas.toDataURL("image/jpeg", 1.0);
+    var pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [PDF_Height, PDF_Width]
+    })
+    pdf.addImage(imgData, 'JPG', 0, 0, 595, 842);
+
+    
+    pdf.save("HTML-Document.pdf");
+});
+};
+</script>
+
+<script>    
+    function awesompleteMultiple() {
+        new Awesomplete('input[data-multiple]', {
+        filter: function(text, input) {
+            return Awesomplete.FILTER_CONTAINS(text, input.match(/[^,]*$/)[0]);
+        },
+
+        item: function(text, input) {
+            return Awesomplete.ITEM(text, input.match(/[^,]*$/)[0]);
+        },
+
+        replace: function(text) {
+            var before = this.input.value.match(/^.+,\s*|/)[0];
+            this.input.value = before + text + ", ";
+        }
+    });
+    }
+</script>
+
+<script>
+    document.getElementById('awesomplete-input').addEventListener("change", getWorkerDetails);
+
+    function getWorkerDetails(success) {
+
+        data = {
+            'name': document.getElementById('awesomplete-input').value
+        }
+
+        req = new XMLHttpRequest()
+        req.onreadystatechange = function() {
+            if (req.readyState == 4 && req.status == 200) {
+                if (req.responseText.length > 3) {
+                    resp = JSON.parse(req.responseText)
+                    document.getElementById('personal_number').value = resp['personal_number'];
+                } else {
+                    window.alert("CHYBA")
+                }
+            }
+        }
+
+        url = '{% url "get_worker_details" %}'
+
+        req.open("POST", url, true)
+        req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        req.setRequestHeader('X-CSRFToken', token)
+        req.send("data=" + JSON.stringify(data))
+        return req
+    }
+</script>
+
+<script>
+awesompleteMultiple()
+</script>
+
+<script>
+    function removePhoto(photo) {
+        if (confirm('Chcete smazat fotku?')) {
+            photo.parentNode.parentNode.style.display = "none";
+            
+            req = new XMLHttpRequest()
+
+            url = '{% url "delete_picture" %}'
+
+            req.open("POST", url, true)
+            req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+            var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+            req.setRequestHeader('X-CSRFToken', token)
+            req.send("data=" + photo.getAttribute("data-filename") + ", " + "{{form.id}}")
+            return req
+        }
+    }
+</script>
+
+<script>
+    function showFMEA() {
+        if (fmea_shown == false) {
+            document.getElementById('fmea-1').classList.remove('not_displayed');
+            document.getElementById('fmea-2').classList.remove('not_displayed');
+            document.getElementById('fmea-question').innerText = 'FMEA nerelevantní?';
+            fmea_shown = true;
+        } else {
+            document.getElementById('fmea-1').classList.add('not_displayed');
+            document.getElementById('fmea-2').classList.add('not_displayed');
+            document.getElementById('fmea-question').innerText = 'FMEA relevantní?';
+            document.getElementById('fmea-2-input').value = '';
+            document.getElementById('fmea-1-input').value = '';
+            fmea_shown = false;
+        }
+    }
+</script>
+
+{% endblock %}

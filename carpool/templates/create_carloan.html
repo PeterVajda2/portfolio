@@ -1,0 +1,84 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="{% static 'html5-qrcode.min.js' %}"></script>
+
+{% endblock %}
+
+{% block body %}
+<div class="carpool-breadcrumb"><a href="{% url 'carpool_home' %}">Domů</a> > Vyzvedávám služební auto</div>
+<div class="carpool-create-carloan-wrapper">
+
+    <div style="width: 600px">
+        Naskenujte QR kód z vozidla
+            <div id="reader" width="300px"></div>
+    </div>
+
+    <form class="not_displayed">{% csrf_token %}</form>
+
+    <h2>Dostupné rezervace</h2>
+
+    {% for reservation in reservations %}
+    <p style="border: 1px solid lightgray; width: 50%; margin-bottom: 2em; padding: 1em 1em; background-color: rgba(128,128,128,0.05)">
+        <a href="{% url 'create_carloan_form' reservation.id %}">Auto: {{reservation.reserved_car.car_license_plate|to_license_plate}}<br />Datum: {{reservation.reservation_datetime_start}} - {{reservation.reservation_datetime_end}}</a>
+    </p>
+    {% endfor %}
+
+    {% if not reservations %}
+
+    Žádné dostupné rezervace. <a href="{% url 'carpool_calendar' %}">Vytvořte si jednu</a>
+
+    {% endif %}
+
+</div>
+
+<script>
+
+    const html5QrCode = new Html5Qrcode("reader");
+    const qrCodeSuccessCallback = message => { html5QrCode.stop().then(ignore => { getReservationIdAndRedirect(message) })}
+    const config = { fps: 10, qrbox: 400 };
+    
+    // If you want to prefer front camera
+    html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback);
+    
+    // If you want to prefer back camera
+    // html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
+    
+    // Select front camera or fail with `OverconstrainedError`.
+    // html5QrCode.start({ facingMode: { exact: "user"} }, config, qrCodeSuccessCallback);
+    
+    // Select back camera or fail with `OverconstrainedError`.
+    // html5QrCode.start({ facingMode: { exact: "environment"} }, config, qrCodeSuccessCallback);
+    
+    </script>
+
+    <script>
+        function getReservationIdAndRedirect(carLicensePlate) {
+
+            req = new XMLHttpRequest()
+
+            url = '{% url "find_carloan_by_qrcode" %}'
+
+            req.open("POST", url, true)
+            req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+            var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+            req.setRequestHeader('X-CSRFToken', token)
+            req.send("data=" + carLicensePlate)
+            req.onreadystatechange = function() {
+                if (req.readyState == 4 && req.status == 200) {
+                    carloan_id = req.responseText;
+                    redirect_href = "{% url 'create_carloan_form' reservation_id='12345'%}".replace('12345', carloan_id)
+                    window.location.href = redirect_href
+                }
+            }
+            return req
+        }
+    </script>
+
+{% endblock %}

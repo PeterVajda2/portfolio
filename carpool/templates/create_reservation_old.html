@@ -1,0 +1,228 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBsPxIdK9deTNE_7hIgqYFDB8VgmNSq1_Q&libraries=places&callback=initAutocomplete" type="text/javascript"></script>
+
+
+{% endblock %}
+
+{% block body %}
+
+<div class="carpool-create-reservation">
+    
+    <form method="POST" id="my_form">{% csrf_token %}
+        
+        <input type="hidden" readonly=True value="{{car.car_license_plate|to_license_plate}}">
+        <h1>{{car.car_license_plate|to_license_plate}}</h1>
+        
+        <label>Cíl
+            <input type="text" name="destination" id="autocomplete" onfocusout="measureit()" required>
+            <div id="kilometres_text"></div>
+            <input type="hidden" name="kilometres" id="kms_value">
+        </label>
+        
+        <br />
+
+        <label>Odjezd
+            <input type="datetime-local" value="{{start.isoformat}}" id="start" name="datetime_start" step="3600">
+        </label>
+
+        <br />
+
+        <label>Příjezd
+            <input type="datetime-local" name="datetime_end" id="end" onchange="checkAvailability();" step="3600">
+        </label>
+
+        <br />
+
+
+        <input type="submit" id="submit-button">
+
+    </form>
+
+    <div id="message-div"></div>
+
+</div>    
+<script>
+    window.onkeydown = function( event ) {
+        if (event.keyCode == 27) {
+        window.close();
+        }
+    }
+</script>
+
+<script>
+    var submit_button = document.getElementById('submit-button');
+    var message_div = document.getElementById('message-div');
+    var start_datetime = document.getElementById('start');
+    var end_datetime = document.getElementById('end');
+    var disable_reservation = false;
+    var next_service_date = new Date('{{car.next_service_date|date:"c"}}')
+    var trip_kms
+
+    window.onload = function() {
+        submit_button.disabled = true;
+    }
+</script>
+
+
+<script>
+    window.onunload = function() {
+        window.opener.location.reload();
+        window.close();
+    }
+</script>
+
+<script>
+function checkAvailability(success) {
+
+        disable_reservation = false;
+
+        if (start_datetime.value > end_datetime.value) {
+            disable_reservation = true;
+            greyOutSubmitButton();
+            return false;
+        }
+
+        else if (next_service_date < new Date(end_datetime.value)) {
+            document.getElementById('message-div').innerText = "Auto musí být na servisní prohlídce už " + next_service_date + ". Nedá se proto zapůjčit."
+            disable_reservation = true;
+            greyOutSubmitButton();
+            return false;
+        }
+
+        data = {
+            'start': document.getElementById('start').value,
+            'end': document.getElementById('end').value,
+            'car': '{{car.car_license_plate|safe}}',
+        }
+
+        req = new XMLHttpRequest()
+        req.onreadystatechange = function() {
+            if (req.readyState == 4 && req.status == 200) {
+                if (req.responseText.length > 3) {
+                    message_div.innerText = JSON.parse(req.responseText);
+                    document.getElementById('my_form').append(message_div);
+                    disable_reservation = true;
+                    greyOutSubmitButton();
+                    return false;
+                } else {
+                    message_div.innerText = '';
+                    document.getElementById('my_form').append(message_div);
+                }
+            }
+        }
+
+        url = '{% url "validate_car_availability" %}'
+
+        req.open("POST", url, true)
+        req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        req.setRequestHeader('X-CSRFToken', token)
+        req.send("data=" + JSON.stringify(data))
+        return req
+
+    }
+
+</script>
+
+<script>
+    function greyOutSubmitButton() {
+        submit_button.disabled = true;
+    }
+
+    function allowSubmitButton() {
+        submit_button.disabled = false;
+    }
+
+</script>
+
+<script>
+
+let placeSearch;
+let autocomplete;
+
+function initAutocomplete() {
+  // Create the autocomplete object, restricting the search predictions to
+  // geographical location types.
+  autocomplete = new google.maps.places.Autocomplete(
+    document.getElementById("autocomplete"),
+    { types: ["geocode"] }
+  );
+  // Avoid paying for data that you don't need by restricting the set of
+  // place fields that are returned to just the address components.
+  autocomplete.setFields(["address_component"]);
+  // When the user selects an address from the drop-down, populate the
+  // address fields in the form.
+  autocomplete.addListener("place_changed", fillInAddress);
+}
+
+function fillInAddress() {
+  // Get the place details from the autocomplete object.
+  const place = autocomplete.getPlace();
+
+}
+
+    function measureit() {
+        var origin = new google.maps.LatLng(50.7797555, 15.0181199);
+        var destination = document.getElementById('autocomplete').value;
+
+        var service = new google.maps.DistanceMatrixService();
+            service.getDistanceMatrix(
+            {
+                origins: [origin],
+                destinations: [destination],
+                travelMode: 'DRIVING',
+                avoidHighways: false,
+                avoidTolls: false,
+            }, callback);
+    }
+
+function callback(response, status) {
+    trip_kms = Math.floor((2 * response.rows[0].elements[0].distance['value'])/1000)
+    document.getElementById('kilometres_text').innerText = "Zpátečná vzdálenost: " + trip_kms + " km";
+    document.getElementById('kms_value').value = trip_kms
+    check_mileage(trip_kms)
+}
+
+function check_mileage(trip_kms) {
+    let current_mileage = {{car.car_mileage}}
+    let mileage_limit_year = {{car.kms_yearly}}
+    let year_start_kms = {{car.kms_status_current_year}}
+    let next_service_kms = {{car.next_service_kms}}
+    let kms_left_in_year = mileage_limit_year - (current_mileage - year_start_kms)
+    let kms_left_before_service = next_service_kms - current_mileage
+    
+    if (trip_kms > kms_left_in_year) {
+        document.getElementById('message-div').innerText = "Překročen roční limit kilometrů. Zůstává " + kms_left_in_year + " kilometrů, cesta má " + trip_kms + " kilometrů.";
+        disable_reservation = true;
+        greyOutSubmitButton();
+        return false;
+    } 
+
+    if (trip_kms > kms_left_before_service) {
+        document.getElementById('message-div').innerText = "Auto musí jít do servisu při " + next_service_kms + " kilometrech, aktuálně má za sebou " + current_mileage + "km.";
+        disable_reservation = true;
+        greyOutSubmitButton();
+        return false;
+    } 
+
+    else {
+        document.getElementById('message-div').innerText = '';
+        disable_reservation = false;
+        allowSubmitButton();
+    }
+}
+
+</script>
+
+
+
+
+{% endblock %}

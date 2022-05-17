@@ -1,0 +1,57 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="carpool-add-car-wrapper">
+    
+    <form id="add-car-form" method="POST">{% csrf_token %}
+
+        <label>EČV vozidla
+            <input type="text">
+        </label><br />
+
+        <label>Výrobce a model
+            <input type="text">
+        </label><br />
+
+        <label>Rok výroby
+            <input type="number">
+        </label><br />
+
+        <label>Typ využití</label>
+        <input type="radio" id="pool" name="pool" value="pool">
+        <label for="pool">Pool</label><br>
+        <input type="radio" id="manager" name="pool" value="manager">
+        <label for="pool">Manažer</label>
+        <br />
+
+        <label>Stav tachometru</label>
+            <input type="number">
+        <br />
+
+        <label>Informace o vozidle</label>
+            <textarea name="car-history" placeholder="Motor: 2.0 tdi; Příští kontrola: 04. 10. 2020"></textarea>
+        <br />
+
+        <label>Historie vozidla</label>
+            <textarea name="car-history" placeholder="07/2020: Výměna rozvodů; 01/2020: Totální škoda, vyklepáno"></textarea>
+        <br />
+
+        <input type="submit">
+
+    </form>
+
+    
+</div>
+
+{% endblock %}

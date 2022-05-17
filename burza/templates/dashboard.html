@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="burza-dashboard-container">
+    <div class="burza-dashboard">
+        <h2>Čekám na souhlas se zrušením zápujčky:</h2>
+            <table class="dashboard-table">
+                <tr>
+                    <th>
+                        Den
+                    </th>
+                    <th>
+                        Směna
+                    </th>
+                    <th>
+                        Pracovník
+                    </th>
+                    <th>
+                        Cílové středisko
+                    </th>
+                    <th>
+                        Info
+                    </th>
+                </tr>
+                {% for pending_request in pending_requests_my_workers %}
+                <tr class="table-row-highlight">
+                    <td>
+                        {{pending_request.assignment.offer.day}}            
+                        {{pending_request.assignment.request.day}}
+                    </td>
+                    <td>
+                        {{pending_request.assignment.offer.shift}}
+                        {{pending_request.assignment.request.shift}}
+                    </td>
+                    <td>
+                        {% if not pending_request.assignment.worker.name %}
+                        {{pending_request.assignment.offer.worker.name}}
+                        {% else %}
+                        {{pending_request.assignment.worker.name}}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{pending_request.assignment.target_costcenter.name}}
+                    </td>
+                    <td>
+                        {% if pending_request.declined %}
+                        Zrušení bylo zamítnuto
+                        {% else %}
+                        Čeká se na souhlas
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+
+    </div>
+
+    <div class="burza-dashboard">
+        <h2>Čekají na můj souhlas se zrušením:</h2>
+            <table class="dashboard-table last-col-wide">
+                <tr>
+                    <th> 
+                    Den   
+                    </th>
+                    <th>   
+                    Pracovník 
+                    </th>
+                    <th>
+                    Směna    
+                    </th>
+                    <th>
+                    Zdrojové středisko
+                    </th>
+                    <th>
+                    Cílové středisko    
+                    </th>
+                    <th>
+                    Se zrušením:
+                    </th>
+                </tr>
+            {% for pending_request in pending_requests_my_approval %}
+                <tr class="table-row-highlight">
+                    <td>
+                    {{pending_request.assignment.request.day}}
+                    {{pending_request.assignment.offer.day}}
+                    </td>
+                    <td>
+                    {{pending_request.assignment.worker.name}}
+                    </td>
+                    <td>
+                    {{pending_request.assignment.request.shift}}
+                    {{pending_request.assignment.offer.shift}}
+                    </td>
+                    <td>
+                    {{pending_request.assignment.worker.costcenter.name}}
+                    </td>
+                    <td>
+                    {{pending_request.assignment.target_costcenter.name}}
+                    </td>
+                    <td>
+                    <a href="{% url 'burza:decline_to_cancel' pending_request.id %}/?next={% url 'burza:dashboard' %}"> Nesouhlasím </a> | <a href="{% url 'burza:agree_to_cancel' pending_request.id %}?next={% url 'burza:dashboard' %}""> Souhlasím </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+
+    <div class="burza-dashboard">
+        <h2 title="Někdo nabízel člověka, nebo já jsem vytvořil poptávku a někdo ji využil">Nadcházející využité poptávky:</h2>
+            <table class="dashboard-table">
+                <tr>
+                    <th> 
+                    Den   
+                    </th>
+                    <th>   
+                    Pracovník 
+                    </th>
+                    <th>
+                    Směna    
+                    </th>
+                    <th>
+                    Cílové středisko    
+                    </th>
+                    <th>
+                    Zrušení
+                    </th>
+                </tr>
+            {% for taken_offer in active_taken_offers %}
+                <tr class="table-row-highlight">
+                    <td>
+                        {% if not taken_offer.hours == 8 %}
+                        <span style="font-size: 1.5em; font-weight: 800;" title="POZOR! Na poptávku bylo přiděleno {{taken_offer.hours}} hodin!">!</span>
+                        {% endif %}
+                    {{taken_offer.offer.day}}
+                    {% if taken_offer.assignment_start %}
+                    {{taken_offer.assignment_start|date:"H:i"}} - {{taken_offer.assignment_end|date:"H:i"}}<br />
+                    {% endif %}
+                    {{taken_offer.request.day}}
+                    </td>
+                    <td>
+                    {{taken_offer.worker}}
+                    </td>
+                    <td>
+                    {{taken_offer.request.shift}}
+                    {{taken_offer.offer.shift}}
+                    </td>
+                    <td>
+                    {{taken_offer.target_costcenter.name}}
+                    </td>
+                    <td>
+                    {% if taken_offer.pending_cancellation %}
+                    Čeká se na souhlas
+                    {% else %}
+                        {% if taken_offer.pendingrequest_set.all.0.declined %}
+                        Zamítnuto
+                        {% else %}
+                        <a href="{% url 'burza:make_request_to_cancel_assignment' taken_offer.id %}?next={% url 'burza:dashboard' %}">Zažádat o zrušení</a> 
+                        {% endif %}
+                    {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="burza-dashboard">
+        <h2 title="Já jsem nabízel člověka, nebo někdo vytvořil poptávku a já ji využil">Nadcházející využité nabídky:</h2>
+            <table class="dashboard-table last-col-wide">
+                <tr>
+                    <th> 
+                    Den   
+                    </th>
+                    <th>   
+                    Pracovník 
+                    </th>
+                    <th>
+                    Směna    
+                    </th>
+                    <th>
+                    Zdrojové středisko
+                    </th>
+                    <th>
+                    Cílové středisko    
+                    </th>
+                    <th>
+                    Zrušení
+                    </th>
+                </tr>
+            {% for my_offer in active_used_offers_from_my_centers %}
+                <tr class="table-row-highlight">
+                    <td>
+                    {{my_offer.request.day}}
+                    {{my_offer.offer.day}}
+                    </td>
+                    <td>
+                    {{my_offer.worker.name}}
+                    </td>
+                    <td>
+                    {{my_offer.request.shift}}
+                    {{my_offer.offer.shift}}
+                    </td>
+                    <td>
+                    {{my_offer.worker.cost_center}}
+                    </td>
+                    <td>
+                    {{my_offer.target_costcenter.name}}
+                    </td>
+                    <td>
+                        {% if my_offer.pendingrequest_set.all.0.declined %}
+                            Zrušení bylo zamítnuto
+                        {% else %}
+                            {% if my_offer.pending_cancellation == True %}
+                            Čeká se na souhlas
+                            {% else %}
+                            <a href="{% url 'burza:make_request_to_cancel_assignment' my_offer.id %}?next={% url 'burza:dashboard' %}">Zažádat o zrušení</a> 
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    
+    <div class="burza-dashboard">
+        <h2 title="Já jsem poptával dělníka, nikdo nedodal">Nadcházející nevyužité poptávky:</h2>
+            <table class="dashboard-table">
+                <tr>
+                    <th> 
+                    Den   
+                    </th>
+                    <th>
+                    Směna    
+                    </th>
+                    <th>
+                    Cílové středisko
+                    </th>
+                    <th>
+                    Zrušení
+                    </th>
+                </tr>
+            {% for my_request in my_unused_requests %}
+                <tr class="table-row-highlight">
+                    <td>
+                    {{my_request.day}}
+                    </td>
+                    <td>
+                    {{my_request.shift}}
+                    </td>
+                    <td>
+                    {{my_request.target_costcenter.name}}
+                    </td>
+                    <td>
+                    <a href="{% url 'burza:cancel_request' my_request.id %}/?next={% url 'burza:dashboard' %}">Zrušit</a> 
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
+    <div class="burza-dashboard">
+        <h2 title="Já jsem nabízel člověka, nikdo ho zatím nevyužil">Moje nevyužité nabídky:</h2>
+            <table class="dashboard-table">
+                <tr>
+                    <th> 
+                    Den   
+                    </th>
+                    <th>   
+                    Pracovník 
+                    </th>
+                    <th>
+                    Směna    
+                    </th>
+                    <th>
+                    Zdrojové středisko
+                    </th>
+                    <th>
+                    Zrušení
+                    </th>
+                </tr>
+            {% for my_offer in my_untaken_offers %}
+                <tr class="table-row-highlight">
+                    <td>
+                    {{my_offer.day}}
+                    </td>
+                    <td>
+                    {{my_offer.worker.name}}
+                    </td>
+                    <td>
+                    {{my_offer.shift}}
+                    </td>
+                    <td>
+                    {{my_offer.worker.costcenter.name}}
+                    </td>
+                    <td>
+                    <a href="{% url 'burza:cancel_offer' my_offer.id %}/?next={% url 'burza:dashboard' %}">Zrušit</a> 
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <a href="{% url 'burza:burza' %}">Zpátky na burzu</a>
+
+</div>
+
+{% endblock %}

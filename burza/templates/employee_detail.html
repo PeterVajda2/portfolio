@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="employee-details-container">
+
+<h2>Nabídky</h2>
+<table class="dashboard-table" style="margin-bottom: 3em">
+    <tr>
+    <th>
+        Datum
+    </th>
+
+    <th>
+        Směna
+    </th>
+
+    <th>
+        Zrušit?
+    </th>
+    </tr>
+
+    {% for offer in offers %}
+
+    {% if offer.day > today %}
+    <tr>
+        <td>{{offer.day}}</td>
+        <td>{{offer.shift}}</td>
+        <td>
+            {% if offer.fullfiled %}
+                {% if not offer.pending_cancellation %}
+                    <a href="{% url 'burza:make_request_to_cancel_offer' offer.id %}/?next={% url 'burza:employee_details' personal_number %}">Zaslat žádost o zrušení</a>
+                {% elif offer.assignment_set.all.0.pendingrequest_set.all.0.declined %}
+                    <a href="#">Zrušení bylo odmítnuto</a>
+                {% else %}
+                    <a href="#">Čeká se na souhlas se zrušením</a>
+                {% endif %}
+
+            {% else %}
+                <a href="{% url 'burza:cancel_offer' offer.id %}/?next={% url 'burza:employee_details' personal_number %}">Zrušit</a> 
+            {% endif %}</td>
+    </tr>
+
+    {% endif %}
+    {% endfor %}
+</table>
+
+<h2>Využití poptávek</h2>
+
+<table class="dashboard-table">
+    <tr>
+        <th>Datum</th>
+        <th>Směna</th>
+        <th>Zrušit?</th>
+    </tr>
+    {% for assignment in assignments %}
+        {% if assignment.request.day >= today %}
+        <tr>
+        <td>{{assignment.request.day}}</td>
+        <td>{{assignment.request.shift}}</td>
+        <td>
+            {% if not assignment.pending_cancellation %}
+                {% if assignment.pendingrequest_set.all.0.declined %}
+                "Žádost o zrušení byla odmítnuta"
+                {% else %}
+                <a href="{% url 'burza:make_request_to_cancel_assignment' assignment.id %}/?next={% url 'burza:employee_details' personal_number %}">Zažádat o zrušení</a> 
+                {% endif %}
+            {% else %}
+                <a href="#">Čeká se na souhlas se zrušením</a>
+            {% endif %}
+        </td>
+    </tr>
+
+    {% endif %}
+    {% endfor %}
+</table>
+
+</div>
+
+{% endblock %}

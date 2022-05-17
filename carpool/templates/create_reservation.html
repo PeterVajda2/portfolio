@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html class='use-all-space' lang="en">
+<head>
+    {% load carpool_tags %}
+    <meta http-equiv='X-UA-Compatible' content='IE=Edge' />
+    <meta charset='UTF-8'>
+    <title>My Map</title>
+    <meta name='viewport'
+          content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no'/>
+    <link rel='stylesheet' type='text/css' href='https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/maps/maps.css'/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <style>
+       #map {
+           width: 100vw;
+           height: 50vh;
+       }
+    </style>
+
+<script>(function(){ window.SS = window.SS || {}; SS.Require = function (callback){ if (typeof callback === 'function') { if (window.SS && SS.EventTrack) { callback(); } else { var siteSpect = document.getElementById('siteSpectLibraries'); var head = document.getElementsByTagName('head')[0]; if (siteSpect === null && typeof head !== 'undefined') { siteSpect = document.createElement('script'); siteSpect.type = 'text/javascript'; siteSpect.src = '/__ssobj/core.js+ssdomvar.js+generic-adapter.js';siteSpect.async = true; siteSpect.id = 'siteSpectLibraries'; head.appendChild(siteSpect); } if (window.addEventListener){ siteSpect.addEventListener('load', callback, false); } else { siteSpect.attachEvent('onload', callback, false); } } } };})(); </script> </head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <form method="POST" id="my_form">{% csrf_token %}
+        <div class="col-md-12 position-relative" style="text-align: center;">
+            <input type="hidden" readonly=True value="{{car.car_license_plate|to_license_plate}}">
+            <h1>{{car.car_license_plate|to_license_plate}}</h1>
+        </div>
+        <div class="row mb-3">
+            <label for="myText" class="col-sm-2 col-form-label">Cíl</label>
+            <div class="col-sm-12">
+                <input type="text" class="form-control" name="destination" id="myText">
+            </div>
+        </div>
+        <div class="col-md-12 position-relative" style="text-align: center;">
+            <div class="btn-group" role="group" aria-label="Basic example">
+                <button type="button" class="btn btn-primary" onclick="searchCity();">Hledat místo</button>
+                <button type="button" class="btn btn-primary" onclick="clearMarkers();">Odstranit místa</button>
+                <button type="button" class="btn btn-primary" onclick="createRoute();">Vytvořit trasu</button>
+            </div>
+        </div>
+        <div class="col-md-12 position-relative" style="text-align: center;">
+            <div id='distance'></div>
+        </div>
+
+        <div class="col-md-12 position-relative">
+            <label for="start" class="form-label">Odjezd</label>
+            <input type="datetime-local" value="{{start.isoformat}}" id="start" name="datetime_start" step="3600" class="form-select">
+        </div>
+
+        <div class="col-md-12 position-relative">
+            <label for="end" class="form-label">Příjezd</label>
+            <input type="datetime-local" name="datetime_end" id="end" onchange="checkAvailability();" step="3600" class="form-select">
+        </div>
+        <div class="col-md-12 position-relative" style="text-align: center;">
+            <div class="btn-group" role="group" aria-label="Basic example">
+                <input type="submit" class="btn btn-primary" id="submit-button" style="margin-top: 3%;">
+            </div>
+        </div>
+    </form>
+    <div class="col-md-12 position-relative" style="text-align: center;">
+        <div id="message-div"></div>
+    </div>
+    <div id='map' class='map'></div>
+    <div id="kilometers_total" style="visibility: hidden;"></div>
+    <script src='https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/maps/maps-web.min.js'></script>
+    <script src='https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/services/services-web.min.js'></script>
+    <script>
+      tt.setProductInfo('Carpool', '1');
+      var LIBEREC =[15.0181199, 50.7797555];
+      var map = tt.map({
+          key: 'tiaQDLlAOKD01iJnvcMymqtgTUJfc4xI',
+          container: 'map',
+          center: LIBEREC,
+          zoom: 5
+      });
+      var markers = []
+      var marker = new tt.Marker().setLngLat(LIBEREC).addTo(map);
+      markers.push(marker)
+      map.on('click', function(event){
+          //console.log(event);
+          var marker = new tt.Marker().setLngLat(event.lngLat).addTo(map);
+          markers.push(marker)
+      })
+
+      var clearMarkers = function(){
+        for (marker of markers) {
+            marker.remove();
+        }
+        
+        markers = [];
+        var marker = new tt.Marker().setLngLat(LIBEREC).addTo(map);
+        markers.push(marker)
+      }
+
+      var handleSearchResults = function (result) {
+          console.log(result)
+          //console.log(result.results[0])
+          var marker = new tt.Marker().setLngLat(result.results[0].position).addTo(map);
+          markers.push(marker)
+      }
+      var searchCity = function (){
+          tt.services.fuzzySearch({
+              key: 'tiaQDLlAOKD01iJnvcMymqtgTUJfc4xI',
+              query: document.getElementById("myText").value,
+              idxSet: 'Poi',
+              boundingBox: map.getBounds()
+          })
+          .then(handleSearchResults)
+      }
+      var displayRoute = function(geoJSON){
+          //console.log(geoJSON)
+          routeLayer = map.addLayer({
+              'id' : 'route',
+              'type' : 'line',
+              'source' : {
+                  'type': 'geojson',
+                  'data' : geoJSON
+              },
+              'paint' : {
+                  'line-color' : 'red',
+                  'line-width' : 5
+              }
+          })
+        trip_kms = document.getElementById('kilometers_total').innerHTML
+        check_mileage(trip_kms)
+      }
+      var createRoute = function() {
+          var routeOptions = {
+              key: 'tiaQDLlAOKD01iJnvcMymqtgTUJfc4xI',
+              locations: [],
+          }
+
+          for (marker of markers) {
+              routeOptions.locations.push(marker.getLngLat())
+          }
+          tt.services.calculateRoute(routeOptions).then(function(routeData){
+              //console.log(routeData);
+              document.getElementById('distance').innerHTML = 'Total Distance '+Math.floor(2*routeData.routes[0].summary.lengthInMeters/1000)+' km';
+              document.getElementById('kilometers_total').innerHTML = Math.floor(2*routeData.routes[0].summary.lengthInMeters/1000)
+              //travelTimeInSeconds = routeData.routes[0].summary.travelTimeInSeconds;
+              //timeArrival = document.getElementById('start').value + travelTimeInSeconds;
+              //document.getElementById('end').value = timeArrival;
+              var geo = routeData.toGeoJson();
+              displayRoute(geo)
+          })
+      }
+    </script>
+    <script>
+        function greyOutSubmitButton() {
+            submit_button.disabled = true;
+        }
+
+        function allowSubmitButton() {
+            submit_button.disabled = false;
+        }
+        var submit_button = document.getElementById('submit-button');
+        var message_div = document.getElementById('message-div');
+        var start_datetime = document.getElementById('start');
+        var end_datetime = document.getElementById('end');
+        var disable_reservation = false;
+        var next_service_date = new Date('{{car.next_service_date|date:"c"}}')
+        console.log(next_service_date)
+
+        window.onload = function() {
+            submit_button.disabled = true;
+        }
+
+        function check_mileage(trip_kms) {
+            let current_mileage = {{car.car_mileage}}
+            let mileage_limit_year = {{car.kms_yearly}}
+            let year_start_kms = {{car.kms_status_current_year}}
+            let next_service_kms = {{car.next_service_kms}}
+            let kms_left_in_year = mileage_limit_year - (current_mileage - year_start_kms)
+            let kms_left_before_service = next_service_kms - current_mileage
+            
+            if (trip_kms > kms_left_in_year) {
+                document.getElementById('message-div').innerText = "Překročen roční limit kilometrů. Zůstává " + kms_left_in_year + " kilometrů, cesta má " + trip_kms + " kilometrů.";
+                disable_reservation = true;
+                greyOutSubmitButton();
+                return false;
+            } 
+
+            if (trip_kms > kms_left_before_service) {
+                document.getElementById('message-div').innerText = "Auto musí jít do servisu při " + next_service_kms + " kilometrech, aktuálně má za sebou " + current_mileage + "km.";
+                disable_reservation = true;
+                greyOutSubmitButton();
+                return false;
+            } 
+
+            else {
+                document.getElementById('message-div').innerText = '';
+                disable_reservation = false;
+                allowSubmitButton();
+            }
+        }
+
+        function checkAvailability(success) {
+
+            disable_reservation = false;
+
+            if (start_datetime.value > end_datetime.value) {
+                disable_reservation = true;
+                greyOutSubmitButton();
+                return false;
+            }
+
+            else if (next_service_date < new Date(end_datetime.value)) {
+                document.getElementById('message-div').innerText = "Auto musí být na servisní prohlídce už " + next_service_date + ". Nedá se proto zapůjčit."
+                disable_reservation = true;
+                greyOutSubmitButton();
+                return false;
+            }
+
+            data = {
+                'start': document.getElementById('start').value,
+                'end': document.getElementById('end').value,
+                'car': '{{car.car_license_plate|safe}}',
+            }
+
+            req = new XMLHttpRequest()
+            req.onreadystatechange = function() {
+                if (req.readyState == 4 && req.status == 200) {
+                    if (req.responseText.length > 3) {
+                        message_div.innerText = JSON.parse(req.responseText);
+                        document.getElementById('my_form').append(message_div);
+                        disable_reservation = true;
+                        greyOutSubmitButton();
+                        return false;
+                    } else {
+                        message_div.innerText = '';
+                        document.getElementById('my_form').append(message_div);
+                    }
+                }
+            }
+
+            url = '{% url "validate_car_availability" %}'
+
+            req.open("POST", url, true)
+            req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+            var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+            req.setRequestHeader('X-CSRFToken', token)
+            req.send("data=" + JSON.stringify(data))
+            return req
+
+            }
+    </script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+
+{% load extras %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="{% static 'jquery-3.5.0.min.js' %}"></script>
+
+{% block title %}
+<title>Burza práce - kalendář</title>
+{% endblock %}
+
+{% endblock %}
+
+{% block body %}
+
+<div class="calendar_2">
+
+    <div class="calendar_heading_2">
+        <div class="help-menu">
+            <a href="{% url 'burza:help' %}" target="_blank">Návod</a>
+        </div>
+        <div class="previous_month_2">
+            {% if selected_month == 1 %}
+            <a href="{% url 'burza:show' %}{{selected_year|add:" -1"}}/{{selected_month|add:"11"}}">{% month_name2 selected_month|add:"11" LANGUAGE_CODE %}</a>
+            {% else %}
+            <a href="{% url 'burza:show' %}{{selected_year}}/{{selected_month|add:" -1"}}">{% month_name2 selected_month|add:"-1" LANGUAGE_CODE %}</a>
+            {% endif %}
+        </div>
+
+        <div class="current_month_2">
+            {% month_name2 selected_month LANGUAGE_CODE %}
+        </div>
+
+        <div class="next_month_2">
+            {% if selected_month == 12 %}
+            <a href="{% url 'burza:show' %}{{selected_year|add:" 1"}}/{{selected_month|add:"-11"}}">{% month_name2 selected_month|add:"-11" LANGUAGE_CODE %}</a>
+            {% else %}
+            <a href="{% url 'burza:show' %}{{selected_year}}/{{selected_month|add:" 1"}}">{% month_name2 selected_month|add:"1" LANGUAGE_CODE %}</a>
+            {% endif %}
+        </div>
+
+        <div class="login">
+            {% if authenticated %}
+            <a href="{% url 'burza:dashboard' %}">{{user}}</a> | <a href="{% url 'logout' %}?next={{request.path}}">odhlásit</a> {% if manager%} | <a href="{% url 'burza:employees' %}">zaměstnanci</a> {% endif %} | {% if request.user.burza_user.notifications %} <a href="{% url 'burza:notifications_switch' %}">s notifikacemi</a>
+            {% else %} <a href="{% url 'burza:notifications_switch' %}">bez notifikací</a> {% endif %}
+            {% else %}
+            <a href="{% url 'login'%}?next={{request.path}}">Nepřihlášen</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="calendar_body_2">
+
+        <div class="calendar_week_header">
+            {% for day in 0|range:7 %}
+            <div>{% day_abbrev day LANGUAGE_CODE %}</div>
+            {% endfor %}
+        </div>
+
+        {% for week_num, date_info in cal_to_web.items %}
+
+        <div class="calendar_week_2">
+
+            {% for date_name, date_content in date_info.items %}
+
+            <div class="calendar_day_2">
+                <div class="date">
+                    {{date_name|date:"j"}}
+                </div>
+
+                {% if not date_name < today %} <div class="add_offer">
+                    <a class="worker_offer_container tooltip" target="popup"
+                        onclick="window.open('{% url 'burza:add_available' %}/{{date_name|date:"Y"}}/{{date_name|date:"m"}}/{{date_name|date:"d"}}','popup','width=750,height=600'); return
+                        false;"><img src="{% static 'worker_offer.png' %}" class="worker_ico"
+                            style="cursor: pointer"><span class="tooltiptext">Nabídnout</span></a>
+            </div>
+            <div class="add_request">
+                <a class="worker_request_container tooltip" target="popup"
+                    onclick="window.open('{% url 'burza:make_request'%}/{{date_name|date:"Y"}}/{{date_name|date:"m"}}/{{date_name|date:"d"}}','popup','width=600,height=600'); return
+                    false;"><img src="{% static 'worker_request.png' %}" class="worker_ico"
+                        style="cursor: pointer"><span class="tooltiptext">Poptat</span></a>
+            </div>
+            {% else %}
+            <div class="add_offer">
+                <a class="worker_offer_container tooltip"><img src="{% static 'worker_past.png' %}"
+                        class="worker_ico past"></a>
+            </div>
+            <div class="add_request">
+                <a class="worker_request_container tooltip"><img src="{% static 'worker_past.png' %}"
+                        class="worker_ico past"></a>
+            </div>
+            {% endif %}
+
+            <div class="offers">
+
+                {% for offers_qs in date_content.Offers %}
+
+                {% if offers_qs.count < 7 %} {% for offer in offers_qs %} <div class="offered_worker">
+                    {% if not date_name < today %} {% if not offer.fullfiled %} <a href="#" target="popup"
+                        class="tooltip"
+                        onclick="window.open('{% url 'burza:burza' %}/transfer_from_offer/{{offer.id}}/','popup','width=700,height=600'); return false;">
+                        <img src="{% static 'worker_offer.png' %}"
+                            class="worker_available_ico {{offer.shift|lower|strip_accents}} {{offer.standard}}">
+                        <p class="tooltiptext">{{offer.worker__name}} ({{offer.shift|lower}}) z
+                            {{offer.worker__costcenter__name}}{% if not offer.standard == True %}<br /> POZOR: {{offer.start|time:"H:i"}} - {{ offer.end|time:"H:i" }} {% endif %} </p>
+                        </a>
+                        {% else %}
+                        <a class="tooltip">
+                            <img src="{% static 'worker_taken.png' %}" class="worker_available_ico">
+                            <p class="tooltiptext">{{offer.worker__name}} ({{offer.shift|lower}}) z
+                                {{offer.worker__costcenter__name}} na {{offer.assignment__target_costcenter__name}}</p>
+                        </a>
+                        {% endif %}
+                        {% else %}
+
+                        <a class="tooltip">
+                            <img src="{% static 'worker_past.png' %}" class="worker_available_ico past">
+                            <p class="tooltiptext">{{offer.worker__name}} ({{offer.shift|lower}}) z
+                                {{offer.worker__costcenter__name}}</p>
+                        </a>
+
+                        {% endif %}
+            </div>
+
+            {% endfor %}
+
+            {% else %}
+
+            {% for offer in offers_qs %}
+
+            {% if forloop.counter < 7 %} <div class="offered_worker">
+                {% if not date_name < today %} {% if not offer.fullfiled %} <a href="#" target="popup" class="tooltip"
+                    onclick="window.open('{% url 'burza:burza' %}/transfer_from_offer/{{offer.id}}/','popup','width=700,height=600'); return false;">
+                    <img src="{% static 'worker_offer.png' %}"
+                        class="worker_available_ico {{offer.shift|lower|strip_accents}} {{offer.standard}}">
+                    <p class="tooltiptext">{{offer.worker__name}} ({{offer.shift|lower}}) z
+                        {{offer.worker__costcenter__name}}{% if not offer.standard == True %}<br /> POZOR: {{offer.start|time:"H:i"}} - {{ offer.end|time:"H:i" }} {% endif %} </p>
+                    </a>
+                    {% else %}
+                    <a class="tooltip">
+                        <img src="{% static 'worker_taken.png' %}" class="worker_available_ico">
+                        <p class="tooltiptext">{{offer.worker__name}} ({{offer.shift|lower}}) z
+                            {{offer.worker__costcenter__name}} na {{offer.assignment__target_costcenter__name</p>
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <a class="tooltip">
+                        <img src="{% static 'worker_past.png' %}" class="worker_available_ico past">
+                        <p class="tooltiptext">{{offer.worker__name}} ({{offer.shift|lower}}) z
+                            {{offer.worker__costcenter__name}}</p>
+                    </a>
+                    {% endif %}
+        </div>
+        {% endif %}
+
+        {% endfor %}
+
+        <div class="offered_worker">
+            <a
+                class="trigger_popup_fricc_offer_{{date_name|cut:" "}} trigger_popup_fricc smaller_font">+{{offers_qs.count|add:"-6"}}</a>
+        </div>
+
+        <div class="hover_bkgr_fricc_offer_{{date_name|cut:" "}} hover_bkgr_fricc" id="hover_bkgr_fricc">
+            <span class="helper"></span>
+            <div>
+                <div class="offers_in_popup">
+                    <div class="popupCloseButton">&times;</div>
+
+                    {% for offer in offers_qs %}
+
+                    <div class="offered_worker">
+                        {% if not offer.fullfiled %}
+                        <a href="#" target="popup" class="tooltip"
+                            onclick="window.open('{% url 'burza:burza'%}/transfer_from_offer/{{offer.id}}/','popup','width=700,height=600'); return false;">
+                            <img src="{% static 'worker_offer.png' %}"
+                                class="worker_available_ico {{offer.shift|lower|strip_accents}}">
+                            <p class="tooltiptext">{{offer.worker__name}} ({{offer.shift|lower}}) z
+                                {{offer.worker__costcenter__name}}</p>
+                        </a>
+                        {% else %}
+                        <a class="tooltip">
+                            <img src="{% static 'worker_taken.png' %}" class="worker_available_ico">
+                            <p class="tooltiptext">{{offer.worker__name}} ({{offer.shift|lower}}) z
+                                {{offer.worker__costcenter__name}}</p>
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+
+        {% endfor %}
+    </div>
+
+
+    <div class="requests">
+
+        {% for request_qs in date_content.Requests %}
+
+        {% if request_qs.count < 7 %} {% for request in request_qs %} <div class="requested_worker">
+            {% if not date_name < today %} {% if not request.fullfiled %} <a href="#" target="popup" class="tooltip"
+                onclick="window.open('{% url 'burza:burza'%}/transfer_from_request/{{request.id}}','popup','width=700,height=600'); return false;">
+                <img src="{% static 'worker_request.png' %}"
+                    class="worker_available_ico {{request.shift|lower|strip_accents}} {{request.standard}}">
+                <p class="tooltiptext">{{request.shift|lower}} na {{request.target_costcenter__name}} {% if request.standard == False %} POZOR: {{request.start|time:"H:i"}} - {{request.end|time:"H:i"}} {% endif %}</p>
+                </a>
+                {% else %}
+                <a class="tooltip">
+                    <img src="{% static 'worker_taken.png' %}" class="worker_available_ico">{% if not request.assignment__hours == 8 %}<span class="exclamation-mark">!</span>{% endif %}<p
+                        class="tooltiptext">{{request.assignment__worker__name}}<br />{{request.shift|lower}} na
+                        {{request.target_costcenter__name}}</p>
+                </a>
+                {% endif %}
+                {% else %}
+                <a class="tooltip">
+                    <img src="{% static 'worker_past.png' %}" class="worker_available_ico past">
+                    <p class="tooltiptext">{{request.shift|lower}} na {{request.target_costcenter__name}}</p>
+                </a>
+                {% endif %}
+    </div>
+
+    {% endfor %}
+
+    {% else %}
+
+    {% for request in request_qs %}
+
+    {% if forloop.counter < 7 %} <div class="requested_worker">
+
+        {% if not date_name < today %} {% if not request.fullfiled %} <a href="#" target="popup" class="tooltip"
+            onclick="window.open('{% url 'burza:burza'%}/transfer_from_request/{{request.id}}','popup','width=700,height=600'); return false;">
+            <img src="{% static 'worker_request.png' %}"
+                class="worker_available_ico {{request.shift|lower|strip_accents}}">
+            <p class="tooltiptext">{{request.shift|lower}} na {{request.target_costcenter__name}}</p>
+            </a>
+            {% else %}
+            <a class="tooltip">
+                <img src="{% static 'worker_taken.png' %}" class="worker_available_ico">{% if not request.assignment__hours == 8 %}<span class="exclamation-mark">!</span>{% endif %} <p
+                    class="tooltiptext">{{request.assignment__worker__name}}<br />{{request.shift|lower}} na
+                    {{request.target_costcenter__name}}</p>
+            </a>
+            {% endif %}
+            {% else %}
+            <a class="tooltip">
+                <img src="{% static 'worker_past.png' %}" class="worker_available_ico past">
+                <p class="tooltiptext">{{request.shift|lower}} na {{request.target_costcenter__name}}</p>
+            </a>
+            {% endif %}
+</div>
+{% endif %}
+
+{% endfor %}
+
+<div class="requested_worker">
+    <a
+        class="trigger_popup_fricc_request_{{date_name|cut:" "}} trigger_popup_fricc smaller_font">+{{request_qs.count|add:"-6"}}</a>
+</div>
+
+<div class="hover_bkgr_fricc_request_{{date_name|cut:" "}} hover_bkgr_fricc" id="hover_bkgr_fricc">
+    <span class="helper"></span>
+    <div>
+        <div class="requests_in_popup">
+            <div class="popupCloseButton">&times;</div>
+
+            {% for request in request_qs %}
+
+            <div class="requested_worker">
+                {% if not request.fullfiled %}
+                <a href="#" target="popup" class="tooltip"
+                    onclick="window.open('{% url 'burza:burza'%}/transfer_from_request/{{request.id}}','popup','width=700,height=600'); return false;">
+                    <img src="{% static 'worker_request.png' %}"
+                        class="worker_available_ico {{request.shift|lower|strip_accents}}">
+                    <p class="tooltiptext">{{request.shift|lower}} na {{request.target_costcenter__name}}</p>
+                </a>
+                {% else %}
+                <a class="tooltip">
+                    <img src="{% static 'worker_taken.png' %}" class="worker_available_ico">{% if not request.assignment__hours == 8 %}<span class="exclamation-mark">!</span>{% endif %}<p
+                        class="tooltiptext">{{request.assignment__worker__name}}<br />{{request.shift|lower}} na
+                        {{request.target_costcenter__name}}</p>
+                </a>
+                {% endif %}
+            </div>
+
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+
+{% endif %}
+
+{% endfor %}
+
+</div>
+
+</div>
+{% endfor %}
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<div class="calendar_footer_2">
+    <div class="left_footer">
+        <div class="footer_link">
+            <a href={% url 'burza:show_assignments' %}>Zobrazit transfery</a>
+        </div>
+        <div class="footer_link">
+            <a href={% url 'burza:edit_assignments' %}>Upravit transfery</a>
+        </div>
+        <div class="footer_link">
+            <a href={% url 'burza:show_offers' %}>Zobrazit nabídky</a>
+        </div>
+        <div class="footer_link">
+            <a href={% url 'burza:show_requests' %}>Zobrazit poptávky</a>
+        </div>
+        <div class="footer_link">
+            <a href={% url 'burza:reports' %}>Reporty</a>
+        </div>
+        <div class="footer_link">
+            <a href={% url 'burza:edit_workers' %}>Operátoři</a>
+        </div>
+    </div>
+    <div class="right_footer">
+        <img src={% static 'logo.png' %} class="logo">
+    </div>
+</div>
+
+</div>
+
+
+{% for week_num, date_info in cal_to_web.items %}
+
+{% for date_name, date_content in date_info.items %}
+<script>
+    $(window).on('load', function () {
+        $(".trigger_popup_fricc_offer_{{date_name|cut:" "}}").click(function () {
+            $('.hover_bkgr_fricc_offer_{{date_name|cut:" "}}').show();
+        });
+        $('.popupCloseButton').click(function () {
+            $('.hover_bkgr_fricc_offer_{{date_name|cut:" "}}').hide();
+        });
+    });
+</script>
+
+<script>
+    $(window).on('load', function () {
+        $('.trigger_popup_fricc_request_{{date_name|cut:" "}}').click(function () {
+            $('.hover_bkgr_fricc_request_{{date_name|cut:" "}}').show();
+        });
+        $('.popupCloseButton').click(function () {
+            $('.hover_bkgr_fricc_request_{{date_name|cut:" "}}').hide();
+        });
+    });
+</script>
+{% endfor %}
+
+{% endfor %}
+
+{% endblock %}

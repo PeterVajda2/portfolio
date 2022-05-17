@@ -1,0 +1,87 @@
+
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="carpool-breadcrumb"><a href="{% url 'carpool_home' %}">Domů</a> > Vytvoření opravy</div>
+
+<div class="carpool-repair-wrapper">
+    
+    <div class="carpool-information-div">
+
+        Vytváříte opravu jako následek <a href="{% url 'edit_accident_report' accident_report.id %}" target="_blank"> této nehody.</a>
+
+    </div>
+
+    <div>
+
+        <form class="carpool-create-repair" method="POST">{% csrf_token %}
+
+            <div style="width: 100%; display: flex; flex-flow:row; margin-bottom: 1em">
+
+                <label>SPZ
+                    <input name="car_license_plate" value="{{accident_report.accident_car.car_license_plate}}" readonly>
+                </label>
+
+                <label>Vozidlo
+                    <input value="{{accident_report.accident_car.car_manufacturer}} {{accident_report.accident_car.car_make}}" readonly>
+                </label>
+
+                <label>Zavinění zaměstnance KB:
+                    <select name="driver_role">
+                        <option value="Viník" {% if accident_report.driver_role == 'Viník' %} selected {% endif %}>Viník</option>
+                        <option value="Spoluviník" {% if accident_report.driver_role == 'Spoluviník' %} selected {% endif %}>Spoluviník</option>
+                        <option value="Poškozený" {% if accident_report.driver_role == 'Poškozený' %} selected {% endif %}>Poškozený</option>
+                    </select>
+                </label>
+            
+            </div>
+
+            <div style="width: 100%; display: flex; flex-flow:row; margin-bottom: 1em">
+
+                <label>Datum odeslání do servisu
+                    <input type="date" name="repair_start">
+                </label>
+
+                <label>Předběžný odhad ceny opravy
+                    <input type="number" name="cost_estimate">
+                </label>
+
+                <label>Předpokládané datum převzetí opraveného vozidla
+                    <input type="date" name="end_estimate">
+                </label>
+
+            </div>
+
+            <div style="width: 100%; display: flex; flex-flow:row; margin-bottom: 1em">
+            
+                <label>Skutečná cena opravy
+                    <input type="number" name="repair_cost">
+                </label>
+
+                <label>Skutečné datum převzetí vozidla
+                    <input type="date" name="repair_end">
+                </label>
+
+            </div>
+
+                <input type="submit" value="Vytvořit">
+
+
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

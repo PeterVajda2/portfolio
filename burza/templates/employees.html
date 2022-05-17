@@ -1,0 +1,39 @@
+<form method="POST">{% csrf_token %}
+    <table>
+        <tr>
+            <td>
+                Jméno
+            </td>
+            <td>
+                Zakázán pro burzu
+            </td>
+            <td style="display: none">
+                Povolen pro burzu
+            </td>
+        </tr>
+    {% for employee in employees %}
+    <tr>
+    <td>
+        <label><a href="{% url 'burza:employee_details' employee.personal_number %}"> {{employee.name}} </a></label>
+    </td>
+    <td>
+        <input onclick="checker(this, {{employee.personal_number}})" id={{employee.personal_number}} name={{employee.personal_number}} type="checkbox" {% if employee.not_available %} checked {% endif %}>
+    </td>
+    <td style="display: none">
+        <input id="released_{{employee.personal_number}}" name="released_{{employee.personal_number}}" type="checkbox">
+    </td>
+    </tr>
+    {% endfor %}
+    </table>
+    <input type="submit" value="Odeslat" name="submit">
+</form>
+
+<script>
+    function checker(checkbox, personal_number) {
+        if (!checkbox.checked) {
+            document.getElementById('released_' + personal_number).checked = true;
+        } else {
+            document.getElementById('released_' + personal_number).checked = false;
+        }
+    }
+</script>

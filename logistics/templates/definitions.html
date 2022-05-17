@@ -1,0 +1,380 @@
+{% extends 'logistics_base.html' %}
+
+{% block breadcrumbs %}
+<span>Definice</span>
+{% endblock %}
+
+{% load logistics_extras %}
+
+{% block js-top %}
+<style>
+    .item {
+        padding: 0.2rem 1rem;
+        cursor: pointer;
+    }
+
+    div.selected.item:hover {
+        background-color: rgba(51,51,51, 0.75);
+        color: #FFF;
+    }
+
+    .selected {
+        background-color: rgba(51,51,51, 0.75);
+        color: #FFF;
+
+    }
+
+    div.item:hover {
+        background-color: rgba(51, 51, 51, 0.1);
+    }
+
+    .item-container {
+        display: flex; 
+        flex-direction: column; 
+        align-items: baseline;
+        position: relative;
+        max-height: 50vh;
+        overflow-y: scroll;
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    label {
+        background-color: #333;
+        width: 100%;
+        padding: 1rem 2rem;
+        color: #FFF;
+    }
+
+    div.item-container > div:nth-of-type(2) {
+        margin-top: 1rem;
+    }
+    
+    .button {
+        padding-inline: 1rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+
+    .button:hover {
+        background-color: lightgray;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .wrapper {
+         width: 90%; 
+         margin-inline: auto; 
+         display: grid; 
+         grid-template-columns: repeat(auto-fill, minmax(calc(33% - 3rem), 1fr)); 
+         row-gap: 2rem; 
+         column-gap: 1rem; 
+         grid-auto-rows: minmax(min-content, max-content);
+    }
+
+    input {
+        margin-inline: 1rem;
+    }
+
+    div.item-container > div:first-of-type {
+        width: 100%;
+    }
+
+</style>
+{% endblock %}
+
+{% block body %}
+
+<div class="wrapper">
+    {% for class in data %}
+    {% is_parent class as parent %}
+    {% is_child class as child %}
+    {% is_editable class as editable %}
+    {% is_deletable class as deletable %}
+    {% is_addable class as addable %}
+    <div class="item-container {% if child %} hidden {% endif %} hide-scrollbar" data-class="{{class.tag}}" data-purpose="container">
+        <label for="{{class.label}}">{{class.label}}</label>
+
+        <div data-class="{{class.tag}}" {% if parent %} data-child="{{class.child.1}}" {% endif %} {% if child %} data-parent="{{class.parent.1}}" {% endif %}
+        {% if editable %} data-editable {% endif %} {% if deletable %} data-deletable {% endif %}>
+            {% for object in class.objects %}
+                <div class="item" data-value="{{object|get_attribute:class.alias}}">{{object|get_attribute:class.alias}}</div>
+            {% endfor %}
+            <input type="text" data-purpose="add-input" data-class="{{class.tag}}" class="hidden">
+        </div>
+
+        {% if addable %}<div class="button" data-purpose="add-button" data-class="{{class.tag}}"> + přidat</div>{% endif %}
+        {% if deletable %}<div class="button hidden" data-purpose="remove-button" data-class="{{class.tag}}"> - smazat</div>{% endif %}
+        {% if editable %}<div class="button hidden" data-purpose="edit-button" data-class="{{class.tag}}"> ± upravit</div>{% endif %}
+    </div>
+    {% endfor %}
+
+{% endblock %}
+
+{% block js-bottom %}
+<script>
+    const URL = "{% url 'logistics:definitions' %}";
+    const addInputs = document.querySelectorAll('input[data-purpose*="add-input"]');
+    const addButtons = document.querySelectorAll('[data-purpose="add-button"]');
+    const removeButtons = document.querySelectorAll('[data-purpose="remove-button"]');
+    const editButtons = document.querySelectorAll('[data-purpose="edit-button"]');
+    const items = document.querySelectorAll('div[class="item"]')
+    const containers = document.querySelectorAll('div[class*="item-container"]')
+
+    window.addEventListener('DOMContentLoaded', resizeContainers)
+
+    function resizeContainers() {
+        containers.forEach(container => {
+            if (!(container.scrollHeight == container.clientHeight)) {
+                container.classList.remove('hide-scrollbar');
+            }
+        })
+    }
+
+    items.forEach(item => {
+        item.addEventListener('click', () => {
+            itemClickHandler(item);
+        })
+    });
+
+    function itemClickHandler(item) {
+        if (item.classList.contains('selected')) {
+            deselectItems(item);
+            afterItemDeselect(item);
+        } else {
+            deselectItems(item);
+            afterItemSelect(item);
+        }
+    };
+
+    function deselectItems(item) {
+        let itemsInContainer = item.parentElement.querySelectorAll('div');
+        itemsInContainer.forEach(item => {
+            item.classList.remove('selected');
+        });
+    }
+
+    function afterItemDeselect(item) {
+        let itemContainer = item.parentElement;
+        let hasChild = itemContainer.dataset.hasOwnProperty('child') ? true : false;
+        if (hasChild) {
+            let childContainer = document.querySelector(`div[data-purpose="container"][data-class="${itemContainer.dataset.child}"]`);
+            hideChildContainer(childContainer);
+        };
+        let removeButton = document.querySelector(`div[data-purpose="remove-button"][data-class="${itemContainer.dataset.class}"]`);
+        removeButton.classList.add('hidden');
+        let isEditable = itemContainer.dataset.hasOwnProperty('editable') ? true : false;
+        if (isEditable) {
+            let editButton = document.querySelector(`div[data-purpose="edit-button"][data-class="${itemContainer.dataset.class}"]`);
+            editButton.classList.add('hidden');
+        }
+    }
+
+    function afterItemSelect(item) {
+        item.classList.add('selected');
+        let itemContainer = item.parentElement;
+        let hasChild = itemContainer.dataset.hasOwnProperty('child') ? true : false;
+        let isEditable = itemContainer.dataset.hasOwnProperty('editable') ? true : false;
+        let isDeletable = itemContainer.dataset.hasOwnProperty('deletable') ? true : false;
+        if (hasChild) {
+            let childContainer = document.querySelector(`div[data-purpose="container"][data-class="${itemContainer.dataset.child}"]`);
+            showChildContainer(data = {'child_class': itemContainer.dataset.child, 'selected_value': item.textContent}, container = childContainer);
+        }
+        if (isEditable) {
+            let editButton = document.querySelector(`div[data-purpose="edit-button"][data-class="${itemContainer.dataset.class}"]`);
+            editButton.classList.remove('hidden');
+        }
+        if (isDeletable) {
+            let removeButton = document.querySelector(`div[data-purpose="remove-button"][data-class="${itemContainer.dataset.class}"]`);
+            removeButton.classList.remove('hidden');
+        }
+
+    }
+
+    addInputs.forEach(addInput => {
+        addInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                let itemContainer = document.querySelector(`div[data-class="${e.target.dataset.class}"][data-purpose="container"]`);
+                let itemInnerContainer = itemContainer.querySelector(`div[data-class="${e.target.dataset.class}"]:not([data-purpose])`);
+                let itemText = e.target.value;
+                let itemAddInput = e.target;
+                addItem(itemInnerContainer, itemText, itemAddInput);
+                e.target.blur();
+            }
+        });
+        addInput.addEventListener('focusout', (e) => {
+            addInput.classList.add('hidden');
+        })
+    })
+
+    addButtons.forEach(addButton => {
+        addButton.addEventListener('click', (e) => {
+            let addInput = document.querySelector(`[data-purpose="add-input"][data-class="${e.target.dataset.class}"]`);
+            addInput.classList.remove('hidden');
+            addInput.focus();
+        })
+    })
+
+    editButtons.forEach(editButton => {
+        editButton.addEventListener('click', (e) => {
+            let itemContainer = document.querySelector(`div[data-class="${e.target.dataset.class}"]`);
+            let itemInnerContainer = itemContainer.querySelector('div');
+            let selectedItem = itemInnerContainer.querySelector('div[class*="selected"]');
+            let hasParent = itemInnerContainer.hasAttribute('data-parent') ? true : false;
+            if (!(hasParent)) {
+                window.open(`${e.target.dataset.class}\\${selectedItem.textContent}`);
+            } else {
+                let parent = document.querySelector(`div[data-class="${itemInnerContainer.dataset.parent}"]`);
+                let parentItem = parent.querySelector('div[class*="selected"]');
+                window.open(`${e.target.dataset.class}\\${selectedItem.textContent}\\${parentItem.textContent}`);
+            }
+
+        })
+    })
+
+    removeButtons.forEach(removeButton => {
+        removeButton.addEventListener('click', (e) => {
+            let itemContainer = document.querySelector(`div[data-class="${e.target.dataset.class}"]`);
+            let itemInnerContainer = itemContainer.querySelector('div');
+            let itemsInContainer = itemInnerContainer.querySelectorAll('div');
+            itemsInContainer.forEach(item => {
+                if (item.classList.contains('selected')) {
+                    removeItem(itemInnerContainer, item);
+                }
+            })
+            e.target.classList.add('hidden');
+        })
+    })
+    
+    function removeItem(itemContainer, item) {
+        let itemText = item.textContent;
+        item.remove();
+        if (itemContainer.dataset.hasOwnProperty('child')) {
+            let childContainer = document.querySelector(`div[data-class="${itemContainer.dataset.child}"][data-purpose="container"]`);
+            childContainer.classList.add('hidden');
+        }
+        resizeContainers();
+        upload({'class': itemContainer.dataset.class, 'item': itemText, 'action': 'delete'});
+    }
+    
+    function addItem(itemInnerContainer, itemText, itemAddInput) {
+        let existingItems = Array.from(itemInnerContainer.getElementsByTagName('div')).map((div) => div.innerText);
+
+        if (existingItems.includes(itemText)) {
+            return false;
+        } else {
+            createItem(itemText, itemInnerContainer);
+            uploadData = {}
+            if (itemInnerContainer.hasAttribute('data-parent')) {
+                uploadData['parent'] = itemInnerContainer.dataset.parent;
+                let parentItemContainer = document.querySelector(`div[data-child="${itemInnerContainer.dataset.class}"]`);
+                let parentItemContainerItems = Array.from(parentItemContainer.querySelectorAll('div'));
+                uploadData['parentValue'] = parentItemContainerItems.filter((item) => item.classList.contains('selected'))[0].textContent
+            }
+            uploadData['class'] = itemInnerContainer.dataset.class;
+            uploadData['item'] = itemText;
+            uploadData['action'] = 'add';
+            upload(uploadData);
+        }
+        itemAddInput.classList.add('hidden');
+        itemAddInput.value = '';
+        resizeContainers();
+    }
+
+    function createItem(itemText, itemInnerContainer) {
+        let itemDiv = document.createElement('div');
+        itemDiv.classList.add('item');
+        itemDiv.addEventListener('click', () => { itemClickHandler(itemDiv) });
+        itemDiv.innerText = itemDiv.dataset.value = itemText;
+        itemInnerContainer.prepend(itemDiv);
+    }
+
+    async function upload(args) {
+        const response = await fetch(URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(args)
+        });
+
+        return response.json()
+    }
+
+    function showChildContainer(data, container) {
+        emptyChildContainer(container);
+        getChildContainerItems(data).then(items => fillChildContainer(items, container)).then(() => unhideChildContainer(container));
+    }
+
+    async function getChildContainerItems(args) {
+        args['action'] = 'get';
+        const response = await fetch(URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(args)
+        });
+
+        return response.json()
+    }
+
+    async function fillChildContainer(items, container) {
+        let innerContainer = container.querySelector('div[data-class]')
+        items['items'].forEach(item => {
+            createItem(item, innerContainer);
+        })
+    }
+
+    function hideChildContainer(container) {
+        let innerContainer = container.querySelector('div[data-class]');
+        let innerContainerDivs = innerContainer.querySelectorAll('div');
+        innerContainerDivs.forEach(div => {
+            div.classList.remove('selected');
+        })
+        container.classList.add('hidden');
+    }
+
+    async function unhideChildContainer(container) {
+        container.classList.remove('hidden');
+    }
+
+    function emptyChildContainer(container) {
+        let innerContainer = container.querySelector('div[data-class]');
+        let innerContainerDivs = innerContainer.querySelectorAll('div');
+        innerContainerDivs.forEach(div => {
+            div.remove();
+        })
+    }
+
+    // Select the node that will be observed for mutations
+    const targetNodes = Array.from(document.querySelectorAll('div[data-child][data-parent]'));
+    const parentNodes = targetNodes.map(elem => elem.parentElement)
+
+    // Options for the observer (which mutations to observe)
+    const config = { attributes: true }; // , attributeFilter: ['class']
+
+    // Callback function to execute when mutations are observed
+    parentNodes.forEach(parentNode => {
+        const callback = function (mutationsList, observer) {
+            
+            // Use traditional 'for loops' for IE 11
+            for (const mutation of mutationsList) {
+                console.log(mutation);
+                 if (mutation.type === 'attributes') {
+                    let childContainerName = mutationsList[0].target.getElementsByTagName('div')[0].dataset.child;
+                    let childContainer = document.querySelector(`div[data-class="${childContainerName}"][data-purpose="container"]`)
+                    childContainer.classList.add('hidden');
+                }
+            }
+        };
+        const observer = new MutationObserver(callback); // Create an observer instance linked to the callback function
+        observer.observe(parentNode, config);     // Start observing the target node for configured mutations
+    })
+
+</script>
+{% endblock %}

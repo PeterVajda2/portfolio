@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing:border-box;
+        }
+    </style>
+</head>
+<body>
+    <div style="height: 100vh; width: 100vw">
+        <div style="height: 50%; width: 50%">
+            <canvas id="chart" width="400" height="400"></canvas>
+        </div>
+        {{data|safe}}
+    </div>
+</body>
+
+<script>
+    const ctx = document.getElementById('chart');
+    const downtimesData = {{data|safe}};
+
+
+    class Downtimes {
+        constructor(data) {
+            let labelsStations = new Set();
+            let labelsDates = new Set();
+            let labelsDatesShifts = new Set();
+            let labelsCategories = new Set();
+
+            data.forEach(dd => {
+                labelsStations.add(dd.station__name);
+                labelsDates.add(dd.formatted_date);
+                labelsDatesShifts.add(`${dd.formatted_date}_${dd.shift}`);
+                labelsCategories.add(dd.downtime__category);
+            });
+
+            this.labelsStations = labelsStations;
+            this.labelsDates = labelsDates;
+            this.labelsDatesShifts = labelsDatesShifts;
+            this.labelsCategories = labelsCategories;
+            this.chartData = {}
+
+            this.labelsCategories.forEach(category => {
+                this.chartData[category] = [];
+            })
+        }
+
+        smaller(setType, firstDate, secondDate) {
+            if (setType == 'formattedDate') {
+                return parseInt(firstDate.substring(0, 4)) <= parseInt(secondDate.substring(0, 4)) && parseInt(firstDate.substring(5, 7)) <= parseInt(secondDate.substring(5, 7)) && parseInt(firstDate.substring(8, 10)) < parseInt(secondDate.substring(8, 10))
+            }
+        }
+        
+        order(unorderedSet, setType) {
+            let unorderedList = [...unorderedSet]
+            let n = unorderedList.length;
+            for (let i = 1; i < n; i++) {
+                let currentElement = unorderedList[i];
+                let j = i - 1;
+                while ((j > -1) && (this.smaller(setType, currentElement, unorderedList[j]))) {
+                    unorderedList[j + 1] = unorderedList[j];
+                    j--;
+                }
+                unorderedList[j + 1] = currentElement;
+            }
+            return unorderedList;
+        }
+
+        orderLabels = () => {
+            this.labelsDates = this.order(this.labelsDates, 'formattedDate')
+        }
+    }
+
+    downtimes = new Downtimes(downtimesData);
+
+    downtimes.orderLabels();
+
+    const myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [...downtimes.labelsDatesShifts],
+            datasets: [
+                {
+                label: 'Production',
+                data: [50, 40, 60],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                ],
+                borderWidth: 1
+                },
+                {
+                label: 'Other',
+                data: [40, 20, 10],
+                backgroundColor: [
+                    'rgba(99, 255, 132, 0.2)',
+                ],
+                borderColor: [
+                    'rgba(99, 255, 132, 1)',
+                ],
+                borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    stacked: true,
+                },
+                x: {
+                    stacked: true,
+                }
+            },
+            resonsive: true,
+            maintainAspectRatio: false,
+            aspectRatio: 1,
+
+
+        }
+    });
+</script>
+</html>

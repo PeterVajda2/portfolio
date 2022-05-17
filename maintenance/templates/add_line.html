@@ -1,0 +1,21 @@
+{% extends "maintenance_base.html" %}
+{% block title %}
+<title>Přidání linky</title>
+{% endblock %}
+
+{% block breadcrumbs %}
+<span>Přidání linky</span>
+{% endblock %}
+
+{% block body %}
+<form method="post">{% csrf_token %}
+    <label>Název linky</label>
+    <input type="text" placeholder="Označení linky" name="line">
+
+    <input type="submit">
+</form>
+
+{% if message %}
+    {{message}}
+{% endif %}
+{% endblock %}

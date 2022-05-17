@@ -1,0 +1,68 @@
+{% extends "maintenance_base.html" %}
+{% block title %}
+    <title>Nahrání seznamu dílů</title>
+{% endblock %}
+
+{% load maintenance_extras %}
+
+{% block js-top %}
+    <script src="https://unpkg.com/xlsx@0.18.0/jszip.js"></script>
+    <script src="https://unpkg.com/xlsx@0.18.0/xlsx.js"></script>
+{% endblock %}
+
+{% block breadcrumbs %}
+<span>Nahrání dílů (linka)</span>
+{% endblock %}
+
+{% block body %}
+    <form enctype="multipart/form-data">
+        <input id="upload" type=file name="files[]">
+        <label>Linka</label>
+        <select id="selected-line">
+            <option selected></option>
+            {% for line in lines %}
+            <option value="{{line}}">{{line}}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+        <table class="spare-parts-table">
+            <caption>
+                <div><span>Povinné sloupce:</span> {{ crucial_columns|get_label_cz|join:", " }} </div>
+                <div><span>Volitelné sloupce:</span>{{ other_columns|get_label_cz|join:", " }}</div>
+                <input type="button" id="remove-rows-button" value="Odstranit vybrané řádky" class="not-displayed">
+                <input type="button" id="show-existing-button" value="Zvýraznit existující díly" class="not-displayed">
+                <input type="button" id="upload-list" value="Odeslat seznam dílů" class="not-displayed">
+            </caption>
+            <thead id="table-head">
+                <!-- <tr id="table-header-tr">
+                </tr> -->
+            </thead>
+
+            <tbody id="table-body">
+            </tbody>
+        </table>
+{% endblock %}
+
+{% block js-bottom %}
+<script>
+    document.getElementById('upload').addEventListener('change', handleFileSelect, false);
+    // const tableHeader = document.getElementById("table-header-tr");
+    const tableHead = document.getElementById("table-head");
+    const tableBody = document.getElementById("table-body");
+    const startingIndex = -1;
+    const removeRowsButton = document.getElementById("remove-rows-button");
+    const showExistingButton = document.getElementById("show-existing-button");
+    const uploadPartsButton = document.getElementById("upload-list");
+    const linesSelect = document.getElementById("selected-line");
+    removeRowsButton.addEventListener('click', removeRows);
+    showExistingButton.addEventListener('click', highlightExisting);
+    uploadPartsButton.addEventListener('click', uploadParts);
+    const url = "{% url 'check_if_part_exists' %}"
+    const url_upload_parts = "{% url 'upload_parts_to_database' %}"
+    const columnsOptions = {{columns_options|safe}};
+    const crucialColumns = {{crucial_columns|get_label_cz|safe}};
+</script>
+
+
+{% endblock %}

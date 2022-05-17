@@ -1,0 +1,14 @@
+{% extends 'logistics_base.html' %}
+
+
+{% block body %}
+<nav style="width: 100%"> 
+    <ul>
+        <a href="{% url 'logistics:enter_logistics_downtime' %}"><li>Zadání prostoje</li></a>
+        <a href="{% url 'logistics:upload_excel' %}"><li>Nahrání prostojů z Excelu</li></a>
+        <a href="{% url 'logistics:show_downtimes' %}"><li>Přehledy prostojů</li></a>
+        <a href="{% url 'logistics:visualization' %}"><li>Vizualizace</li></a>
+        <a href="{% url 'logistics:definitions' %}"><li>Definice</li></a>
+    </ul>
+</nav>
+{% endblock %}

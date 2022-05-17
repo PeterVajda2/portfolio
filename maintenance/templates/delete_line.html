@@ -1,0 +1,31 @@
+{% extends "maintenance_base.html" %}
+{% block title %}
+<title>Smazání linky</title>
+{% endblock %}
+
+{% block breadcrumbs %}
+<span>Smazání linky</span>
+{% endblock %}
+
+{% block body %}
+
+{% for line in lines %}
+    <div>
+        {{line.name}} <span style="margin-left: 3rem; cursor: pointer" data-line-id="{{line.id}}"> smazat </span>
+    </div>
+{% endfor %}
+
+{% endblock %}
+
+{% block js-bottom %}
+<script>
+    const deleteSpans = document.querySelectorAll('span[data-line-id]')
+    const url_remove_line = "{% url 'delete_line' %}"
+
+    deleteSpans.forEach(deleteSpan => {
+        deleteSpan.addEventListener('click', (e) => {
+            removeLine(e.target.dataset.lineId).then(() => e.target.parentElement.remove())
+        })
+    })
+</script>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'maintenance_base.html' %}
+
+{% block breadcrumbs %}
+<span>Úprava atributů</span>
+{% endblock %}
+
+{% block body %}
+<table>
+    <thead>
+        <th>Název sloupce</th>
+        <th>Klíčový</th>
+        <th>Předvoleně viditelný</th>
+    </thead>
+
+    <tbody>
+        {% for column in columns %}
+        <tr>
+            <td>{{column.label_cz}}</td>
+            <td class="boolean-td"><input data-purpose="crucial" data-id="{{column.id}}" type="checkbox" name="crucial" {% if column.crucial %} checked {% endif %}></td>
+            <td class="boolean-td"><input data-purpose="visible_by_default" data-id="{{column.id}}" type="checkbox" name="visible_by_defaut" {% if column.visible_by_default %} checked {% endif %}></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
+
+{% block js-bottom %}
+<script>
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]')
+    const edit_columns_url = "{% url 'edit_columns' %}"
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('click', (e) => { 
+            edit_columns(e.target.dataset.id, e.target.dataset.purpose, e.target.checked).then(resp => console.log(resp))
+        })
+    })
+
+    async function edit_columns(column_id, purpose, checked) {
+        const response = await fetch(edit_columns_url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 'id': column_id, 'purpose': purpose, 'checked': checked })
+        });
+    }
+</script>
+
+{% endblock %}

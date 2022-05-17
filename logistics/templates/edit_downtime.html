@@ -1,0 +1,362 @@
+{% extends 'logistics_base.html' %}
+
+{% block breadcrumbs %}
+<span>Editace prostoje</span>
+{% endblock %}
+
+{% load logistics_extras %}
+{% block body %}
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+</head>
+<style>
+    .btn {
+        color: white;
+        background-color: #7a5195;
+    }
+
+    .btn-group {
+        width: 40%;
+    }
+
+    .readonly {
+        background-color: #eee;
+        pointer-events: none;
+    }
+    
+    .hidden {
+        display: none;
+    }
+
+</style>
+
+{% log_role profile as logistics %}
+{% prod_role profile as production %}
+{% with full_name=request.user.first_name|add:" "|add:request.user.last_name %}
+
+<body>
+    <form class="row g-3" method="post" enctype="multipart/form-data">{% csrf_token %}
+        <div class="col-md-3 position-relative">
+            <label for="ProductionArea" class="form-label">Výrobní oblast</label>
+            <select class="form-select {% if not production %}readonly {% endif %}" id='ProductionArea' name="ProductionArea" required tabindex="-1">
+                <option value="{{downtime.production_area.name}}" selected>{{downtime.production_area.name}}</option>
+            </select>
+        </div>
+
+
+        <div class="col-md-3 position-relative">
+            <label for="Date" class="form-label">Datum</label>
+            <input class="form-select {% if not production %}readonly {% endif %}" type="date" id="Date" name="Date" value="{{downtime.downtime_date|date:"Y-m-d"}}" required tabindex="-1"> 
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="Shift" class="form-label">Směna</label>
+            <select class="form-select {% if not production %}readonly {% endif %}" id="Shift" name="Shift" tabindex="-1">
+                <option value="" {% if not downtime.shift %} selected {% endif %}></option>
+                <option value="A" {% if downtime.shift == "A" %} selected {% endif %}>A</option>
+                <option value="B" {% if downtime.shift == "B" %} selected {% endif %}>B</option>
+                <option value="C" {% if downtime.shift == "C" %} selected {% endif %}>C</option>
+                <option value="D" {% if downtime.shift == "D" %} selected {% endif %}>D</option>
+            </select>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="Noticed" class="form-label">Zaznamenal</label>
+            <input type="text" class="form-control {% if not production %}readonly {% endif %}" id="Noticed" name="Noticed" placeholder="Příjmení"
+                value="{{downtime.recorded_by}}" tabindex="-1">
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="Line" class="form-label">Linka</label>
+            <select class="form-select {% if not production %}readonly {% endif %}" id="Line" name="Line" required tabindex="-1">
+                <option value="{{downtime.line.name}}" selected>{{downtime.line.name}}</option>
+            </select>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="TrainCircuit" class="form-label">Vlakový okruh</label>
+            <select class="form-select {% if not production %}readonly {% endif %}" id="TrainCircuit" name="TrainCircuit" tabindex="-1">
+                <option value="{{downtime.train_circuit.number}}" selected>{{downtime.train_circuit.number}}</option>
+            </select>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="Ordernumber" class="form-label">Číslo zakázky</label>
+            <input type="text" class="form-control {% if not production %}readonly {% endif %}" id="Ordernumber" name="Ordernumber" value="{{downtime.order_number}}" tabindex="-1">
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="MaterialNumber" class="form-label">Číslo materiálu</label>
+            <input type="text" class="form-control {% if not production %}readonly {% endif %}" id="MaterialNumber" name="MaterialNumber" value="{{downtime.material_number}}" tabindex="-1">
+        </div>
+
+        <div class="col-md-3 position-relative" style="display: flex; flex-direction: column; justify-content: space-around;">
+            <div>
+                <label for="DowntimeByProduction" class="form-check-label">Prostoj? (výroba)</label>
+                <input type="checkbox" class="form-check-input" id="DowntimeByProduction" name="DowntimeByProduction" {% if downtime.is_downtime_by_production %} checked {% endif %} {% if not production %}disabled {% endif %}>
+            </div>
+            <div>
+                <label for="DowntimeByLogistics" class="form-check-label">Prostoj? (logistika)</label>
+                <input type="checkbox" class="form-check-input {% if not logistics %}readonly {% endif %}" id="DowntimeByLogistics" name="DowntimeByLogistics" {% if downtime.is_downtime_by_logistics %} checked {% endif %} {% if not logistics %}disabled {% endif %}>
+            </div>
+        </div> 
+
+        <div class="col-md-3 position-relative">
+            <label for="TimeFrom" class="form-label">Čas OD</label>
+            <input class="form-select {% if not production %}readonly {% endif %}" type="datetime-local" id="TimeFrom" name="TimeFrom" value='{{downtime.downtime_start|date:"Y-m-d"}}T{{downtime.downtime_start|time:"H:i"}}' tabindex="-1">
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="TimeTo" class="form-label">Čas DO</label>
+            <input class="form-select {% if not production %}readonly {% endif %}" type="datetime-local" id="TimeTo" name="TimeTo" value='{{downtime.downtime_end|date:"Y-m-d"}}T{{downtime.downtime_end|time:"H:i"}}' tabindex="-1">
+        </div>
+
+        <div class="col-md-3 position-relative hidden">
+            <label for="TimeTo" class="form-label">Trvání (minut)</label>
+            <input class="form-control" type="number" id="Duration" name="Duration" readonly disabled>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="TrainDriver" class="form-label">Řidič/Manipulant</label>
+            <input list="TrainDrivers" class="form-control" type="text" name="TrainDriver" id="TrainDriver" required value="{{downtime.train_driver.train_driver}}">
+            <datalist id="TrainDrivers">
+                {% for train_driver in train_drivers_list %}
+                    <option value="{{train_driver}}">
+                {% endfor %}
+            </datalist>
+
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="CategoryByProduction" class="form-label">Kategorie (výroba)</label>
+            <select class="form-select {% if not production %}readonly {% endif %}" id="CategoryByProduction" name="CategoryByProduction" tabindex="-1">
+                <option value="{{downtime.category_by_production.category}}" selected>{{downtime.category_by_production.category}}</option>
+            </select>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="SubcategoryByProduction" class="form-label">Specifikace prostoje (výroba)</label>
+            <input list="SubcategoriesByProduction" class="form-control {% if not production %}readonly {% endif %}" type="text"
+                name="SubcategoryByProduction" id="SubcategoryByProduction" required
+                value="{{downtime.subcategory_by_production.subcategory}}">
+            <datalist id="SubcategoriesByProduction">
+            </datalist>
+        </div>
+
+        <div class="col-md-6 position-relative">
+            <label for="Notes" class="form-label">Poznámky (výroba)</label>
+            <textarea rows="1" class="form-control" id="Notes" name="Notes" {% if not production %} disabled {% endif %}>{{downtime.note_by_production}}</textarea>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="CategoryByLogistics" class="form-label">Kategorie (logistika)</label>
+            <select class="form-select {% if not logistics %}readonly {% endif %}" id="CategoryByLogistics" name="CategoryByLogistics">
+                <option value="{{downtime.category_by_logistics.category}}" selected>
+                    {{downtime.category_by_logistics.category}}</option>
+            </select>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="SubcategoryByLogistics" class="form-label">Specifikace prostoje (logistika)</label>
+            <input list="SubcategoriesByLogistics" class="form-control {% if not logistics %}readonly {% endif %}" type="text" name="SubcategoryByLogistics" id="SubcategoryByLogistics" 
+            {% if logistics %} required {% endif %} value="{{downtime.subcategory_by_logistics.subcategory}}">
+            <datalist id="SubcategoriesByLogistics">
+            </datalist>
+        </div>
+
+        <div class="col-md-6 position-relative">
+            <label for="NotesByLogistics" class="form-label">Poznámky (logistika)</label>
+            <textarea rows="1" class="form-control" {% if not logistics %} disabled {% endif %} id="NotesByLogistics" name="NotesByLogistics">{{downtime.note_by_logistics}}</textarea>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="Deduction" class="form-label">Redukce prostoje (v minutách)</label>
+            <input class="form-control {% if not logistics %}readonly {% endif %}"" type="number" min="0" id="Deduction" name="Deduction" value='{{downtime.logistics_deduction}}' step="1">
+        </div>
+
+        
+        <div class="col-md-3 position-relative">
+            <label for="Decoded" class="form-label">Rozklíčoval</label>
+            <input class="form-control  {% if not logistics %}readonly {% endif %}"" type="text" id="DecodedBy" name="DecodedBy" value='{{downtime.decoded_by|default_if_none:full_name}}'>
+        </div>
+
+        {% endwith %}
+
+        <div class="col-md-3 position-relative">
+            <label for="Rootcause" class="form-label">Kořenová příčina (popsat)</label>
+            <textarea rows="1" class="form-control" id="Rootcause" name="Rootcause" {% if logistics %} required {% else %} disabled {% endif %}>{{downtime.downtime_rootcause|default_if_none:""}}</textarea>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="CorrectiveAction" class="form-label">Nápravné opatření</label>
+            <textarea rows="1" class="form-control" id="CorrectiveAction" name="CorrectiveAction" {% if logistics %} required {% else %} disabled {% endif %}>{{downtime.corrective_action|default_if_none:""}}</textarea>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="Responsible" class="form-label">Odpovídá</label>
+            <input class="form-control" type="text" id="Responsible" name="Responsible" value="{{downtime.responsible|default_if_none:""}}" {% if logistics %} required {% else %} disabled {% endif %}>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="Deadline" class="form-label">Termín DO</label>
+            <input class="form-select" type="date" id="Deadline" name="Deadline" value='{{downtime.deadline|date:"Y-m-d"}}' {% if logistics %} required {% else %} disabled {% endif %}>
+        </div>
+        <div class="col-md-3 position-relative">
+
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="Status" class="form-label">Status</label>
+            <select class="form-select" id="Status" name="Status" {% if not logistics %} disabled {% endif %}>
+                <option value="0" {% if downtime.status == 0 %} selected {% endif %}>Nesplněno 0%</option>
+                <option value="0.5" {% if downtime.status == 0.5 %} selected {% endif %}>Probíhá 50%</option>
+                <option value="1" {% if downtime.status == 1 %} selected {% endif %}>Splněno 100%</option>
+            </select>
+        </div>
+
+        <div class="col-md-3 position-relative">
+            <label for="file-input" class="form-label">Nahrání přílohy (png, jpeg, jpg)</label>
+            <input type="file" name="image" id="image" accept="image/x-png,image/jpeg,image/jpg"/>
+        </div>
+
+        <input type="hidden" value="{{downtime.id}}" name="Id">
+
+        {% if downtime.is_external %}
+        <div>Původní informace z externí aplikace:
+            {% get_external_downtime downtime.external_line downtime.external_downtime_id as external_downtime %}
+            <div>
+            <span style="display: block"> {{external_downtime.category}}</span> <span style="display: block">Subkategorie: {{external_downtime.subcategory}}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="col-md-12 position-relative" style="text-align: center;">
+            <div class="btn-group">
+                <button type="submit" class="btn">Ok</button>
+            </div>
+    </form>
+
+</body>
+
+{% endblock %}
+
+{% block js-bottom %}
+<script>
+    const userData = {{ data| safe}};
+    const lineSelect = document.getElementById('Line');
+    const productionAreaSelect = document.getElementById('ProductionArea')
+    const categoryByLogisticsInput = document.getElementById('CategoryByLogistics');
+    const subcategoryByLogisticsInput = document.getElementById('SubcategoryByLogistics');
+    const subcategoryByLogisticsDatalist = document.getElementById('SubcategoriesByLogistics')
+    const categoryByProductionInput = document.getElementById('CategoryByProduction');
+    const subcategoryByProductionInput = document.getElementById('SubcategoryByProduction');
+    const subcategoryByProductionDatalist = document.getElementById('SubcategoriesByProduction');
+    const trainCircuitSelect = document.getElementById('TrainCircuit');
+    const existingProductionArea = document.getElementById('ProductionArea');
+    const downtimeCategories = {{ categories| safe}};
+    const trainDrivers = {{ train_drivers_list| safe}};
+    const trainDriverSelect = document.getElementById('TrainDriver');
+    const datettimeInputs = document.querySelectorAll('input[type="datetime-local"]')
+
+    window.addEventListener('DOMContentLoaded', (event) => {
+        enterDuration();
+    });
+
+    datettimeInputs.forEach(dt => {
+        dt.addEventListener('input', enterDuration);
+    })
+
+    function enterDuration() {
+        let duration = calculateDuration();
+        if (!(isNaN(duration))) {
+            document.getElementById('Duration').parentElement.classList.remove('hidden');
+            document.getElementById('Duration').value = duration;
+        } else {
+            document.getElementById('Duration').parentElement.classList.add('hidden');
+        }
+    }
+
+    function calculateDuration() {
+        datettimeInputs.forEach(dt => {
+            if (!(dt.value)) {
+                return false;
+            }
+        });
+        let dt1 = datettimeInputs[0].value
+        let dt2 = datettimeInputs[1].value
+        dt1 = new Date(year = parseInt(dt1.slice(0, 4)), monthIndex = parseInt(dt1.slice(5, 7)) - 1, day = parseInt(dt1.slice(8, 10)), hours = parseInt(dt1.slice(11, 13)), minutes = parseInt(dt1.slice(14, 16)))
+        dt2 = new Date(year = parseInt(dt2.slice(0, 4)), monthIndex = parseInt(dt2.slice(5, 7)) - 1, day = parseInt(dt2.slice(8, 10)), hours = parseInt(dt2.slice(11, 13)), minutes = parseInt(dt2.slice(14, 16)))
+
+        let diff = (dt2.getTime() - dt1.getTime()) / 1000;
+        diff /= 60;
+        return Math.abs(Math.round(diff));
+    }
+
+
+    window.addEventListener('DOMContentLoaded', (event) => {
+        prefillForm();
+    });
+
+    productionAreaSelect.addEventListener('input', (event) => {
+        let selectedArea = event.target.value;
+        lineSelect.innerHTML = "";
+        let emptyOption = document.createElement('option');
+        lineSelect.append(emptyOption);
+        emptyOption.selected = true;
+        emptyOption.value = "";
+        emptyOption.textContent = "";
+        for (const line of Object.keys(userData[selectedArea])) {
+            let optionElement = document.createElement('option');
+            optionElement.value = line;
+            optionElement.textContent = line;
+            lineSelect.append(optionElement);
+        }
+    })
+
+    downtimeCategories[categoryByProductionInput.value].forEach(subcategory => {
+        let optionElement = new Option(subcategory, subcategory);
+        subcategoryByProductionDatalist.append(optionElement);
+    });
+
+    if (!(categoryByLogisticsInput.value === "")) {
+        downtimeCategories[categoryByLogisticsInput.value].forEach(subcategory => {
+            let optionElement = new Option(subcategory, subcategory);
+            subcategoryByLogisticsDatalist.append(optionElement);
+        })
+    }
+
+
+    lineSelect.addEventListener('input', (event) => {
+        let selectedLine = event.target.value;
+        trainCircuitSelect.value = userData[existingProductionArea.value][selectedLine];
+    })
+
+    categoryByProductionInput.addEventListener('input', (event) => {
+        let selectedCategory = event.target.value;
+        if (!(selectedCategory === '')) {
+            subcategoryByProductionInput.value = "";
+            subcategoryByProductionDatalist.innerHTML = "";
+            downtimeCategories[selectedCategory].forEach(subcategory => {
+                let optionElement = new Option(subcategory, subcategory);
+                subcategoryByProductionDatalist.append(optionElement);
+            })
+        }
+    })
+
+    categoryByLogisticsInput.addEventListener('input', (event) => {
+            let selectedCategory = event.target.value;
+            if (!(selectedCategory === '')) {
+                subcategoryByLogisticsInput.value = "";
+                subcategoryByLogisticsDatalist.innerHTML = "";
+                downtimeCategories[selectedCategory].forEach(subcategory => {
+                    let optionElement = new Option(subcategory, subcategory);
+                    subcategoryByLogisticsDatalist.append(optionElement);
+                })
+            }
+        })
+</script>
+{% endblock %}

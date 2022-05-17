@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    td {
+        border: 1px solid black;
+    }
+
+</style>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>Pole</th>
+                <th>Hodnota</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>Výrobní oblast</td>
+                <td>{{downtime.production_area.name|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Datum</td>
+                <td>{{downtime.downtime_date|date:"d. m. Y"|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Směna</td>
+                <td>{{downtime.shift|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Zaznamenal</td>
+                <td>{{downtime.recorded_by|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Linka</td>
+                <td>{{downtime.line.name|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Vlakový okruh</td>
+                <td>{{downtime.train_circuit.number|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Zakázka</td>
+                <td>{{downtime.order_number|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Materiál</td>
+                <td>{{downtime.material_number|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Prostoj? (výroba)</td>
+                <td>{% if downtime.is_downtime_by_production %} Ano {% else %} Ne {% endif %}</td>
+            </tr>
+
+            <tr>
+                <td>Prostoj? (logistika)</td>
+                <td>{% if downtime.is_downtime_by_logistics %} Ano {% else %} Ne {% endif %}</td>
+            </tr>
+
+            <tr>
+                <td>Čas OD</td>
+                <td>{{downtime.downtime_start|date:"d. m. Y H:i"|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Čas DO</td>
+                <td>{{downtime.downtime_end|date:"d. m. Y H:i"|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Řidič vláčku</td>
+                <td>{{downtime.train_driver.train_driver|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Kategorie (výroba)</td>
+                <td>{{downtime.category_by_production.category|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Kategorie (logistika)</td>
+                <td>{{downtime.category_by_logistics.category|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Podkategorie (výroba)</td>
+                <td>{{downtime.subcategory_by_production.subcategory|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Podkategorie (logistika)</td>
+                <td>{{downtime.subcategory_by_logistics.subcategory|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Poznámky (výroba)</td>
+                <td>{{downtime.note_by_production|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Poznámky (logistika)</td>
+                <td>{{downtime.note_by_logistics|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Rozklíčoval (logistika)</td>
+                <td>{{downtime.decoded_by|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Redukce prostoje (logistika)</td>
+                <td>{{downtime.logistics_deduction|default_if_none:"0"}}</td>
+            </tr>
+
+            <tr>
+                <td>Kořenová příčina</td>
+                <td>{{downtime.downtime_rootcause|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Nápravní opatření</td>
+                <td>{{downtime.corrective_action|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Odpovědný</td>
+                <td>{{downtime.responsible|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Termín vyřešení</td>
+                <td>{{downtime.deadline|date:"d. m. Y"|default_if_none:""}}</td>
+            </tr>
+
+            <tr>
+                <td>Status (0: 0%, 1: 100%)</td>
+                <td>{{downtime.status|floatformat:"0"|default_if_none:""}}</td>
+            </tr>
+
+        </tbody>
+    </table>
+
+</body>
+</html>

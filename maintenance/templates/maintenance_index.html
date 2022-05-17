@@ -1,0 +1,43 @@
+{% extends "maintenance_base.html" %}
+{% block title %}
+<title>Domov</title>
+{% endblock %}
+
+{% block body %}
+
+<ul>
+    <li>Díly (master data)
+        <ul>
+            <li><a href="{% url 'show_parts' %}">Zobrazení/Úprava seznamu dílů</a></li>
+            <li><a href="{% url 'upload_parts' %}">Nahrání seznamu dílů</a></li>
+        </ul>
+    </li>
+
+    <hr>
+
+    <li>Díly (linky)
+        <ul>
+            <li><a href="{% url 'show_parts_from_line' %}">Zobrazení/Úprava seznamu dílu z linky</a> {% for line in lines %} (<a href="{% url 'show_parts_from_line' %}?line={{line.name}}">{{line.name}}</a>) {% endfor %}</li>
+            <li><a href="{% url 'upload_spare_parts_list' %}">Nahrání seznamu dílu z linky</a></li>
+        </ul>
+    </li>
+
+    <hr>
+    
+    <li>Linky
+        <ul>
+            <li><a href="{% url 'add_line' %}">Přidat linku</a></li>
+            <li><a href="{% url 'delete_line' %}">Smazat linku</a></li>
+        </ul>
+    </li>
+    
+    <hr>
+    
+    <li>Nastavení
+        <ul>
+            <li><a href="{% url 'edit_columns' %}">Úprava atributů</a></li>
+        </ul>
+    </li>
+</ul>
+
+{% endblock %}

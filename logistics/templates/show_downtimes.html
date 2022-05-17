@@ -1,0 +1,311 @@
+{% extends 'logistics_base.html' %}
+
+{% block breadcrumbs %}
+<span>Přehled prostojů</span>
+{% endblock %}
+
+{% block js-top %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+{% endblock %}
+
+{% block body %}
+<style>
+    .container{
+        padding-right: 0%;
+        padding-left: 0%;
+        max-width: 100vw;
+    }
+    .asc::after {
+        content: "▼";
+        color: green;
+    }
+
+    .des::after {
+        content: "▲";
+        color: green;
+    }
+
+    .both::after {
+        content: "▲▼";
+        color: green;
+    }
+
+    .search-container{
+        background: #fff;
+        height: 10px;
+        border-radius: 20px;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: 0.8s;
+    }
+
+    .search-container:hover > .search-input{
+        width: 400px;
+    }
+
+    .search-container .search-input{
+        background: transparent;
+        border: none;
+        outline:none;
+        width: 0px;
+        font-weight: 500;
+        font-size: 12px;
+        transition: 0.8s;
+
+    }
+
+    .search-container .search-btn .fas{
+        color: #808080;
+    }
+
+    .search_body {
+        margin: 0;
+        padding: 0;
+        background-color: rgba(128,128,128,0.5);
+        height: 4vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+<div class="search_body">
+    <div class="search-container">
+        <input type="text" id="search" name="search" onkeyup="search()" placeholder="Vyhledávání" class="search-input">
+        <i class="fa fa-search" aria-hidden="true"></i>
+    </div>
+</div>
+<table class="table table-hover" id="table-to-picture">
+    <thead id="table-head">
+        <tr>
+            <th onclick="sortBy(this)" class="both sorting" id="id">Id</th>
+            <th onclick="sortBy(this)" class="both sorting" id="production-area">Výrobní oblast</th>
+            <th onclick="sortBy(this)" class="both sorting" id="line">Linka</th>
+            <th onclick="sortBy(this)" class="both sorting" id="downtime-start">Začátek prostoje</th>
+            <th onclick="sortBy(this)" class="both sorting" id="downtime-end">Konec prostoje</th>
+            <th onclick="sortBy(this)" class="both sorting" id="shift">S</th>
+            <th onclick="sortBy(this)" class="both sorting" id="recorded-by">Zaznamenal</th>
+            <th onclick="sortBy(this)" class="both sorting" id="duration">Trvání</th>
+            <th onclick="sortBy(this)" class="both sorting" id="category-production">Kategorie (výroba)</th>
+            <th onclick="sortBy(this)" class="both sorting" id="subcategory-production">Podkategorie (výroba)</th>
+            <th onclick="sortBy(this)" class="both sorting" id="notes-production">Poznámky (výroba)</th>
+            <th onclick="sortBy(this)" class="both sorting" id="category-logistic">Kategorie (logistika)</th>
+            <th onclick="sortBy(this)" class="both sorting" id="subcategory-logistic">Podkategorie (logistika)</th>
+            <th onclick="sortBy(this)" class="both sorting" id="notes-logistics">Poznámky (logistika)</th>
+            <th onclick="sortBy(this)" class="both sorting" id="decoded-by">Rozklíčoval</th>
+        </tr>
+    </thead>
+
+    <tbody id="table-body">
+        {% for downtime in downtimes %}
+        <tr data-id="{{downtime.id}}" class="visible">
+            <td>{{downtime.id}}</td>
+            <td>{{downtime.production_area.name}}</td>
+            <td>{{downtime.line.name}}</td>
+            <td>{{downtime.downtime_start|date:"d.m.Y H:i"}}</td>
+            <td>{{downtime.downtime_end|date:"d.m.Y H:i"}}</td>
+            <td>{{downtime.shift}}</td>
+            <td>{{downtime.recorded_by}}</td>
+            <td>{{downtime.duration|slice:"5"}}</td>
+            <td>{{downtime.category_by_production.category}}</td>
+            <td>{{downtime.subcategory_by_production.subcategory}}</td>
+            <td>{{downtime.note_by_production}}</td>
+            <td>{{downtime.category_by_logistics.category}}</td>
+            <td>{{downtime.subcategory_by_logistics.subcategory}}</td>
+            <td>{{downtime.note_by_logistics}}</td>
+            <td>{{downtime.decoded_by|default_if_none:""}}</td>
+        </tr>
+        {% endfor %}
+
+        {% for downtime in fp09_downtimes %}
+        <tr data-id="{{downtime.id}}" class="visible">
+            <td>{{downtime.id}}</td>
+            <td>FP</td>
+            <td>FP09</td>
+            <td>{{downtime.beginning_t|date:"d.m.Y H:i"}}</td>
+            <td>{{downtime.end_t|date:"d.m.Y H:i"}}</td>
+            <td>{{downtime.downtime}}</td>
+            <td>{{downtime.comment|default_if_none:""}}</td>
+            <td></td>
+            <td></td>
+        </tr>
+        {% endfor %}
+
+
+    </tbody>
+</table>
+
+{% endblock %}
+
+{% block js-bottom %}
+<script>
+    const editDowntimeUrl = "{% url 'logistics:edit_downtime' %}"
+    const tableRows = document.querySelectorAll('tbody > tr');
+    tableRows.forEach(tableRow => {
+        tableRow.addEventListener('click', (event) => {
+            let downtime_id = event.target.parentElement.dataset.id
+            window.open(`${editDowntimeUrl}?downtime_id=${downtime_id}`, "Upravit prostoj")
+
+        })
+    })
+    const tableHead = document.getElementById("table-head");
+    const tableBody = document.getElementById("table-body");
+    
+function search() {
+  const input = document.getElementById("search");
+  const inputStr = input.value.toUpperCase();
+  var even = 0
+  for (var i = 0, row; row=tableBody.rows[i]; i++){
+    var RowDisplay = "Hide"  
+    for (var j = 0, column; column=row.cells[j]; j++){
+        if (column.innerHTML.toUpperCase().includes(inputStr)){
+            RowDisplay = "Show"
+        }
+    }
+    
+    if (RowDisplay == "Show"){
+        row.style.display = ""
+        if (row.classList.contains("visible")){
+
+        }
+        else {row.classList.add("visible")}
+        if (even == 1){
+        row.style.backgroundColor = "rgba(0,0,0,0.05)";
+        even = 0
+        }
+        else {
+        row.style.backgroundColor = "inherit";
+        even = 1
+        }
+    }
+    else {
+        row.style.display = "none"
+        row.classList.remove("visible")
+    }    
+  }
+}
+cPrev = -1; 
+var charMapL = " aábcčdďeéěfghiíjklmnňoópqrřsštťuúůvwxyýzž";
+var charMapU = " AÁBCČDĎEÉĚFGHIÍJKLMNŇOÓPQRŘSŠTŤUÚŮVWXYÝZŽ";
+var charsOrder = {};
+for(var i in charMapL.split('')) {
+    charsOrder[charMapL[i]] = parseInt(i);
+    charsOrder[charMapU[i]] = parseInt(i);
+}
+
+function sortBy(column){
+    if (column.classList.contains("both")){
+        column.classList.remove("both")
+        column.classList.add("asc")
+        var reverse = 0
+    }
+    else if (column.classList.contains("asc")){
+        column.classList.add("des")
+        column.classList.remove("asc")
+        var reverse = 1
+    }
+    else {
+        column.classList.add("asc")
+        column.classList.remove("des")
+        var reverse = 0
+    }
+    sortingColumns = tableHead.getElementsByClassName('sorting')
+    for(var i=0; i < sortingColumns.length; i++){
+        if(sortingColumns[i].id != column.id){
+            if(sortingColumns[i].classList.contains("asc")){
+                sortingColumns[i].classList.remove("asc")
+            }
+            if(sortingColumns[i].classList.contains("des")){
+                sortingColumns[i].classList.remove("des")
+            }
+            if(sortingColumns[i].classList.contains("both")){
+            }
+            else{sortingColumns[i].classList.add("both")}
+        }
+        else{c = i}
+
+    }
+    var arrOfHiddenRows = []
+    for(var i = 0, row; row=tableBody.rows[i]; i++){
+        if (row.style.display == "none"){
+            row.removeAttribute("style")
+            arrOfHiddenRows.push(row.cells[0].innerHTML)
+        }
+    }
+    rows = document.getElementById("table-body").rows.length;
+    columns = document.getElementById("table-body").rows[0].cells.length; 
+    arrTable = [...Array(rows)].map(e => Array(columns)); 
+    for (ro=0; ro<rows; ro++) { 
+        for (co=0; co<columns; co++) { 
+            arrTable[ro][co] = document.getElementById("table-body").rows[ro].cells[co].innerHTML;
+        }
+    }
+    columnFromArray = getCol(arrTable, c)
+    columnFromArray.sort();
+    columnFromArray.sort(mySort);
+    rowsUsed = []
+    arrTableSorted = [...Array(rows)].map(e => Array(columns))
+    for (ro=0; ro<rows; ro++) {
+        for (var i=0; i < columnFromArray.length; i++){
+            if (columnFromArray[i] == arrTable[ro][c]){
+                if(!rowsUsed.includes(i)){
+                    arrTableSorted[i] = arrTable[ro]
+                    rowsUsed.push(i)
+                    break
+
+                }
+            }
+        }
+    }
+
+    if (reverse == 1){
+        arrTableSorted.reverse()
+    }
+    for (ro=0; ro<rows; ro++) {
+        for (co=0; co<columns; co++) {
+            document.getElementById("table-body").rows[ro].cells[co].innerHTML = arrTableSorted[ro][co];
+        }
+    }
+    
+    even = 0
+    for(var i = 0, row; row=tableBody.rows[i]; i++){
+        if (arrOfHiddenRows.includes(row.cells[0].innerHTML)){
+            row.style.display = "none";
+        }
+        else {
+            if (even == 1){
+            row.style.backgroundColor = "rgba(0,0,0,0.05)";
+            even = 0
+            }
+            else {
+            row.style.backgroundColor = "inherit";
+            even = 1
+            }
+        }
+    }
+ }
+
+ function mySort(s1, s2) {
+    var idx = 0;
+    while ( (idx < s1.length) && (idx < s2.length) && (charsOrder[s1[idx]] == charsOrder[s2[idx]])) {
+        idx ++;
+    }
+    if (idx == s1.length) return 1;
+    if (idx == s2.length) return -1;
+    return charsOrder[s1[idx]] > charsOrder[s2[idx]] ? 1 : (charsOrder[s1[idx]] < charsOrder[s2[idx]] ? -1 : 0);
+}
+
+
+function getCol(matrix, col) {
+       var column = [];
+       for(var i=0; i<matrix.length; i++){
+          column.push(matrix[i][col]);
+       }
+       return column;
+}
+
+</script>
+{% endblock %}

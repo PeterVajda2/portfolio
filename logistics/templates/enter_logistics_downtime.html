@@ -1,0 +1,237 @@
+{% extends 'logistics_base.html' %}
+
+{% block breadcrumbs %}
+<span>Zadání prostoje</span>
+{% endblock %}
+{% load static %}
+{% block js-top %}
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="{% static 'bootstrap.min.css' %}" rel="stylesheet">
+</head>
+
+
+<style>
+    .btn {
+        color: white;
+        background-color: #7a5195;
+    }
+    
+    .btn-group {
+        width: 40%;
+    }
+
+    .hidden {
+        display: none;
+    }
+    
+</style>
+
+{% endblock %}
+{% block body %}
+<body>
+    <form class="row g-3" method="post" enctype="multipart/form-data">{% csrf_token %}
+        <div class="col-md-3 position-relative">
+            <label for="ProductionArea" class="form-label">Výrobní oblast</label>
+            <select class="form-select" id='ProductionArea' name="ProductionArea" required>
+                {% for pa in profile.production_area_responsible.all %}
+                <option value="{{pa.name}}">{{pa.name}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="Date" class="form-label">Datum</label>
+            <input class="form-select" type="date" id="Date" name="Date" required>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="Shift" class="form-label">Směna</label>
+            <select class="form-select" id="Shift" name="Shift">
+                <option value="" selected></option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+            </select>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="Noticed" class="form-label">Zaznamenal</label>
+            <input type="text" class="form-control" id="Noticed" name="Noticed" placeholder="Příjmení" value="{{request.user.first_name}} {{request.user.last_name}}">
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="Line" class="form-label">Linka</label>
+            <select class="form-select" id="Line" name="Line" required>
+                <option value="" selected></option>
+            </select>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="TrainCircuit" class="form-label">Vlakový okruh</label>
+            <select class="form-select" style="background-color: #eee; pointer-events: none;" id="TrainCircuit" name="TrainCircuit" tabindex="-1" aria-disabled="true">
+                <option value=""></option>
+                {% for train_circuit in train_circuits %}                
+                <option value="{{train_circuit}}">{{train_circuit}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="Ordernumber" class="form-label">Číslo zakázky</label>
+            <input type="text" class="form-control" id="Ordernumber" name="Ordernumber">
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="MaterialNumber" class="form-label">Číslo materiálu</label>
+            <input type="text" class="form-control" id="MaterialNumber" name="MaterialNumber">
+        </div>
+        <div class="col-md-3 position-relative" style="display: flex; flex-direction: column; justify-content: space-around;">
+            <label for="Downtime" class="form-check-label">Prostoj? (výroba)</label>
+            <input type="checkbox" class="form-check-input" id="DowntimeByProduction" name="DowntimeByProduction" checked>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="TimeFrom" class="form-label">Čas OD</label>
+            <input class="form-select" type="datetime-local" id="TimeFrom" name="TimeFrom" required>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="TimeTo" class="form-label">Čas DO</label>
+            <input class="form-select" type="datetime-local" id="TimeTo" name="TimeTo" required>
+        </div>
+
+        <div class="col-md-3 position-relative hidden">
+            <label for="TimeTo" class="form-label">Trvání (minut)</label>
+            <input class="form-control" type="number" id="Duration" name="Duration" readonly disabled>
+        </div>
+
+
+        <div class="col-md-3 position-relative">
+            <label for="TrainDriver" class="form-label">Řidič/Manipulant</label>
+            <input list="TrainDrivers" class="form-control" type="text" name="TrainDriver" id="TrainDriver" required>
+            <datalist id="TrainDrivers">
+                {% for train_driver in train_drivers %}
+                <option value="{{train_driver}}">
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="CategoryByProduction" class="form-label">Kategorie</label>
+            <select class="form-select" id="CategoryByProduction" name="CategoryByProduction" required>
+                <option value="" selected></option>
+            </select>
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="SubcategoryByProduction" class="form-label">Specifikace prostoje</label>
+            <input list="SubcategoriesByProduction" class="form-control" type="text" name="SubcategoryByProduction" id="SubcategoryByProduction" required disabled>
+        </div>
+        <div class="col-md-6 position-relative">
+            <label for="NotesByProduction" class="form-label">Poznámky</label>
+            <input type="text" class="form-control" id="NotesByProduction" name="NotesByProduction">
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="file-input" class="form-label">Nahrání přílohy (png, jpeg, jpg)</label>
+            <input type="file" name="image" id="image" accept="image/x-png,image/jpeg,image/jpg"/>
+        </div>
+
+        <div class="col-md-12 position-relative" style="text-align: center;">
+            <div class="btn-group">
+                <button type="submit" class="btn">Ok</button>
+            </div>
+        </div>
+        </form>
+        
+    </body>
+    
+    {% endblock %}
+    
+    {% block js-bottom %}
+<script>
+    const userData = {{ data| safe}};
+    const today = new Date();
+    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const productionAreaSelect = document.getElementById('ProductionArea')
+    const lineSelect = document.getElementById('Line');
+    const categoryByProductionInput = document.getElementById('CategoryByProduction');
+    const subcategoryByProductionInput = document.getElementById('SubcategoryByProduction');
+    const trainCircuitSelect = document.getElementById('TrainCircuit');
+    const existingProductionArea = document.getElementById('ProductionArea');
+    const downtimeCategories = {{categories|safe}};
+    const trainDrivers = {{train_drivers|safe}};
+    const trainDriverSelect = document.getElementById('TrainDriver');
+    const datettimeInputs = document.querySelectorAll('input[type="datetime-local"]')
+
+    datettimeInputs.forEach(dt => {
+        dt.addEventListener('input', () => {
+            let duration = calculateDuration();
+            if (!(isNaN(duration))) {
+                document.getElementById('Duration').parentElement.classList.remove('hidden');
+                document.getElementById('Duration').value = duration;
+            } else {
+                document.getElementById('Duration').parentElement.classList.add('hidden');
+            }
+        })
+    })
+
+    function calculateDuration() {
+        datettimeInputs.forEach(dt => {
+            if (!(dt.value)) {
+                return false;
+            } 
+        });
+        let dt1 = datettimeInputs[0].value
+        let dt2 = datettimeInputs[1].value
+        dt1 = new Date(year = parseInt(dt1.slice(0, 4)), monthIndex = parseInt(dt1.slice(5,7)) - 1, day = parseInt(dt1.slice(8, 10)), hours = parseInt(dt1.slice(11, 13)), minutes = parseInt(dt1.slice(14, 16)))
+        dt2 = new Date(year = parseInt(dt2.slice(0, 4)), monthIndex = parseInt(dt2.slice(5, 7)) - 1, day = parseInt(dt2.slice(8, 10)), hours = parseInt(dt2.slice(11, 13)), minutes = parseInt(dt2.slice(14, 16)))
+
+        let diff = (dt2.getTime() - dt1.getTime()) / 1000;
+        diff /= 60;
+        return Math.abs(Math.round(diff));
+    }
+
+
+
+    window.addEventListener('DOMContentLoaded', (event) => {
+        document.getElementById('Date').value = todayString;
+        prefillForm();
+    });
+
+    productionAreaSelect.addEventListener('input', (event) => {
+        let selectedArea = event.target.value;
+        lineSelect.innerHTML = "";
+        let emptyOption = document.createElement('option');
+        lineSelect.append(emptyOption);
+        emptyOption.selected = true;
+        emptyOption.value = "";
+        emptyOption.textContent = "";
+        for (const line of Object.keys(userData[selectedArea])) {
+            let optionElement = document.createElement('option');
+            optionElement.value = line;
+            optionElement.textContent = line;
+            lineSelect.append(optionElement);
+        }
+    })
+
+    lineSelect.addEventListener('input', (event) => {
+        let selectedLine = event.target.value;
+        trainCircuitSelect.parentElement.classList.remove('hidden');
+        if (!(userData[existingProductionArea.value][selectedLine] == 0)) {
+            trainCircuitSelect.value = userData[existingProductionArea.value][selectedLine];
+        } else
+            trainCircuitSelect.parentElement.classList.add('hidden');
+    }) 
+
+    categoryByProductionInput.addEventListener('input', (event) => {
+        let selectedCategory = event.target.value;
+        if (!(selectedCategory === '')) {
+            subcategoryByProductionInput.innerHTML = "";
+            subcategoryByProductionInput.disabled = false;
+            let subcategoryByProductionDatalist = document.createElement('datalist');
+            subcategoryByProductionDatalist.id = "SubcategoriesByProduction";
+            downtimeCategories[selectedCategory].forEach(subcategory => {
+                let optionElement = new Option(subcategory, subcategory);
+                subcategoryByProductionDatalist.append(optionElement);
+            });
+            subcategoryByProductionInput.after(subcategoryByProductionDatalist)
+        }
+    })
+
+
+
+
+</script>
+{% endblock %}

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{station}}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'machining.css' %}">
+</head>
+
+<body>
+  <div class="clockbox">
+    <svg id="clock" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+        <g id="face">
+            <text id="digits-top" class="digits" x="280" y="30" textLength="40">12</text>
+            <text id="digits-right" class="digits" x="560" y="310" textLength="40">15</text>
+            <text id="digits-bottom" class="digits" x="280" y="600" textLength="40">18</text>
+            <text id="digits-left" class="digits" x="0" y="310" textLength="40">21</text>
+            <circle class="circle" cx="300" cy="300" r="250"/>
+            <path class="hour-marks" d="M300.5 94V61M506 300.5h32M300.5 506v33M94 300.5H60M411.3 107.8l7.9-13.8M493 190.2l13-7.4M492.1 411.4l16.5 9.5M411 492.3l8.9 15.3M189 492.3l-9.2 15.9M107.7 411L93 419.5M107.5 189.3l-17.1-9.9M188.1 108.2l-9-15.6" />
+            <circle class="mid-circle" cx="300" cy="300" r="10" />
+        </g>
+        <g id="hour">
+            <path class="hour-arm" d="M300.5 298V142" />
+            <circle class="sizing-box" cx="300" cy="300" r="253.9" />
+        </g>
+        <g id="minute">
+            <path class="minute-arm" d="M300.5 298V67" />
+            <circle class="sizing-box" cx="300" cy="300" r="253.9" />
+        </g>
+    </svg>
+</div>
+
+<div class="enter-downtime">
+
+  <div class="alert hidden" id="alert"></div>
+  <div class="categories" id="categories-container">
+    {% for category in categories %}
+      <div class="category" style="background-color: {{category.color}}">{{category.category}}</div>
+    {% endfor %}
+    </div>
+
+  <div class="downtimes" id="downtime-container">
+  </div>
+
+  <div class="notes hidden" id="downtime-notes">
+    <textarea id="comment" placeholder="Místo pro vaše poznámky"></textarea>
+  </div>
+
+</div>
+
+<script>
+  
+  const url = "{% url 'mach:mach_operator_screen' station %}";
+  const station = "{{station}}";
+  const downtimes = {{data|safe}};
+  const alertElement = document.getElementById('alert');
+  const HOURHAND = document.querySelector("#hour");
+  const MINUTEHAND = document.querySelector("#minute");
+
+  var previousUpdateTime = new Date();
+  var activeDowntime = {};
+
+  const comment = document.getElementById('comment')
+  comment.addEventListener('change', async (event) => {
+    activeDowntime.comment = event.target.value;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 'action': 'COMMENT', 'comment': event.target.value, 'id': activeDowntime.id })
+    });
+  })
+  
+  const categoryButtons = document.querySelectorAll('[class="category"]')
+  categoryButtons.forEach(button => button.addEventListener('click', () => {
+    if (button.hasAttribute('data-active')) {
+      document.getElementById('downtime-container').classList.add('hidden');
+      document.getElementById('downtime-notes').classList.add('hidden');
+      comment.value = "";
+      button.removeAttribute('data-active');
+      return false;
+    } else {
+      categoryButtons.forEach(button => button.removeAttribute('data-active'));
+      button.setAttribute('data-active', true);
+      document.getElementById('downtime-container').classList.remove('hidden');
+      document.getElementById('downtime-notes').classList.add('hidden');
+      comment.value = "";
+      document.getElementById('downtime-container').innerHTML = "";
+      let downtimesList = downtimes[button.textContent];
+      downtimesList.forEach(downtimeName => {
+        let downtimeDiv = document.createElement('div');
+        downtimeDiv.textContent = downtimeName;
+        downtimeDiv.classList.add('downtime');
+        downtimeDiv.style.backgroundColor = button.style.backgroundColor;
+        document.getElementById('downtime-container').append(downtimeDiv);
+        downtimeDiv.addEventListener('click', () => {
+          startDowntimeVisualization(button.textContent, downtimeDiv.textContent, button.style.backgroundColor);
+        })
+      })
+    }
+  }))
+
+  function startDowntimeVisualization(category, downtime, color) {
+    showAlert(downtime, color);
+    document.getElementById('downtime-container').classList.add('hidden');
+    document.getElementById('downtime-notes').classList.remove('hidden');
+    activeDowntime.category = category;
+    activeDowntime.downtime = downtime;
+    activeDowntime.color = color;
+    activeDowntime.start = new Date();
+    activeDowntime.id =  parseInt(performance.now() + performance.timeOrigin);
+    storeDowntime(category, downtime, activeDowntime.start, activeDowntime.id);
+    visualizeDowntime(category, downtime, color);
+  }
+
+  async function storeDowntime(category, downtime, start, id) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({'action': 'POST', 'category': category, 'downtime': downtime, 'start': start, 'id': id})
+    });
+
+    return response.json()
+  }
+
+  function visualizeDowntime(category, downtime, color) {
+    let now = new Date();
+    let startAngle = calcAngle(activeDowntime.start.getHours(), activeDowntime.start.getMinutes());
+    let endAngle = startAngle;
+    draw(startAngle, endAngle, color, category, downtime, activeDowntime.id)
+  }
+
+  function refreshActiveDowntime() {
+    if (activeDowntime.id) {
+      if (document.getElementById(activeDowntime.id)) {
+        document.getElementById(activeDowntime.id).remove();
+      }
+      let startAngle = calcAngle(activeDowntime.start.getHours(), activeDowntime.start.getMinutes());
+      let endAngle = calcAngle(new Date().getHours(), new Date().getMinutes());
+      draw(startAngle, endAngle, activeDowntime.color, activeDowntime.category, activeDowntime.downtime, activeDowntime.id);
+    }
+  }
+
+  async function getInitialData(stepsBack) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({'action': 'GET', 'steps_back': stepsBack})
+    });
+
+    return response.json();
+  }
+
+  function drawInitialDowntimes(data) {
+    for (item of data['result']) {
+      if (item[4] == null) {
+          activeDowntime.start = new Date(getDateFromString(item[3]));
+          [activeDowntime.category, activeDowntime.downtime, activeDowntime.comment, activeDowntime.color, activeDowntime.id] = [item[0], item[1], item[6], item[2].replaceAll(" ", ","), item[5]];
+          showAlert(activeDowntime.downtime, activeDowntime.color)
+          comment.value = activeDowntime.comment;
+          document.getElementById('downtime-container').classList.add('hidden');
+          document.getElementById('downtime-notes').classList.remove('hidden');
+          refreshActiveDowntime();
+      } else {
+        let startHour = getDateFromString(item[3]).getHours();
+        let startMinute = getDateFromString(item[3]).getMinutes();
+        let startAngle = calcAngle(startHour, startMinute);
+        let endHour = getDateFromString(item[4]).getHours();
+        let endMinute = getDateFromString(item[4]).getMinutes();
+        let endAngle = calcAngle(endHour, endMinute);
+        let [category, subcategory, comment, uid, color] = [item[0], item[1], item[6], item[5], item[2].replaceAll(" ", ",")]
+        draw(startAngle, endAngle, color, category, subcategory, uid, comment);
+      }
+    }
+  }
+
+  function getDateFromString(dateAsString) {
+    return new Date(
+      year = parseInt(dateAsString.substr(0, 4)),
+      monthIndex = parseInt(dateAsString.substr(5, 2)),
+      day = parseInt(dateAsString.substr(8, 2)),
+      hour = parseInt(dateAsString.substr(11, 2)),
+      minute = parseInt(dateAsString.substr(14, 2))
+    )
+  }
+
+  async function lunchMidnightReset() {
+    let existingDowntimes = [...document.querySelectorAll('[data-category]')]
+    existingDowntimes.forEach(downtime => {
+      downtime.remove();
+    });
+    let url_reset = "{% url 'mach:split_downtimes' %}";
+    const resp = await fetch(url_reset);
+    return resp;
+  }
+
+  function calcAngle(hour, minute) {
+    return parseInt(hour) < 12 ? parseInt(hour) * 60 + parseInt(minute) : (parseInt(hour) - 12) * 60 + parseInt(minute)
+  }
+
+  function hideInfoDiv(event) {
+    if (document.getElementById('info-div')) {
+      const withinBoundaries = event.composedPath().includes(document.getElementById('info-div'))
+      
+      if (!(withinBoundaries)) {
+        document.removeEventListener('click', hideInfoDiv, true);
+        document.getElementById('info-div').remove()
+      }
+    }
+  }
+
+  function clickHandler(event) {
+    if (document.getElementById('info-div')) {
+      document.getElementById('info-div').remove();
+    }
+
+    getDowntimeData(event).then(resp => showInfoDiv(resp, event));
+  }
+
+  async function getDowntimeData(event) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 'action': 'FETCH ONE', 'id': event.target.id })
+    });
+
+    return response.json();
+  }
+
+  function showInfoDiv(data, event) {
+    let beginning_dt = getDateFromString(JSON.parse(data)['beginning_t']);
+    try {
+      var end_dt = getDateFromString(JSON.parse(data)['end_t']);
+    } catch {
+      var end_dt = false;
+    }
+
+    let infoDiv = document.createElement('div');
+    infoDiv.id = 'info-div';
+    infoDiv.dataset.id = JSON.parse(data)['uid']
+    infoDiv.classList.add('info-div');
+    infoDiv.setAttribute('style', `top: ${event.pageY}px; left: ${event.pageX}px`);
+    let rightDiv = document.createElement('div');
+    rightDiv.classList.add('right-div');
+    let leftDiv = document.createElement('div');
+
+    let status = document.createElement('div');
+    status.textContent = event.target.dataset.category.toUpperCase();
+    let downtime = document.createElement('div');
+    downtime.textContent = event.target.dataset.subcategory;
+    let comment = document.createElement('div');
+    comment.textContent = event.target.dataset.comment;
+    comment.addEventListener('mouseover', (e) => {
+      e.target.title = comment.textContent;
+    })
+    leftDiv.append(status);
+    leftDiv.append(downtime);
+    leftDiv.append(comment);
+
+    let startTimeHour = document.createElement('div');
+    startTimeHour.textContent = beginning_dt.getHours();
+    setDataAttributes(startTimeHour, attributes = {max: '23', min: '0', boundary: 'beginning', unit: 'hour'});
+    let startTimeMinute = document.createElement('div');
+    setDataAttributes(startTimeMinute, attributes = { max: '59', min: '0', boundary: 'beginning', unit: 'minute' });
+    startTimeMinute.textContent = beginning_dt.getMinutes();
+
+    if (end_dt) {
+      var endTimeHour = document.createElement('div');
+      endTimeHour.textContent = end_dt.getHours();
+      setDataAttributes(endTimeHour, attributes = { max: '23', min: '0', boundary: 'end', unit: 'hour' });
+      var endTimeMinute = document.createElement('div');
+      endTimeMinute.textContent = end_dt.getMinutes();
+      setDataAttributes(endTimeMinute, attributes = { max: '59', min: '0', boundary: 'end', unit: 'minute' });
+    }
+
+    let plusMinus = document.createElement('div');
+    plusMinus.classList.add('plus-minus');
+    let minus = document.createElement('span');
+    minus.textContent = "-";
+    minus.classList.add('minus');
+    let plus = document.createElement('span');
+    plus.textContent = "+";
+    plus.classList.add('plus');
+
+    plusMinus.append(plus);
+    plusMinus.append(minus);
+    
+    rightDiv.append(startTimeHour);
+    rightDiv.append(plusMinus);
+    rightDiv.append(startTimeMinute);
+    rightDiv.append(plusMinus.cloneNode(true));
+
+    if (end_dt) {
+      rightDiv.append(endTimeHour);
+      rightDiv.append(plusMinus.cloneNode(true));
+      rightDiv.append(endTimeMinute);
+      rightDiv.append(plusMinus.cloneNode(true));
+    }
+    
+    infoDiv.append(leftDiv);
+    infoDiv.append(rightDiv);
+    
+    document.body.append(infoDiv);
+    
+    let pluses = rightDiv.querySelectorAll('.plus');
+    let minuses = rightDiv.querySelectorAll('.minus');
+
+    pluses.forEach(plus => {
+      plus.addEventListener('click', addUnit, true);
+    })
+
+    minuses.forEach(minus => {
+      minus.addEventListener('click', removeUnit, true);
+    })
+
+    document.addEventListener('click', hideInfoDiv, true)
+  }
+
+  function setDataAttributes(element, attributes) {
+    Object.keys(attributes).forEach(attr => {
+      element.setAttribute(`data-${attr}`, attributes[attr]);
+    })
+  }
+
+  function addUnit(event) {
+    let container = event.target.parentElement;
+    if (increaseValue(container.previousElementSibling)) {
+      let [downtimeId, boundary, unit] = getArgsForEditArea(container);
+      recalculateDowntimes(downtimeId, boundary, unit, 'INCREASE');
+    }
+  }
+
+  function removeUnit(event) {
+    let container = event.target.parentElement;
+    if (decreaseValue(container.previousElementSibling)) {
+      let [downtimeId, boundary, unit] = getArgsForEditArea(container);
+      recalculateDowntimes(downtimeId, boundary, unit, 'DECREASE');
+    }
+  }
+
+  function increaseValue(valueContainer) {
+    let value = parseInt(valueContainer.textContent);
+    if (value < parseInt(valueContainer.dataset.max)) {
+      valueContainer.textContent = value + 1; 
+      // dodelat co kdyz pretocim jenom minuty na celou hodinu
+      return true;
+    }
+    return false;
+  }
+
+  function decreaseValue(valueContainer) {
+      let value = parseInt(valueContainer.textContent);
+      if (value > parseInt(valueContainer.dataset.min)) {
+        valueContainer.textContent = value - 1;
+        // dodelat co kdyz pretocim jenom minuty na celou hodinu
+        return true;
+      }
+      return false;
+    }
+
+  function getArgsForEditArea(container) {
+    let downtimeId = container.parentElement.parentElement.dataset.id;
+    let boundary = container.previousElementSibling.dataset.boundary;
+    let unit = container.previousElementSibling.dataset.unit;
+    return [downtimeId, boundary, unit]
+  }
+  
+  function recalculateDowntimes(downtimeId, boundary, unit, action) {
+    editDowntimesInDatabase(downtimeId, boundary, unit, action).then(resp => redrawDowntimes(resp));
+  }
+
+  async function editDowntimesInDatabase(downtimeId, boundary, unit, action) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({'id': downtimeId, 'boundary': boundary, 'unit': unit, 'action': action})
+    });
+    return response.json();
+  }
+
+  function redrawDowntimes(data) {
+    data.forEach(downtime => {
+      let currentDowntime = document.getElementById(downtime['uid']);
+      let newStartTime = getDateFromString(downtime['beginning_t']);
+      let newEndTime = downtime['end_t'] ? getDateFromString(downtime['end_t']) : new Date();
+      let [color, category, subcategory, uid, comment] = [currentDowntime.getAttribute('stroke'), currentDowntime.dataset.category, currentDowntime.dataset.subcategory, currentDowntime.id, currentDowntime.dataset.comment];
+      currentDowntime.remove();
+      draw(calcAngle(newStartTime.getHours(), newStartTime.getMinutes()), calcAngle(newEndTime.getHours(), newEndTime.getMinutes()), color, category, subcategory, uid, comment);
+    })
+  }
+
+  function draw(sa, ea, color, category, subcategory, uid, comment) {
+    let baseX = 300;
+    let baseY = 50;
+    let radius = 250;
+    let startAngle = sa / 2;
+    let finishAngle = ea / 2;
+    let startingX = baseX + Math.sin(startAngle * (Math.PI / 180)) * radius;
+    let startingY = 350 - (baseY + Math.cos(startAngle * (Math.PI / 180)) * radius);
+    let middleXY = "300 300";
+    let endingX = baseX + Math.sin(finishAngle * (Math.PI / 180)) * radius;
+    let endingY = 350 - (baseY + Math.cos(finishAngle * (Math.PI / 180)) * radius);
+    let archStart = "250 250 0";
+    let archFlags = finishAngle - startAngle > 180 ? "1 0" : "0 0";
+    if (startAngle > finishAngle) {
+        if (archFlags == "1 0") {
+            archFlags = "0 0"
+        } else {
+            archFlags = "1 0"
+        }
+    }
+
+    let newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    newPath.setAttribute('d', `M${startingX} ${startingY} L${middleXY} L${endingX} ${endingY} A${archStart} ${archFlags} ${startingX} ${startingY}`);
+    newPath.setAttribute('stroke', color);
+    newPath.setAttribute('fill', color);
+    newPath.setAttribute('stroke-width', '2');
+    newPath.setAttribute('id', uid);
+    setDataAttributes(newPath, attributes = {sa: sa, ea: ea, category: category, subcategory: subcategory});
+    newPath.addEventListener('click', clickHandler);
+    document.getElementById('clock').prepend(newPath);
+
+    if (comment) {
+      newPath.dataset.comment = comment ? comment : "";
+    } else {
+      newPath.dataset.comment = activeDowntime.comment ? activeDowntime.comment : "";
+    }
+  } 
+
+  function runClock() {
+    let hr = new Date().getHours();
+    let min = new Date().getMinutes();
+    let sec = new Date().getSeconds();
+  
+    // Declare and Initialize your variables and create positions for each.
+    let hrPosition = (hr * 360) / 12 + (min * (360 / 60)) / 12;
+    let minPosition = (min * 360) / 60 + (sec * (360 / 60)) / 60;
+
+    if (previousUpdateTime.getHours() == 11 && new Date().getHours() == 12) {
+      lunchMidnightReset().then(() => window.location.reload());
+    }
+
+    if (previousUpdateTime.getHours() == 23 && new Date().getHours() == 00) {
+      lunchMidnightReset().then(() => window.location.reload());
+    }
+
+    // Set each position when the function is called
+    hrPosition = hrPosition + 3 / 360;
+    minPosition = minPosition + 6 / 60;
+    
+    // Set the transformation for each arm
+    HOURHAND.style.transform = "rotate(" + hrPosition + "deg)";
+    MINUTEHAND.style.transform = "rotate(" + minPosition + "deg)";
+
+    // Adjust the digits according to the time of the day (<12, >12)
+    document.getElementById('digits-top').textContent = new Date().getHours() < 12 ? "00" : "12"
+    document.getElementById('digits-right').textContent = new Date().getHours() < 12 ? "03" : "15"
+    document.getElementById('digits-bottom').textContent = new Date().getHours() < 12 ? "06" : "18"
+    document.getElementById('digits-left').textContent = new Date().getHours() < 12 ? "09" : "21"
+
+    previousUpdateTime = new Date();
+  };
+
+  function showAlert(downtime, color) {
+    alertElement.textContent = downtime;
+    alertElement.style.backgroundColor = color;
+    alertElement.classList.remove('hidden')
+  }
+
+  runClock();
+
+  // Use the inbuilt setInterval function to invoke the method we created earlier
+  setInterval(runClock, 60000);
+  setInterval(refreshActiveDowntime, 60000);
+
+  getInitialData(0).then(resp => drawInitialDowntimes(resp))
+
+  /**
+   * String.prototype.replaceAll() polyfill
+   * https://gomakethings.com/how-to-replace-a-section-of-a-string-with-another-one-with-vanilla-js/
+   * @author Chris Ferdinandi
+   * @license MIT
+   */
+  if (!String.prototype.replaceAll) {
+    String.prototype.replaceAll = function (str, newStr) {
+
+      // If a regex pattern
+      if (Object.prototype.toString.call(str).toLowerCase() === '[object regexp]') {
+        return this.replace(str, newStr);
+      }
+
+      // If a string
+      return this.replace(new RegExp(str, 'g'), newStr);
+    };
+  }
+
+</script>
+
+</body>
+</html>

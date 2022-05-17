@@ -1,0 +1,100 @@
+<style>
+    table {
+        border-collapse: collapse;
+    }
+
+    td {
+        border: 1px solid black;
+        cursor: text;
+    }
+
+    tr {
+        height: 2rem;
+    }
+</style>
+
+<div style="width: 50%; margin: 0 auto;">
+    <table style="width: 100%; text-align: left;" id="type-table" >
+        <thead>
+            <th>Part Number</th>
+            <th>Konstrukční varianta</th>
+            <th>Typ kroužku</th>
+            <th>Typ závitu</th>
+            <th>Barva</th>
+        </thead>
+        <tbody>
+        {% for type in types %}
+            <tr>
+                <td contenteditable="true">{{type.partnumber}}</td>
+                <td contenteditable="true">{{type.konstrukcni_varianta}}</td>
+                <td contenteditable="true">{{type.typ_krouzku}}</td>
+                <td contenteditable="true">{{type.typ_zavitu}}</td>
+                <td contenteditable="true">{{type.barva}}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div style="display: flex; flex-flow: row; justify-content: space-between;">
+        <div style="cursor: pointer;" id="add-type">
+            Přidat
+        </div>
+
+        <div style="cursor: pointer;" id="send">
+            Odeslat
+        </div>
+    </div>
+
+
+</div>
+
+<script>
+
+    const url = '{% url "fp09:type_details" %}';
+
+    document.getElementById('add-type').addEventListener('click', () => {
+        let new_row = document.getElementById('type-table').insertRow(-1)
+        let cell_0 = new_row.insertCell(0);
+        cell_0.contentEditable = "true";
+        let cell_1 = new_row.insertCell(1);
+        cell_1.contentEditable = "true";
+        let cell_2 = new_row.insertCell(2);
+        cell_2.contentEditable = "true";
+        let cell_3 = new_row.insertCell(3);
+        cell_3.contentEditable = "true";
+        let cell_4 = new_row.insertCell(4);
+        cell_4.contentEditable = "true";
+    })
+
+    document.getElementById('send').addEventListener('click', () => {
+        let rows = document.getElementsByTagName('tr');
+        let data = []
+
+        for (row of rows) {
+            let cells = row.getElementsByTagName('td');
+            let row_data = []
+            let cells_data = Array.from(cells);
+            for (cell of cells_data) {
+                row_data.push(cell.innerText);
+            }
+            data.push(row_data);
+        }
+        data.shift();
+
+        send_data(url, {'table_data' : data})
+        .then(resp => console.log(resp));
+    })
+        
+    async function send_data(url = '', data = {}) {
+        const response = await fetch(url, {
+            method: 'POST', // *GET, POST, PUT, DELETE, etc.
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data) // body data type must match "Content-Type" header
+        });
+
+        return response;
+    }
+
+
+</script>

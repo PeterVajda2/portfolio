@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load tags %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="engagement-my-questionnaires">
+
+    <div class="active-questionnaires">
+
+        <h1>Aktivní dotazníky</h1>
+        {% for questionnaire in questionnaires %}
+
+        <a href="{% url 'my_questionnaires' questionnaire.questionnaire.id %}">
+            <h2>{{questionnaire.questionnaire.name}} ({{active_questionnaires_count|length}} nevyplněných)</h2>
+        </a>
+
+        {% endfor %}
+
+    </div>
+
+    <div class="active-questionnaires">
+
+        <h2>Neaktivní dotazníky</h2>
+        {% for questionnaire in inactive_questionnaires %}
+
+        <a
+            href="{% url 'my_questionnaires' questionnaire.questionnaire.id %}">{{questionnaire.questionnaire.name}}</a><br />
+
+        {% endfor %}
+
+    </div>
+
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,1511 @@
+{% extends 'base.html' %}
+
+{% load l10n %}
+
+{% block head %}
+
+{% load extras_2 %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="{% static 'all.js' %}"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+
+{% endblock %}
+
+{% block body %}
+
+{% if User.profile.is_superuser %}
+<div class="charts_wrapper">
+  <div class="charts" id="charts">
+    <div class="chart" id="basic_pie_chart"></div>
+    <div class="chart not_displayed" id="per_department_only"></div>
+    <div class="chart not_displayed" id="per_department_chart"></div>
+    <div class="chart not_displayed" id="waterfall_chart"></div>
+    <div id="dashboard" style="width: 100%; height: 100%">
+      <div id="chart"></div>
+      <div id="control"></div>
+  </div>
+  </div>
+  
+  <div class="preview" id="previews">
+    <div><h3>Savings:</h3></div>
+    <div class="chart_preview" id="basic_pie_chart_preview" onclick="showChart('basic_pie_chart', this)">Savings by DoI</div>
+    <div class="chart_preview" id="per_department_only_preview" onclick="showChart('per_department_only', this)">Savings by Department</div>
+    <div class="chart_preview" id="per_department_chart_preview" onclick="showChart('per_department_chart', this)">Savings by Department and DoI</div>
+    <div class="chart_preview" id="waterfall_preview" onclick="showWaterfalls()">Waterfall</div>
+    <div class="chart_preview" id="dashboard_preview" onclick="showChart('dashboard', this)">Savings in time</div>
+    <div style="text-align: center; font-size: 3em"><a href="{% url 'covcap' currency=currency %}"><i class="fa fa-table" aria-hidden="true"></i></a></div>
+  </div>
+
+  <div class="preview not_displayed" id="waterfalls">
+    <div class="chart_preview" onclick="showPreviews()"><b>Všechny grafy</b></div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">Facility</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">FiCo</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">HR</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">IE</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">IT</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">MD</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">Operations</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">QD</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">SC</div>
+    <div class="chart_preview" onclick="drawWaterfallDepartment(this)">SM</div>
+  </div>
+</div>
+
+<script>
+
+  var width_x
+  var height_x
+  var height_y
+
+  window.onload = resizefunc();
+
+function resizefunc() {
+  width_x = document.getElementById("charts").offsetWidth;
+  height_x = document.getElementById("charts").offsetHeight; 
+  height_y = 0.7 * document.getElementById("charts").offsetHeight;
+}
+
+google.charts.load('current', {'packages': ['bar', 'line', 'corechart', 'controls'], 'language': 'fi'});
+google.charts.setOnLoadCallback(drawWaterfall);
+google.charts.setOnLoadCallback(drawBasic);
+google.charts.setOnLoadCallback(drawDepartments);
+google.charts.setOnLoadCallback(drawDepartmentsOnly);
+
+function drawWaterfall() {
+  var xData = {{new_waterfall.total.x_data|safe}};
+
+  var yData = {{new_waterfall.total.y_data|safe}};
+
+  var textList = {{new_waterfall.total.text_list|safe}};
+
+  var trace1 = {
+    x: xData,
+    y: {{new_waterfall.total.t1|safe}},
+    name: 'trace1',
+    hoverinfo: 'skip',
+    marker: {
+      color: 'rgba(0,0,0,0.0)'
+    },
+    type: 'bar'
+  };
+
+  var trace2 = {
+    x: xData,
+    y: {{new_waterfall.total.t2|safe}},
+    name: 'trace2',
+    type: 'bar',
+    hoverinfo: 'skip',
+    marker: {
+      color: 'rgba(152, 251, 152, 0.7)',
+    }
+  };
+
+  var trace3 = {
+    x: xData,
+    y: {{new_waterfall.total.t3|safe}},
+    name: 'trace3',
+    type: 'bar',
+    hoverinfo: 'skip',
+    marker: {
+      color: 'rgba(255, 0, 0, 0.7)',
+    }
+  };
+
+  var trace4 = {
+    x: xData,
+    y: {{new_waterfall.total.t4|safe}},
+    name: 'trace4',
+    type: 'bar',
+    hoverinfo: 'skip',
+    marker: {
+      color: 'rgba(100, 251, 100, 0.7)',
+    }
+  };
+
+  var trace5 = {
+    x: xData,
+    y: {{new_waterfall.total.t5|safe}},
+    name: 'trace5',
+    type: 'bar',
+    hoverinfo: 'skip',
+    marker: {
+      color: 'rgba(137, 209, 254, 0.7)',
+    }
+  };
+
+  var data = [trace1, trace2, trace3, trace4, trace5];
+
+  var layout = {
+    barmode: 'stack',
+    showlegend: false,
+    annotations: [],
+    width: width_x,
+    height: height_x,
+    font: {
+      family: 'Arial',
+      color: '#000000',
+      size: 16,
+    }
+  };
+
+  for ( var i = 0 ; i < {{new_waterfall.total.y_data|length}} ; i++ ) {
+  var result = {
+    x: xData[i],
+    y: yData[i],
+    text: textList[i],
+    font: {
+      family: 'Arial',
+      size: 16,
+      bold: true,
+      color: 'rgba(0,0,0,1)'
+    },
+    showarrow: false
+  };
+  layout.annotations.push(result);
+};
+
+Plotly.newPlot('waterfall_chart', data, layout);
+};
+
+function drawBasic() {
+
+var data = new google.visualization.DataTable();
+data.addColumn('string', 'Degree of Implementation');
+data.addColumn('number', 'Savings');
+
+data.addRows({{pie_chart_data|safe}});
+
+var options = {
+  {% if currency == 'EUR' %}
+  title: 'Distribution of savings by Degree of implementation (DoI). Total: {{total|in_eur|separated}} {{currency}}',
+  {% else %}
+  title: 'Distribution of savings by Degree of implementation (DoI). Total: {{total|separated}} {{currency}}',
+  {% endif %}
+  width: width_x,
+  height: height_x,
+  hAxis: {
+    title: 'Degree of Implementation',
+    format: '',
+    viewWindow: {
+      min: [0],
+      max: [5]
+    }
+  },
+  vAxis: {
+    title: 'Savings',
+    format: '# ### {{currency}}',
+  },
+  colors: ['rgb(216,228,241)', 'rgb(176,202,228)', 'rgb(137,175,214)', 'rgb(56,86,122)', 'rgb(42,64,92)']
+};
+
+var chart = new google.visualization.PieChart(
+  document.getElementById('basic_pie_chart'));
+
+document.getElementById('basic_pie_chart').classList.remove('not_displayed')
+
+chart.draw(data, options);
+};
+
+function drawDepartments() {
+var data = google.visualization.arrayToDataTable([
+{{labels|safe}},
+{% for doi in dois %} 
+    {{doi|safe}},
+{% endfor %}
+]);
+
+var options = {
+    title: 'Distribution of savings by Degree of implementation (DoI) and Department',
+    legend: { position: 'top', maxLines: 3 },
+    bar: { groupWidth: '75%' },
+    width: width_x,
+    height: height_x,
+    isStacked: true,
+};
+
+var chart = new google.visualization.ColumnChart(
+document.getElementById('per_department_chart'));
+
+document.getElementById('per_department_chart').classList.remove('not_displayed')
+
+chart.draw(data, options);
+};
+
+function drawDepartmentsOnly() {
+  var data = google.visualization.arrayToDataTable([
+    ['Department', 'Savings', { role: 'annotation' }],
+    ['HR', {{savings.HR|floatformat:"0"|default_if_none:"0"}}, {{savings.HR|floatformat:"0"|default_if_none:"0"}}],
+    ['SC', {{savings.SC|floatformat:"0"|default_if_none:"0"}}, {{savings.SC|floatformat:"0"|default_if_none:"0"}}],
+    ['Facility', {{savings.Facility|floatformat:"0"|default_if_none:"0"}}, {{savings.Facility|floatformat:"0"|default_if_none:"0"}}],
+    ['FiCo', {{savings.FiCo|floatformat:"0"|default_if_none:"0"}}, {{savings.FiCo|floatformat:"0"|default_if_none:"0"}}],
+    ['IE', {{savings.IE|floatformat:"0"|default_if_none:"0"}}, {{savings.IE|floatformat:"0"|default_if_none:"0"}}],
+    ['IT', {{savings.IT|floatformat:"0"|default_if_none:"0"}}, {{savings.IT|floatformat:"0"|default_if_none:"0"}}],
+    ['MD', {{savings.MD|floatformat:"0"|default_if_none:"0"}}, {{savings.MD|floatformat:"0"|default_if_none:"0"}}],
+    ['QD', {{savings.QD|floatformat:"0"|default_if_none:"0"}}, {{savings.QD|floatformat:"0"|default_if_none:"0"}}],
+    ['SM', {{savings.SM|floatformat:"0"|default_if_none:"0"}}, {{savings.SM|floatformat:"0"|default_if_none:"0"}}],
+    ['Operations', {{savings.Operations|floatformat:"0"|default_if_none:"0"}}, {{savings.Operations|floatformat:"0"|default_if_none:"0"}}],
+  ]);
+
+  var options = {
+        title: "Distribution of actual year's savings by Department",
+        width: width_x,
+        hAxis: {title: "Department"},
+        vAxis: {title: "Savings {{currency}}"},
+        height: height_x,
+        colors: ['rgb(63,122,182)']
+  };
+
+  var chart = new google.visualization.ColumnChart(
+    document.getElementById('per_department_only'));
+
+  data.sort([{column: 1, desc: true}]);
+  document.getElementById('per_department_only').classList.remove('not_displayed')
+  
+    chart.draw(data, options);
+  };
+
+
+function showWaterfalls() {
+  showChart('waterfall_chart', document.getElementById('waterfall_preview'));
+  document.getElementById('previews').classList.add('not_displayed');
+  document.getElementById('waterfalls').classList.remove('not_displayed');
+}
+
+function showPreviews() {
+  document.getElementById('previews').classList.remove('not_displayed');
+  document.getElementById('waterfalls').classList.add('not_displayed');
+}
+
+</script>
+
+<script>
+  function drawWaterfallFacility() {
+      var xData = {{new_waterfall.Facility.x_data|safe}};
+
+      var yData = {{new_waterfall.Facility.y_data|safe}};
+
+      var textList = {{new_waterfall.Facility.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.Facility.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.Facility.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.Facility.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.Facility.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.Facility.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x,
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.Facility.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+</script>
+
+<script>
+  function drawWaterfallFiCo() {
+      var xData = {{new_waterfall.FiCo.x_data|safe}};
+
+      var yData = {{new_waterfall.FiCo.y_data|safe}};
+
+      var textList = {{new_waterfall.FiCo.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.FiCo.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.FiCo.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.FiCo.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.FiCo.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.FiCo.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.FiCo.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+    function drawWaterfallHR() {
+      var xData = {{new_waterfall.HR.x_data|safe}};
+
+      var yData = {{new_waterfall.HR.y_data|safe}};
+
+      var textList = {{new_waterfall.HR.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.HR.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.HR.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.HR.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.HR.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.HR.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.HR.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+    function drawWaterfallIE() {
+      var xData = {{new_waterfall.IE.x_data|safe}};
+
+      var yData = {{new_waterfall.IE.y_data|safe}};
+
+      var textList = {{new_waterfall.IE.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.IE.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.IE.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.IE.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.IE.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.IE.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.IE.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+    function drawWaterfallIT() {
+      var xData = {{new_waterfall.IT.x_data|safe}};
+
+      var yData = {{new_waterfall.IT.y_data|safe}};
+
+      var textList = {{new_waterfall.IT.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.IT.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.IT.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.IT.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.IT.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.IT.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.IT.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+    function drawWaterfallMD() {
+      var xData = {{new_waterfall.MD.x_data|safe}};
+
+      var yData = {{new_waterfall.MD.y_data|safe}};
+
+      var textList = {{new_waterfall.MD.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.MD.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.MD.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.MD.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.MD.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.MD.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.MD.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+    function drawWaterfallQD() {
+      var xData = {{new_waterfall.QD.x_data|safe}};
+
+      var yData = {{new_waterfall.QD.y_data|safe}};
+
+      var textList = {{new_waterfall.QD.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.QD.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.QD.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.QD.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.QD.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.QD.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.QD.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+    function drawWaterfallOperations() {
+      var xData = {{new_waterfall.Operations.x_data|safe}};
+
+      var yData = {{new_waterfall.Operations.y_data|safe}};
+
+      var textList = {{new_waterfall.Operations.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.Operations.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.Operations.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.Operations.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.Operations.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.Operations.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.Operations.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+    function drawWaterfallSC() {
+      var xData = {{new_waterfall.SC.x_data|safe}};
+
+      var yData = {{new_waterfall.SC.y_data|safe}};
+
+      var textList = {{new_waterfall.SC.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.SC.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.SC.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.SC.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.SC.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.SC.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.SC.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+    function drawWaterfallSM() {
+      var xData = {{new_waterfall.SM.x_data|safe}};
+
+      var yData = {{new_waterfall.SM.y_data|safe}};
+
+      var textList = {{new_waterfall.SM.text_list|safe}};
+
+      var trace1 = {
+        x: xData,
+        y: {{new_waterfall.SM.t1|safe}},
+        name: 'trace1',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(0,0,0,0.0)'
+        },
+        type: 'bar'
+      };
+
+      var trace2 = {
+        x: xData,
+        y: {{new_waterfall.SM.t2|safe}},
+        name: 'trace2',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(152, 251, 152, 0.7)',
+        }
+      };
+
+      var trace3 = {
+        x: xData,
+        y: {{new_waterfall.SM.t3|safe}},
+        name: 'trace3',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(255, 0, 0, 0.7)',
+        }
+      };
+
+      var trace4 = {
+        x: xData,
+        y: {{new_waterfall.SM.t4|safe}},
+        name: 'trace4',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(100, 251, 100, 0.7)',
+        }
+      };
+
+      var trace5 = {
+        x: xData,
+        y: {{new_waterfall.SM.t5|safe}},
+        name: 'trace5',
+        type: 'bar',
+        hoverinfo: 'skip',
+        marker: {
+          color: 'rgba(137, 209, 254, 0.7)',
+        }
+      };
+
+      var data = [trace1, trace2, trace3, trace4, trace5];
+
+      var layout = {
+        barmode: 'stack',
+        showlegend: false,
+        annotations: [],
+        width: width_x,
+        height: height_x, 
+        xaxis: {
+          automargin: true,
+        },
+        font: {
+          family: 'Arial',
+          color: '#000000',
+          size: 16,
+        }
+      };
+
+      for ( var i = 0 ; i < {{new_waterfall.SM.y_data|length}} ; i++ ) {
+      var result = {
+        x: xData[i],
+        y: yData[i],
+        text: textList[i],
+        font: {
+          family: 'Arial',
+          size: 16,
+          color: 'rgba(0,0,0,1)'
+        },
+        showarrow: false
+      };
+      layout.annotations.push(result);
+      };
+
+    Plotly.newPlot('waterfall_chart', data, layout);
+
+    }
+
+</script>
+
+<script>
+function drawWaterfallDepartment(department) {
+  switch(department.innerHTML) {
+    case 'Facility': 
+      drawWaterfallFacility();
+      break;
+
+    case 'FiCo': 
+      drawWaterfallFiCo();
+      break;
+
+    case 'HR': 
+      drawWaterfallHR();
+      break;
+
+    case 'IE': 
+      drawWaterfallIE();
+      break;
+
+    case 'IT': 
+      drawWaterfallIT();
+      break;
+
+    case 'MD': 
+      drawWaterfallMD();
+      break;
+
+    case 'QD': 
+      drawWaterfallQD();
+      break;
+
+    case 'Operations': 
+      drawWaterfallOperations();
+      break;
+
+    case 'SC': 
+      drawWaterfallSC();
+      break;
+
+    case 'SM': 
+      drawWaterfallSM();
+      break;
+  }
+  
+  // Plotly.newPlot('waterfall_chart', data, layout);
+
+}
+
+function showChart(chartId, element) {
+
+  var previews = document.getElementsByClassName('chart_preview')
+
+  for (i = 0; i < previews.length; i++) {
+    previews[i].style.backgroundColor = "white"
+  }
+
+  element.style.backgroundColor = 'rgba(' + 0 + ',' + 0 + ',' + 255 + ',' + 0.05 + ')';
+
+  var charts = document.querySelectorAll(".charts > div")
+  for (i = 0; i < charts.length; i++) {
+    charts[i].classList.add('not_displayed')
+  }
+  document.getElementById(chartId).classList.remove('not_displayed');
+}
+
+function dashboardChart() {
+  var dashboard = new google.visualization.Dashboard(
+       document.getElementById('dashboard'));
+
+   var control = new google.visualization.ControlWrapper({
+     'controlType': 'ChartRangeFilter',
+     'containerId': 'control',
+     'options': {
+       // Filter by the date axis.
+       'filterColumnIndex': 0,
+       'ui': {
+         'chartType': 'LineChart',
+         'chartOptions': {
+           'chartArea': {'width': '90%'},
+             'hAxis': {'baselineColor': 'none',
+             'ticks': [{v: 0, f: 'Jan'}, {v: 1, f: 'Feb'}, {v: 2, f: 'Mar'}, {v: 3, f: 'Apr'}, {v: 4, f: 'May'}, {v: 5, f: 'Jun'}, {v: 6, f: 'Jul'}, {v: 7, f: 'Aug'}, {v: 8, f: 'Sep'}, {v: 9, f: 'Oct'}, {v: 10, f: 'Nov'}, {v: 11, f: 'Dec'}],
+            }
+         },
+         // Display a single series that shows the closing value of the stock.
+         // Thus, this view has two columns: the date (axis) and the stock value (line series).
+         'chartView': {
+           'columns': [0, 1]
+         },
+         'minRangeSize': 86400000,
+       }
+     },
+     // Initial range: 2012-02-09 to 2012-03-20.
+     'state': {'range': {'start': 0, 'end': 11}}
+   });
+
+   var chart = new google.visualization.ChartWrapper({
+     'chartType': 'ColumnChart',
+     'containerId': 'chart',
+     'options': {
+       // Use the same chart area width as the control for axis alignment.
+       'chartArea': {'height': '80%', 'width': '80%'},
+       'hAxis': {
+         'slantedText': false,
+         'ticks': [{v: 0, f: 'Jan'}, {v: 1, f: 'Feb'}, {v: 2, f: 'Mar'}, {v: 3, f: 'Apr'}, {v: 4, f: 'May'}, {v: 5, f: 'Jun'}, {v: 6, f: 'Jul'}, {v: 7, f: 'Aug'}, {v: 8, f: 'Sep'}, {v: 9, f: 'Oct'}, {v: 10, f: 'Nov'}, {v: 11, f: 'Dec'}],
+        },
+       'legend': {'position': 'none'},
+       'width': width_x,
+       'height': height_y,
+     },
+     // Convert the first column from 'date' to 'string'.
+     'view': {
+     }
+   });
+
+   var data = new google.visualization.DataTable();
+   data.addColumn('number', 'Month');
+   data.addColumn('number', 'Savings');
+
+   {% if not currency == 'EUR' %}
+   data.addRow([{v: 0, f:'Jan'}, {{savings_per_month.1|floatformat:"0"}}])
+   data.addRow([{v: 1, f:'Feb'}, {{savings_per_month.2|floatformat:"0"}}])
+   data.addRow([{v: 2, f:'Mar'}, {{savings_per_month.3|floatformat:"0"}}])
+   data.addRow([{v: 3, f:'Apr'}, {{savings_per_month.4|floatformat:"0"}}])
+   data.addRow([{v: 4, f:'May'}, {{savings_per_month.5|floatformat:"0"}}])
+   data.addRow([{v: 5, f:'Jun'}, {{savings_per_month.6|floatformat:"0"}}])
+   data.addRow([{v: 6, f:'Jul'}, {{savings_per_month.7|floatformat:"0"}}])
+   data.addRow([{v: 7, f:'Aug'}, {{savings_per_month.8|floatformat:"0"}}])
+   data.addRow([{v: 8, f:'Sep'}, {{savings_per_month.9|floatformat:"0"}}])
+   data.addRow([{v: 9, f:'Oct'}, {{savings_per_month.10|floatformat:"0"}}])
+   data.addRow([{v: 10, f:'Nov'}, {{savings_per_month.11|floatformat:"0"}}])
+   data.addRow([{v: 11, f:'Dec'}, {{savings_per_month.12|floatformat:"0"}}])
+   {% else %}
+   data.addRow([{v: 0, f:'Jan'}, {{savings_per_month.1|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 1, f:'Feb'}, {{savings_per_month.2|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 2, f:'Mar'}, {{savings_per_month.3|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 3, f:'Apr'}, {{savings_per_month.4|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 4, f:'May'}, {{savings_per_month.5|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 5, f:'Jun'}, {{savings_per_month.6|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 6, f:'Jul'}, {{savings_per_month.7|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 7, f:'Aug'}, {{savings_per_month.8|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 8, f:'Sep'}, {{savings_per_month.9|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 9, f:'Oct'}, {{savings_per_month.10|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 10, f:'Nov'}, {{savings_per_month.11|in_eur|floatformat:"0"}}])
+   data.addRow([{v: 11, f:'Dec'}, {{savings_per_month.12|in_eur|floatformat:"0"}}])
+   {% endif %}
+
+  /* Change the format of the date column, used in chart, but not chart range filter */  
+
+   dashboard.bind(control, chart);
+   dashboard.draw(data);
+}
+
+    google.setOnLoadCallback(dashboardChart);
+
+</script>
+
+{% else %}
+<div class="charts_wrapper">
+  <div class="charts" id="charts">
+    <div class="chart" id="waterfall_chart_limited"></div>
+  </div>
+  
+  <div class="preview" id="previews">
+    <div style="text-align: center; font-size: 3em"><a href="{% url 'covcap' currency=currency %}"><i class="fa fa-table" aria-hidden="true"></i></a></div>
+  </div>
+</div>
+  
+<script>
+
+var width_x
+var height_x
+var height_y
+
+window.onload = start();
+
+function start() {
+  google.charts.load('current', {'packages': ['bar', 'line', 'corechart', 'controls'], 'language': 'fi'});
+  google.charts.setOnLoadCallback(drawWaterfallLimited1);
+  resizefunc();
+}
+
+function resizefunc() {
+  width_x = document.getElementById("charts").offsetWidth;
+  height_x = document.getElementById("charts").offsetHeight; 
+  height_y = 0.7 * document.getElementById("charts").offsetHeight;
+}
+
+function drawWaterfallLimited1() {
+  drawWaterfallLimited('{{User.profile.department}}');
+}
+
+function drawWaterfallLimited(department) {
+  switch(department) {
+    case 'Facility': 
+      drawWaterfallFacility();
+      break;
+    case 'FiCo': 
+      drawWaterfallFiCo();
+      break;
+    case 'HR': 
+      drawWaterfallHR();
+      break;
+    case 'IE': 
+      drawWaterfallIE();
+      break;
+    case 'IT': 
+      drawWaterfallIT();
+      break;
+    case 'MD': 
+      drawWaterfallMD();
+      break;
+    case 'QD': 
+      drawWaterfallQD();
+      break;
+    case 'Operations': 
+      drawWaterfallOperations();
+      break;
+    case 'SC': 
+      drawWaterfallSC();
+      break;
+    case 'SM': 
+      drawWaterfallSM();
+      break;
+  }
+}
+
+</script>
+
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load tags %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.1/xlsx.full.min.js"></script>
+
+{% endblock %}
+
+{% block body %}
+
+<div class="engagement-my-wrapper">
+    <div class="engagement-my-wrapper-header">
+    <div class="form-section" onclick="window.location.reload();" style="background-color: rgba(0,0,255,0.25);">Všechny sekce</div>
+    {% for section in questionnaire_template.section_set.all %}
+    <div class="form-section" onclick="showOnlyThisSection(this)">{{section.section_name|up_to_divider:"-"}}</div>
+    {% endfor %}
+    <div class="form-section" style="float: right" onclick="exportReportToExcel()">Export do XLSX</div>
+    </div>
+
+    <div class="my-tab" id="my-tab" style='width: 200%;'>
+
+    <table id="report-table" class="engagement-my-table">
+    {% for questionnaire in questionnaires %}
+    {% if forloop.counter == 1 %}
+    <thead>
+        <tr>
+            <th class="dark-blue">
+                <div>
+                    <div onclick="sortTable(0)" style="cursor: pointer">Kdo hodnotil</div>
+                    <div>
+                        <select id="interviewer-select">
+                            <option value="all" selected>Všichni</option>
+                            {% for name in names %}
+                            <option value="{{name}}">{{name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </th>
+            <th class="dark-blue">
+                <div>
+                    <div onclick="sortTable(1)" style="cursor: pointer">Středisko</div>
+                    <div>
+                        <select id="cost-center-select">
+                            <option value="all" selected>Všechny</option>
+                            {% for cc in cost_centers %}
+                            <option value="{{cc}}">{{cc}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </th>
+            <th class="dark-blue">
+                <div>
+                    <div onclick="sortTable(2)" style="cursor: pointer">Hodnocený</div>
+                    <div>
+                        <input type="text" id="interviewee-input" oninput="filterColumnByInterviewee(this.value, 2)">
+                    </div>
+                </div>
+            </th>
+            <th class="dark-blue">
+                <div>
+                    <div onclick="sortTable(3)" style="cursor: pointer">Osobní číslo</div>
+                    <div>
+                        <input type="text" id="personal-number-input" oninput="filterColumnByInterviewee(this.value, 3)">
+                    </div>
+                </div>
+            </th>
+            <th class="dark-blue">
+                <span>Den</span>
+            </th>
+            <th class="red-background" onclick="sortTable(this, 5)"> 
+                <span class="vertical-text" onclick="sortTable(5)" style="cursor: pointer">Výsledek hodnocení</span>
+            </th>
+                {% for section in questionnaire.questionnaire.section_set.all %}
+                    <th class="red-background" onclick="sortTable(this, {{forloop.counter|add:5}})">
+                        <span class="vertical-text">Výsledek hodnocení {{section.section_name|up_to_divider:"-"|upper}}</span>
+                    </th>
+                {% endfor %}
+            
+                {% for section in questionnaire.questionnaire.section_set.all %}
+                    {% for question_text in section.question.all %}
+                        <th class="{{section.section_name|lower|up_to_divider:"-"}}">
+                            <span class="vertical-text" title="{{question_text.text}}">{{question_text.text}}</span>
+                        </th>
+                    {% endfor %}
+                {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+    {% endif %}
+        <tr>
+            <td>{{questionnaire.interviewer.name}}</td>
+            <td>{{questionnaire.interviewee.cost_center_number}}</td>
+            <td>
+                <a href="{% url 'fill_in_questionnaire' questionnaire.id%}">{{questionnaire.interviewee.name}}</a>
+            </td>
+            <td>
+                {{questionnaire.interviewee.personal_number}}
+            </td>
+            <td>
+                {{questionnaire.updated|date:"Y-m-d"}}
+            </td>
+            <td>{{questionnaire.answers|total_sum}}</td>
+                {% for section in questionnaire.questionnaire.section_set.all %}
+                    <td>
+                        {{questionnaire.answers|section_sum:section.id}}
+                    </td>
+                {% endfor %}
+            {% for question, answer in questionnaire.answers.items %}
+            <td class="td_answer">{% check_if_ranged question answer %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+    </table>    
+    </div>
+
+</div>
+
+<script>
+
+    function showOnlyThisSection(e) {
+
+        var zalozky = document.getElementsByClassName('engagement-my-wrapper-header')
+        var zalozky_divs = zalozky[0].getElementsByTagName('div')
+
+        document.getElementById('my-tab').style.width = "100%"
+
+        for (a = 0; a < zalozky_divs.length; a++) {
+            console.log(zalozky_divs[a].innerText)
+            console.log(e.innerText)
+            if (zalozky_divs[a].innerText == e.innerText) {
+                zalozky_divs[a].style.backgroundColor = "rgba(0,0,255,0.25)"
+            } else {
+                zalozky_divs[a].style.backgroundColor = "rgb(255,255,255)"
+            }
+        }
+
+        cls = e.innerText.toLowerCase()
+        var table = document.getElementsByTagName('table')[0]
+        // find column numbers of section questions
+        var th = table.getElementsByTagName('th')
+        var tr = table.getElementsByTagName('tr')
+
+        var columns = [0, 1, 2, 3, 4]
+
+        for (var i = 1; i < th.length; i++) {
+            if (th[i].classList.contains(cls)) {
+                columns.push(i)
+                th[i].classList.add('visible')
+                th[i].classList.remove('invisible')
+            } else {
+                if (!columns.includes(i)) {
+                th[i].classList.remove('visible')
+                th[i].classList.add('invisible')  
+                }
+            }
+        }
+
+        for (var i = 0; i < tr.length; i++) {
+            var td = tr[i].getElementsByTagName('td')
+            for (var j = 0; j < td.length; j++) {
+                if (columns.includes(j)) {
+                    td[j].classList.remove('invisible')
+                    td[j].classList.add('visible')
+                } else {
+                    td[j].classList.add('invisible')
+                    td[j].classList.remove('visible')
+                }
+            }
+        }
+
+    }
+</script>
+
+<script>
+    function exportReportToExcel() {
+      var workbook = XLSX.utils.table_to_book(document.getElementById('report-table'));
+      var first_sheet_name = workbook.SheetNames[0];
+      var ws = workbook.Sheets[first_sheet_name];
+
+
+      XLSX.writeFile(workbook, 'dotaznik.xlsx');
+      }
+
+  </script>
+  
+  <script>
+      window.onload = randomBackground();
+
+      function randomBackground() {
+          var odd_sections = {{questionnaire_template.section_set.all|get_list_of_odd_sections|safe}}
+          var even_sections = {{questionnaire_template.section_set.all|get_list_of_even_sections|safe}}
+          var th = document.getElementsByTagName('th')
+
+          for (i = 0; i < th.length; i++) {
+              for (j = 0; j < odd_sections.length; j++) {
+                  if (th[i].classList.contains(odd_sections[j])) {
+                      th[i].classList.add('alternate-1-background')
+                  }
+              }
+
+              for (l = 0; l < even_sections.length; l++) {
+                  if (th[i].classList.contains(even_sections[l])) {
+                      th[i].classList.add('alternate-2-background')
+                  }
+              }
+          }
+      }
+  </script>
+
+
+<script>
+const table = document.getElementsByTagName('table')[0];
+
+function sortTable(colIndex) {
+    var rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+    switching = true;
+
+    dir = "asc";
+  
+    while (switching) {
+    
+        switching = false;
+        rows = table.rows;
+    
+        for (i = 1; i < (rows.length - 1); i++) {
+        
+            shouldSwitch = false;
+            x = rows[i].getElementsByTagName("td")[colIndex];
+            y = rows[i + 1].getElementsByTagName("td")[colIndex];
+
+            if (dir =="asc") {
+
+                if (colIndex < 5) {   
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else {
+                    let x_val = x.innerHTML == "N/A" ? 2 : parseFloat(x.innerHTML);
+                    let y_val = y.innerHTML == "N/A" ? 2 : parseFloat(y.innerHTML);
+                    if (x_val > y_val) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            } else if (dir == "desc") {
+
+                if (colIndex < 5) {   
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else {
+                    let x_val = x.innerHTML == "N/A" ? 2 : parseFloat(x.innerHTML);
+                    let y_val = y.innerHTML == "N/A" ? 2 : parseFloat(y.innerHTML);
+                    if (x_val < y_val) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+    }
+
+    if (shouldSwitch) {
+      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+      switching = true;
+      switchcount ++;
+    } else {
+        if (switchcount == 0 && dir == "asc") {
+        dir = "desc";
+        switching = true;
+      }
+    }
+  }
+}
+
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let tbody = document.getElementsByTagName('tbody')[0]
+    let trows = tbody.getElementsByTagName('tr')
+
+    for (i = 0; i < trows.length; i++) {
+        counter = 0;
+        trows[i].querySelectorAll('.td_answer').forEach((td) => {
+            if (!td.innerText == "") {counter++};
+        }
+            );
+        if (counter < 18 && counter > 0) {
+            trows[i].classList.add('red-background');
+        } else if (counter == 0) {
+            trows[i].classList.add('grey-background');
+        }
+    }
+
+}, false);
+
+
+document.getElementById('interviewer-select').addEventListener('change', () => filterColumn(document.getElementById('interviewer-select').value, 0), false);
+document.getElementById('cost-center-select').addEventListener('change', () => filterColumn(document.getElementById('cost-center-select').value, 1), false);
+
+function filterColumn(valueToFilter, colIndex) {
+    let rows = table.getElementsByTagName("tr");
+
+    Array.from(rows).slice(1).forEach((tr) => {
+        let filtered_cell = tr.getElementsByTagName("td")[colIndex];
+        if (filtered_cell.innerHTML == valueToFilter || valueToFilter == "all")  {
+            tr.classList.remove("invisible-by-" + colIndex);
+        } else {
+            tr.classList.add("invisible-by-" + colIndex);
+        }
+    })
+}
+
+function filterColumnByInterviewee(valueToFind, colIndex) {
+    let  rows = table.getElementsByTagName("tr");
+
+    Array.from(rows).slice(1).forEach((tr) => {
+        let filtered_cell = tr.getElementsByTagName("td")[colIndex];
+        if (!filtered_cell.textContent.includes(valueToFind)) {
+            tr.classList.add("invisible-by-" + colIndex);
+        } else {
+            tr.classList.remove("invisible-by-" + colIndex);
+        }
+    })
+}
+
+</script>
+
+{% endblock %}

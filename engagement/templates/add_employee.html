@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+
+<form method="POST" class="engagement-add-employee">{% csrf_token %}
+
+    <label>Jméno zaměstnance
+        <input type="text" name="name" required>
+    </label>
+    <br />
+
+    <label>Osobní číslo
+        <input type="number" name="personal_number" required>
+    </label>
+    <br />
+
+    <label>Nákladové středisko
+        <br />
+        <select name="costcenter" required>
+            <option>Vyberte ze seznamu</option>
+            {% for cost_center in cost_centers %}
+            <option value='{{cost_center.0}}'>{{cost_center.0}} - {{cost_center.1}}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>Pozice
+        <select name="position" required>
+            <option>Vyberte ze seznamu</option>
+            {% for position in positions %}
+                <option value='{{position}}'>{{position}}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>Hodnotitel
+        <select name="evaluator" required>
+            <option>Vyberte ze seznamu</option>
+            <option></option>
+            {% for evaluator in evaluators %}
+                <option value='{{evaluator}}'>{{evaluator}}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>Je supervizor?</label>
+    <br />
+    <input type="checkbox" name="supervisor" style="margin-left: 1em; margin-top: 2em; width:auto; transform: scale(3)">
+
+    <input type="submit" value="Přidat" style="margin-top: 2em; height: 2em">
+
+</form>
+
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="engagement-options-wrapper">
+
+    <div id="existing-ranged-answers">
+        <h2>Existující rozsahy</h2>
+
+        <form method="POST"> {% csrf_token %}
+    {% for ranged_answer in ranged_answers %}
+
+        {% for key, value in ranged_answer.strings|ordered_by_key %}
+
+            <label>{{key}}</label>
+            <input value={{value}}>
+
+        {% endfor %}
+
+            <input type="submit" name='Upravit-{{ranged_answer.id}}' value="Upravit">
+            <input type="button" value="Smazat" onclick="deleteRange({{ranged_answer.id}})">
+            
+            <br />
+    {% endfor %}
+        </form>
+
+    </div>
+
+    <div id="add-ranged-answer">
+        <h2>Vytvořit nový rozsah</h2>
+
+        <form method="POST" onsubmit="formToJson()">{% csrf_token %}
+
+            <label for="minimum">Nejnižší hodnota
+                <input type="number" id="minimum" name="minimum" required>
+            </label>
+            
+            <label for="zero">Nulová hodnota
+                <input type="number" id="zero" name="zero" required>
+            </label>
+            
+            <label for="maximum">Nejvyšší hodnota
+                <input type="number" id="maximum" name="maximum" required>
+            </label>
+
+            <input type="hidden" name="strings" id="strings">
+
+            <button type="button" onclick="addText()">Chci přidat textový ekvivalent</button>
+
+            <input type="submit" name="new_ranged_answer">
+
+        </form>
+        
+    </div>
+
+</div>
+
+
+<script>
+    var minimum = document.getElementById("minimum")
+    var maximum = document.getElementById("maximum")
+    var form = document.getElementsByTagName("form")[1]
+
+    function addText() {
+        if (!minimum.value) {
+            alert("Nejdřív vyplň číselné hodnoty, prosím");
+            return false;
+        }
+        var i;
+        for (i = minimum.value; i <= maximum.value; i++) {
+            new_div = document.createElement("div")
+            new_label = document.createElement("label")
+            new_label.innerText = "Textová reprezentace " + i
+            new_input = document.createElement("input")
+            new_input.name = i
+            new_input.classList.add("strings")
+            new_label.append(new_input)
+            new_div.append(new_label)
+            form.append(new_div)
+        }
+    }
+
+    function formToJson(){
+            allElements = form.getElementsByClassName("strings"),
+            jsonObject = {};
+        for(var i = 0; i < allElements.length; i++){
+            var elemente = allElements[i];
+            jsonObject[elemente.name] = elemente.value;
+        }
+        document.getElementById("strings").value = JSON.stringify(jsonObject);
+    }
+
+
+
+</script>
+
+<script>
+
+function deleteRange(ranged_answer_id) 
+{
+    req = new XMLHttpRequest()
+    req.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            console.log("done")
+        }
+    }
+
+    url = '{% url "delete_range" %}'
+
+    req.open("POST", url, true)
+    req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+    var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+    req.setRequestHeader('X-CSRFToken', token)
+    req.send("ranged_answer_id=" + ranged_answer_id)
+    location.reload()
+}
+
+
+</script>
+
+{% endblock %}

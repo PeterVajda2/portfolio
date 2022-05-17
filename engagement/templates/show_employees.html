@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load tags %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="breadcrumb">
+    <a href="{% url 'admin_view' %}"> Admin </a> > Seznam zaměstnanců
+</div>
+
+<div class="engagement-employees-wrapper">
+    <table class="engagement-employees-table">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">
+                    Osobní číslo
+                </th>
+                <th onclick="sortTable(1)">
+                    Jméno
+                </th>
+                <th onclick="sortTable(2)">
+                    Středisko (číslo)
+                </th>
+                <th onclick="sortTable(3)">
+                    Středisko (Název)
+                </th>
+                <th onclick="sortTable(4)">
+                    Pozice
+                </th>
+                <th onclick="sortTable(5)">
+                    Supervizor
+                </th>
+                <th onclick="sortTable(6)">
+                    Hodnotitel
+                </th>
+            </tr>
+            <tr>
+                <td><input class="input-filter" type="text" data-column-index="0"></td>
+                <td><input class="input-filter" type="text" data-column-index="1"></td>
+                <td><input class="input-filter" type="text" data-column-index="2"></td>
+                <td><input class="input-filter" type="text" data-column-index="3"></td>
+                <td><input class="input-filter" type="text" data-column-index="4"></td>
+                <td><input class="input-filter" type="text" data-column-index="5"></td>
+                <td><input class="input-filter" type="text" data-column-index="6"></td>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr onclick="window.open('{% url 'edit_employee' employee.id %}', 'Upravit', 'width=400,height=600')">
+                <td>
+                    {{employee.personal_number}} 
+                </td>
+                <td>
+                    {{employee.name}}
+                </td>
+                <td>
+                    {{employee.cost_center_number}}
+                </td>
+                <td>
+                    {{employee.cost_center_name}}
+                </td>
+                <td>{{employee.position}}</td>
+                <td>{{employee.is_supervisor|yesno:"Ano,Ne"}}</td>
+                <td>{{employee.evaluator|default_if_none:""}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-top:2em">
+        <div onclick="window.open('{% url 'add_employee' %}', 'popup','width=600,height=600')" class="engagement-employees-tile">
+            <p>Přidat zaměstnance</p>
+        </div>
+
+        <div onclick="window.open('{% url 'employee_upload' %}', 'popup','width=600,height=600')" class="engagement-employees-tile">
+            <p>Nahrát nový seznam</p>
+        </div>
+    </div>
+</div>
+
+<script>
+
+window.addEventListener('load', () => {
+
+    console.log("nacteno");
+    let input_filters = document.querySelectorAll(".input-filter");
+    window.table = document.getElementsByTagName("table")[0];
+    console.log(table)
+    input_filters.forEach((input_filter) => {
+        input_filter.addEventListener('input', () => filterColumn(input_filter.value, input_filter.dataset.columnIndex))
+    })
+});
+
+
+</script>
+
+<script>
+function filterColumn(valueToFind, colIndex) {
+    let rows = table.getElementsByTagName("tr");
+
+    Array.from(rows).slice(2).forEach((tr) => {
+        let filtered_cell = tr.getElementsByTagName("td")[colIndex];
+        if (!filtered_cell.textContent.includes(valueToFind)) {
+            tr.classList.add("invisible-by-" + colIndex);
+        } else {
+            tr.classList.remove("invisible-by-" + colIndex);
+        }
+    })
+}
+</script>
+
+<script>
+
+    function sortTable(colIndex) {
+        var rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        switching = true;
+    
+        dir = "asc";
+      
+        while (switching) {
+        
+            switching = false;
+            rows = table.rows;
+        
+            for (i = 2; i < (rows.length - 1); i++) {
+            
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("td")[colIndex];
+                y = rows[i + 1].getElementsByTagName("td")[colIndex];
+    
+                if (dir =="asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } 
+                
+                else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+            }
+    
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount ++;
+        } else {
+            if (switchcount == 0 && dir == "asc") {
+            dir = "desc";
+            switching = true;
+          }
+        }
+      }
+    }
+        
+</script>
+
+
+{% endblock %}

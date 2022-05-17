@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load tags %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="breadcrumb">
+    <a href="{% url 'admin_view' %}"> Admin </a> > Upravit dotazník
+</div>
+
+<div class="engagement-admin-wrapper">
+
+
+{% for questionnaire in questionnaires %}
+
+<a href="{% url 'edit_questionnaire' questionnaire.id %}"><h3 title="{{questionnaire.author.user.first_name}} {{questionnaire.author.user.last_name}} {{questionnaire.date_created}}" {% if questionnaire.locked %} style="text-decoration: line-through" {% endif %}>{{questionnaire.name|truncatechars:40}}</h3></a>
+
+
+{% endfor %}
+
+</div>
+
+
+
+{% endblock %}

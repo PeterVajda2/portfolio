@@ -1,0 +1,270 @@
+{% extends 'fp09_visualizations_base.html' %}
+
+{% load static %}
+
+
+{% block input_buttons %}
+<input type="button" data-days="7" value="-7 dnů" class="period-button period-selected">
+<input type="button" data-days="14" value="-14 dnů" class="period-button">
+<input type="button" data-days="30" value="-30 dnů" class="period-button">
+<input type="button" data-days="60" value="-60 dnů" class="period-button">
+<input type="button" data-days="90" value="-90 dnů" class="period-button">
+<input type="button" data-days="180" value="-180 dnů" class="period-button">
+<input type="button" data-category="1" class="category-button category-selected" value="Zastavuje linku">
+<input type="button" data-category="2" class="category-button" value="Zpomaluje linku">
+<input type="button" data-category="3" class="category-button" value="Informace">
+<input type="button" data-count-of="10" value="top 10" class="count-of-button count-of-selected">
+<input type="button" data-count-of="15" value="top 15" class="count-of-button">
+<input type="button" data-count-of="20" value="top 20" class="count-of-button">
+<input type="button" data-purpose="alarms-sum" id="alarms-sum-button" value="∑" class="alarms-sum-button">
+<input type="button" data-purpose="parts-overview" id="partnumbers-production-button" value="⁇" class="parts-overview-button">
+{% endblock %}
+
+{% block body %}
+
+<div class="alarms-charts-wrapper">
+
+    <!-- <div id="group-pareto-canvas-parent"><canvas id="group-pareto"></canvas></div>
+    <div id="group-line-canvas-parent"><canvas id="group-line"></canvas></div> -->
+    <div id="individual-relative-pareto-canvas-parent"><canvas id="individual-relative-pareto"></canvas></div>
+    <div id="individual-relative-line-canvas-parent"><canvas id="individual-relative-line"></canvas></div>
+    <div id="individual-pareto-canvas-parent"><canvas id="individual-pareto"></canvas></div>
+    <div id="individual-line-canvas-parent"><canvas id="individual-line"></canvas></div>
+
+</div>
+
+<div class="alarms-sum-count hidden" id="alarms-sum-count">
+    <div>Trvání alarmů (min)</div>
+    <div>Počet alarmů</div>
+    <div class="significant" id="duration-of-alarms">150</div>
+    <div class="significant" id="number-of-alarms">300</div>
+    <div class="close-cross">X</div>
+</div>
+
+
+<div class="partnumbers-produced hidden" id="partnumbers-produced">
+    <table style="width: 100%; top: 15%; position: relative" id="partnumbers-table">
+        <thead>
+            <th>Part Number</th>
+            <th>Konstrukční varianta</th>
+            <th>Typ kroužku</th>
+            <th>Typ závitu</th>
+            <th>Barva</th>
+            <th>Počet kusů</th>
+        </thead>
+    </table>
+    <div class="close-cross">X</div>
+</div>
+
+
+
+<script>
+    const url = '{% url "fp09:get_fp09_alarm_stats" %}';
+    const alarms_sum_url = '{% url "fp09:get_fp09_alarms_sum" %}';
+    const partnumbers_production_url = '{% url "fp09:get_fp09_produced_partnumber" %}';
+    const submit_buttons = document.querySelectorAll('input[type="button"][class*="shift-button"]');
+    const period_buttons = document.querySelectorAll('input[type="button"][class*="period-button"]');
+    const category_buttons = document.querySelectorAll('input[type="button"][class*="category-button"]');
+    const count_of_buttons = document.querySelectorAll('input[type="button"][class*="count-of-button"]');
+    const group_line_canvas = document.getElementById('group-line');
+    const group_pareto_canvas = document.getElementById('group-pareto');
+    const alarms_sum_buton = document.getElementById('alarms-sum-button');
+    const partnumbers_production_button = document.getElementById('partnumbers-production-button');
+    const individual_line_canvas = document.getElementById('individual-line');
+    const individual_pareto_canvas = document.getElementById('individual-pareto');
+    const individual_relative_line_canvas = document.getElementById('individual-relative-line');
+    const individual_relative_pareto_canvas = document.getElementById('individual-relative-pareto');
+    const date_from_input = document.getElementById('date-from')
+    const date_to_input = document.getElementById('date-to')
+    const close_cross = document.querySelectorAll('.close-cross');
+    var count_of = 10
+
+    var selected_shift = 'All';
+    var selected_days = 7;
+    let now_value = new Date();
+    now_value = subtract_days_from_datetime(now_value, 1);
+    let default_end = now_value
+    let default_start = subtract_days_from_datetime(default_end, 6)
+    var stops_line = true
+    var does_not_stop_line = false
+    var informs_line = false
+
+    date_from_input.value = get_date_string(default_start)
+    date_to_input.value = get_date_string(default_end)
+
+    var start_date = default_start
+    var end_date = default_end
+
+    const colors = {{ colors| safe}};
+    const borders = {{ colors| safe}};
+
+    alarms_sum_buton.addEventListener('click', () => {
+        get_alarms_sum(alarms_sum_url, {
+            'shift': selected_shift,
+            'days': selected_days,
+            'start_date': start_date,
+            'end_date': end_date,
+            'stops_line': stops_line,
+            'does_not_stop_line': does_not_stop_line,
+            'informs_line': informs_line
+
+        }).then(resp => show_alarm_count_duration(resp))
+    })
+
+    close_cross.forEach(cross => {
+        cross.addEventListener('click', (e) => {
+            e.target.parentElement.classList.add('hidden');
+            if (document.getElementById('partnumbers-table-body')) {
+                document.getElementById('partnumbers-table-body').remove();
+            }
+        })
+    })
+
+    partnumbers_production_button.addEventListener('click', () => {
+            get_partnumbers_production(partnumbers_production_url, {
+                'shift': selected_shift,
+                'days': selected_days,
+                'start_date': start_date,
+                'end_date': end_date
+            }).then(resp => show_partnumbers_production(resp))
+        })
+
+
+    category_buttons.forEach(category_button => {
+        category_button.addEventListener('click', () => {
+            if (category_button.classList.contains('category-selected')) {
+                category_button.classList.remove('category-selected')
+                if (category_button.dataset.category == "1") {
+                    stops_line = false
+                }
+                if (category_button.dataset.category == "2") {
+                    does_not_stop_line = false
+                }
+                if (category_button.dataset.category == "3") {
+                    informs_line = false
+                }
+            } else {
+                category_button.classList.add('category-selected');
+                if (category_button.dataset.category == "1") {
+                    stops_line = true
+                }
+                if (category_button.dataset.category == "2") {
+                    does_not_stop_line = true
+                }
+                if (category_button.dataset.category == "3") {
+                    informs_line = true
+                }
+            }
+            create_charts();
+        })
+    })
+
+    date_from_input.addEventListener('input', adjust_dates)
+
+    date_to_input.addEventListener('input', adjust_dates)
+
+    submit_buttons.forEach(submit_button => {
+        submit_button.addEventListener('click', (e) => {
+            submit_buttons.forEach(submit_button => {
+                submit_button.classList.remove('shift-selected');
+            })
+            selected_shift = submit_button.dataset.shift;
+            e.target.classList.add('shift-selected');
+            create_charts();
+        })
+    })
+
+    count_of_buttons.forEach(count_button => {
+        count_button.addEventListener('click', (e) => {
+            count_of_buttons.forEach(count_button => {
+                count_button.classList.remove('count-of-selected');
+            })
+            count_of = count_button.dataset.countOf;
+            e.target.classList.add('count-of-selected');
+            create_charts();
+        })
+    })
+
+    period_buttons.forEach(period_button => {
+        period_button.addEventListener('click', (e) => {
+            period_buttons.forEach(period_button => {
+                period_button.classList.remove('period-selected');
+            })
+            e.target.classList.add('period-selected');
+            end_date = default_end;
+            start_date = subtract_days_from_datetime(end_date, e.target.dataset.days - 1);
+            document.getElementById('date-from').value = get_date_string(start_date);
+            let time_diff = end_date.getTime() - start_date.getTime();
+            selected_days = parseInt(time_diff / (1000 * 3600 * 24))
+            create_charts();
+        })
+    })
+
+    // get_line_group_data(url, { type: 'group_line', days: selected_days, shift: selected_shift, stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line }).then(data => { draw_group_line(data, group_line_canvas) })
+    // get_pareto_group_data(url, { type: 'group_pareto', days: selected_days, shift: selected_shift, stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line }).then(data => { draw_group_pareto_2(data, group_pareto_canvas) })
+    get_line_individual_data(url, { type: 'individual_line', days: selected_days, shift: selected_shift, stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line, count_of: count_of }).then(data => { draw_individual_line(data, individual_line_canvas) })
+    get_pareto_individual_data(url, { type: 'individual_pareto', days: selected_days, shift: selected_shift, stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line, count_of: count_of }).then(data => { draw_individual_pareto(data, individual_pareto_canvas) })
+    get_line_individual_relative_data(url, { type: 'individual_relative_line', days: selected_days, shift: selected_shift, stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line, count_of: count_of }).then(data => { draw_individual_relative_line(data, individual_relative_line_canvas) })
+    get_pareto_individual_relative_data(url, { type: 'individual_relative_pareto', days: selected_days, shift: selected_shift, stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line, count_of: count_of }).then(data => { draw_individual_relative_pareto(data, individual_relative_pareto_canvas) })
+
+    async function hide_container(container) {
+        container.parentElement.style.display = "none"
+    }
+
+    async function unhide_container(container, data) {
+        container.parentElement.style.display = "block";
+        return data
+    }
+
+    function get_datetime(dt_string) {
+        let new_dt = new Date(dt_string.slice(0, 4), dt_string.slice(5, 7) - 1, dt_string.slice(8, 10))
+        return new_dt
+    }
+
+    function get_date_string(dt) {
+        let new_dt_string = dt.toISOString().slice(0, 10)
+        return new_dt_string
+    }
+
+    function subtract_days_from_datetime(dt, days) {
+        copied_dt = new Date(dt.getTime());
+        copied_dt.setDate(copied_dt.getDate() - parseInt(days))
+        return copied_dt
+    }
+
+    function adjust_dates() {
+        period_buttons.forEach(period_button => {
+            period_button.classList.remove('period-selected');
+        })
+        submit_buttons.forEach(submit_button => {
+            submit_button.classList.remove('shift-selected');
+        })
+        let date_from = get_datetime(date_from_input.value)
+        let date_to = get_datetime(date_to_input.value);
+        let time_diff = date_to.getTime() - date_from.getTime();
+        selected_days = parseInt(time_diff / (1000 * 3600 * 24)) + 1
+        start_date = subtract_days_from_datetime(date_from, -1)
+        end_date = subtract_days_from_datetime(date_to, -1)
+    }
+
+    function create_charts() {
+        // hide_container(group_line_canvas).then(() => get_line_group_data(url, { type: 'group_line', days: selected_days, shift: selected_shift, start_date: get_date_string(start_date), end_date: get_date_string(end_date), stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line })).then((data) => unhide_container(group_line_canvas, data)).then(data => { draw_group_line(data, group_line_canvas) })
+
+        // hide_container(group_pareto_canvas).then(() => get_pareto_group_data(url, { type: 'group_pareto', days: selected_days, shift: selected_shift, start_date: get_date_string(start_date), end_date: get_date_string(end_date), stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line })).then((data) => unhide_container(group_pareto_canvas, data)).then(data => { draw_group_pareto_2(data, group_pareto_canvas) })
+
+        hide_container(individual_line_canvas).then(() => get_line_individual_data(url, { type: 'individual_line', days: selected_days, shift: selected_shift, start_date: get_date_string(start_date), end_date: get_date_string(end_date), stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line, count_of: count_of })).then((data) => unhide_container(individual_line_canvas, data)).then(data => { draw_individual_line(data, individual_line_canvas) })
+
+        hide_container(individual_pareto_canvas).then(() => get_pareto_individual_data(url, { type: 'individual_pareto', days: selected_days, shift: selected_shift, start_date: get_date_string(start_date), end_date: get_date_string(end_date), stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line, count_of: count_of })).then((data) => unhide_container(individual_pareto_canvas, data)).then(data => { draw_individual_pareto(data, individual_pareto_canvas) })
+
+        hide_container(individual_relative_line_canvas).then(() => get_line_individual_relative_data(url, { type: 'individual_relative_line', days: selected_days, shift: selected_shift, start_date: get_date_string(start_date), end_date: get_date_string(end_date), stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line, count_of: count_of })).then((data) => unhide_container(individual_relative_line_canvas, data)).then(data => { draw_individual_relative_line(data, individual_relative_line_canvas) })
+
+        hide_container(individual_relative_pareto_canvas).then(() => get_pareto_individual_relative_data(url, { type: 'individual_relative_pareto', days: selected_days, shift: selected_shift, start_date: get_date_string(start_date), end_date: get_date_string(end_date), stops_line: stops_line, does_not_stop_line: does_not_stop_line, informs_line: informs_line, count_of: count_of })).then((data) => unhide_container(individual_relative_pareto_canvas, data)).then(data => { draw_individual_relative_pareto(data, individual_relative_pareto_canvas) })
+    }
+
+    let default_period = document.querySelector('input[type="button"][data-days="7"]');
+    default_period.classList.add("period-selected");
+
+</script>
+{% endblock %}
+
+</html>

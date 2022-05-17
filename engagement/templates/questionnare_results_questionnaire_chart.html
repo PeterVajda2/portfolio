@@ -1,0 +1,42 @@
+<div>Celkem rozesláno: {{questionnaires_total_count}} dotazníků</div>
+<div>Vyplněno: {{questionnaires_sent}} dotazníků</div>
+<table>
+    <thead>
+        <tr>
+            <th>
+                Středisko
+            </th>
+            <th>
+                Odeslaných
+            </th>
+            <th>
+                Vyplněných
+            </th>
+            <th>
+                Návratnost
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+
+
+        {% for department, value in statistics.per_department.items %}
+        <tr>
+            <td>
+                {{department}}
+            </td>
+            <td>
+                {{value.sent|add:value.unsent}}
+            </td>
+            <td>
+                {{value.sent}}
+            </td>
+            <td>
+                {{value.ratio|floatformat:"1"}}%
+            </td>
+
+        </tr>
+        {% endfor %}
+
+    </tbody>
+</table>

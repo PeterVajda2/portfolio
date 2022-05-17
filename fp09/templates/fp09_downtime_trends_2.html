@@ -1,0 +1,562 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trends</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        #selectors {
+            width: 100%;
+            height: 6vh;
+            display: flex;
+            flex-flow: row;
+            justify-content: space-between;
+        }
+
+        #selectors > div {
+            display: flex;
+            flex-flow: column;
+            place-items: center;
+            place-content: center;
+            width: 100%;
+        }
+
+        #selectors > div#shifts-selectors {
+            flex-flow: row;
+            justify-content: space-around;
+        }
+
+        #charts-wrapper {
+            display: flex;
+            width: 100%;
+            height: 94vh;
+            flex-flow: row;
+            overflow-x: hidden;
+        }
+        
+        #charts-wrapper > div {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+        }
+
+        .one-third {
+            width: calc(1/3 * 100vw);
+        }
+
+        .one-half {
+            width: calc(1/2 * 100vw);
+        }
+
+        .full-width {
+            width: 100vw;
+        }
+
+        #reference-go-button, #actual-go-button, #reference-hide-button, #actual-hide-button, .shift-button {
+            background-color: white;
+            height: 100%;
+            outline: none;
+            border: 1px solid black;
+            border-radius: 5%;
+            padding-inline: 1em;
+            cursor: pointer;
+        }
+
+        .shift-active {
+            background-color: rgba(255,0,0,0.25);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .max-third {
+            max-width: calc(1/3 * 100vw);
+        }
+
+        .max-half {
+            max-width: calc(1/2 * 100vw);
+        }
+
+        .max-full {
+            max-width: 100vw;
+        }
+
+        .detailed-window {
+            position: fixed;
+            width: 80vw;
+            height: 80vh;
+            top: 50%;
+            left: 50%;
+            background-color: rgba(255,0,0,1);
+            transform: translate(-50%, -50%);
+        }
+        
+    </style>
+</head>
+<body>
+    <section id="selectors">
+        <div>
+            <div>Referenční období</div>
+            <div>
+                <label>od:
+                    <input type="date" id="reference-date-from">
+                </label>
+
+                <label>do:
+                    <input type="date" id="reference-date-to">
+                </label>
+
+                <input type="button" id="reference-go-button" value="GO!">
+                <input type="button" id="reference-hide-button" value="HIDE">
+            </div>
+        </div>
+
+        <div id="shifts-selectors">
+            <input type="button" class="shift-button shift-active" data-shift="Morning" value="ranní">
+            <input type="button" class="shift-button shift-active" data-shift="Afternoon" value="odpolední">
+            <input type="button" class="shift-button shift-active" data-shift="Night" value="noční">
+        </div>
+
+        <div>
+            <div>Porovnávané období</div>
+            <div>
+                <label>od:
+                    <input type="date" id="actual-date-from">
+                </label>
+
+                <label>do:
+                    <input type="date" id="actual-date-to">
+                </label>
+
+                <input type="button" id="actual-go-button" value="GO!">
+                <input type="button" id="actual-hide-button" value="HIDE">
+            </div>
+        </div>
+
+    </section>
+
+    <section id="charts-wrapper">
+        <div id="reference-wrapper" class="one-third">
+            <div>
+                <canvas id="technical_reference"></canvas>
+            </div>
+            <div>
+                <canvas id="changeover_reference"></canvas>
+            </div>
+            <div>
+                <canvas id="logistic_reference"></canvas>
+            </div>
+            <div>
+                <canvas id="organization_reference"></canvas>
+            </div>
+            <div>
+                <canvas id="input_reference"></canvas>
+            </div>
+            <div>
+                <canvas id="repair_reference"></canvas>
+            </div>
+        </div>
+
+        <div id="compared-wrapper" class="one-third">
+            <div data-category="technical">
+                <canvas id="technical_combined"></canvas>
+            </div>
+            <div data-category="changeover">
+                <canvas id="changeover_combined"></canvas>
+            </div>
+            <div data-category="logistic">
+                <canvas id="logistic_combined"></canvas>
+            </div>
+            <div data-category="organization">
+                <canvas id="organization_combined"></canvas>
+            </div>
+            <div data-category="input">
+                <canvas id="input_combined"></canvas>
+            </div>
+            <div data-category="repair">
+                <canvas id="repair_combined"></canvas>
+            </div>
+        </div>
+
+        <div id="actual-wrapper" class="one-third">
+            <div>
+                <canvas id="technical_actual"></canvas>
+            </div>
+            <div>
+                <canvas id="changeover_actual"></canvas>
+            </div>
+            <div>
+                <canvas id="logistic_actual"></canvas>
+            </div>
+            <div>
+                <canvas id="organization_actual"></canvas>
+            </div>
+            <div>
+                <canvas id="input_actual"></canvas>
+            </div>
+            <div>
+                <canvas id="repair_actual"></canvas>
+            </div>
+        </div>
+
+    </section>
+
+<script>
+    const url = "{% url 'fp09:fp09_downtime_trends_2' %}"
+    const url_details = "{% url 'fp09:fp09_downtime_trends_details' %}"
+
+    var reference_wrapper_hidden = false
+    var actual_wrapper_hidden = false
+
+    const reference_go_button = document.getElementById('reference-go-button')
+    const reference_hide_button = document.getElementById('reference-hide-button')
+    const actual_go_button = document.getElementById('actual-go-button')
+    const actual_hide_button = document.getElementById('actual-hide-button')
+    const reference_date_from = document.getElementById('reference-date-from')
+    const reference_date_to = document.getElementById('reference-date-to')
+    const actual_date_from = document.getElementById('actual-date-from')
+    const actual_date_to = document.getElementById('actual-date-to')
+    const shift_buttons = document.querySelectorAll('[class*="shift-button"]')
+    const compared_charts = document.querySelectorAll('[data-category]')
+
+    var shifts = ['Morning', 'Afternoon', 'Night']
+    var reference_timestamp_from
+    var reference_timestamp_to
+    var actual_timestamp_from
+    var actual_timestamp_to
+
+    compared_charts.forEach(compared_chart => {
+        compared_chart.addEventListener('click', (e) => {
+            show_detailed_window(e.target.parentElement.dataset.category, reference_timestamp_from, reference_timestamp_to, actual_timestamp_from, actual_timestamp_to)
+        })
+    })
+
+    shift_buttons.forEach(shift_button => {
+        shift_button.addEventListener('click', (e) => {
+            if (e.target.classList.contains('shift-active')) {
+                e.target.classList.remove('shift-active');
+                const index = shifts.indexOf(e.target.dataset.shift)
+                if (index > -1) {
+                    shifts.splice(index, 1)
+                }
+                console.log(shifts)
+            } else {
+                e.target.classList.add('shift-active');
+                shifts.push(e.target.dataset.shift);
+                console.log(shifts)
+            }
+        })
+    })
+
+    reference_go_button.addEventListener('click', () => {
+        let date_from_orig = new Date(reference_date_from.value);
+        let date_to_orig = new Date(reference_date_to.value);
+
+        temp_1 = new Date(date_from_orig.setDate(date_from_orig.getDate() - 1))
+
+        reference_timestamp_from = `${temp_1.toISOString().slice(0, 10)} 22:00`;
+        reference_timestamp_to = `${date_to_orig.toISOString().slice(0, 10)} 22:00`;
+
+        visualize_reference(reference_timestamp_from, reference_timestamp_to, shifts);
+    })
+
+    reference_hide_button.addEventListener('click', () => {
+        if (reference_hide_button.value == 'HIDE') {
+            document.getElementById('reference-wrapper').classList.add('hidden');
+            reference_hide_button.value = 'UNHIDE';
+            reference_wrapper_hidden = true
+        } else {
+            document.getElementById('reference-wrapper').classList.remove('hidden');
+            reference_hide_button.value = 'HIDE';
+            reference_wrapper_hidden = false
+        }
+        scale_charts();
+    })
+
+    actual_hide_button.addEventListener('click', () => {
+        if (actual_hide_button.value == 'HIDE') {
+            document.getElementById('actual-wrapper').classList.add('hidden');
+            actual_hide_button.value = 'UNHIDE';
+            actual_wrapper_hidden = true;
+        } else {
+            document.getElementById('actual-wrapper').classList.remove('hidden');
+            actual_hide_button.value = 'HIDE';
+            actual_wrapper_hidden = false;
+        }
+        scale_charts();
+    })
+
+    actual_go_button.addEventListener('click', () => {
+        let date_from_orig = new Date(actual_date_from.value);
+        let date_to_orig = new Date(actual_date_to.value);
+
+        temp_1 = new Date(date_from_orig.setDate(date_from_orig.getDate() - 1))
+
+        actual_timestamp_from = `${temp_1.toISOString().slice(0, 10)} 22:00`;
+        actual_timestamp_to = `${date_to_orig.toISOString().slice(0, 10)} 22:00`;
+
+        visualize_actual(actual_timestamp_from, actual_timestamp_to, shifts);
+    })
+
+    const CATEGORIES = ['Technical downtime / technický prostoj', 'Repair, maintenance / Oprava, údržba', 'Logistic / Logistika', 'Changeover / Přestavba', 'Organization / Organizace', 'Input components + packaging / Vstupní komponenty + balení']
+
+    const CONTAINERS_REFERENCE = {
+        'Technical downtime / technický prostoj': 'technical_reference',
+        'Repair, maintenance / Oprava, údržba': 'repair_reference', 
+        'Logistic / Logistika': 'logistic_reference', 
+        'Changeover / Přestavba': 'changeover_reference', 
+        'Organization / Organizace': 'organization_reference', 
+        'Input components + packaging / Vstupní komponenty + balení': 'input_reference',
+    }
+
+    const CONTAINERS_ACTUAL = {
+        'Technical downtime / technický prostoj': 'technical_actual',
+        'Repair, maintenance / Oprava, údržba': 'repair_actual',
+        'Logistic / Logistika': 'logistic_actual',
+        'Changeover / Přestavba': 'changeover_actual',
+        'Organization / Organizace': 'organization_actual',
+        'Input components + packaging / Vstupní komponenty + balení': 'input_actual',
+    }
+
+    const CONTAINERS_COMBINED = {
+        'Technical downtime / technický prostoj': 'technical_combined',
+        'Repair, maintenance / Oprava, údržba': 'repair_combined',
+        'Logistic / Logistika': 'logistic_combined',
+        'Changeover / Přestavba': 'changeover_combined',
+        'Organization / Organizace': 'organization_combined',
+        'Input components + packaging / Vstupní komponenty + balení': 'input_combined',
+    }
+
+    const BLUE = 'rgb(0,99,255)'
+    const GREEN = 'rgb(0,255,99)'
+    
+    async function get_chart_data(url = '', data = {}) {
+        const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        redirect: 'follow', // manual, *follow, error
+        body: JSON.stringify(data) // body data type must match "Content-Type" header
+    })
+        return response.json();
+    }
+
+    async function get_chart_data_combined(url = '', data = {}) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                redirect: 'follow', // manual, *follow, error
+                body: JSON.stringify(data) // body data type must match "Content-Type" header
+            })
+            return response.json();
+        }
+
+    async function draw_chart(data, color_const) {
+
+        if (Chart.getChart(data['container_id'])) {
+            Chart.getChart(data['container_id']).destroy();
+        }
+
+        const labels = data['labels'];
+    
+        const chart_data = {
+            labels: labels,
+            datasets: [{
+                label: data['title'],
+                backgroundColor: color_const,
+                borderColor: color_const,
+                data: data['values']
+            }]
+        };
+    
+        const config = {
+            type: 'line',
+            data: chart_data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+            }
+        };
+    
+        const myChart = new Chart(
+            document.getElementById(data['container_id']),
+            config
+        );
+    }
+
+    async function draw_chart_combined(data, color_const_ref, color_const_act) {
+
+        if (Chart.getChart(data['container_id'])) {
+            Chart.getChart(data['container_id']).destroy();
+        }
+
+        const labels = data['labels'];
+
+        const chart_data = {
+            labels: labels,
+            datasets: [{
+                label: data['title'],
+                backgroundColor: color_const_ref,
+                borderColor: color_const_ref,
+                data: data['reference_values']
+            }, 
+            {
+                label: data['title'],
+                backgroundColor: color_const_act,
+                borderColor: color_const_act,
+                data: data['actual_values']
+            }
+        ]
+        };
+
+        const config = {
+            type: 'line',
+            data: chart_data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+            }
+        };
+
+        const myChart = new Chart(
+            document.getElementById(data['container_id']),
+            config
+        );
+    }
+
+    function visualize_reference(timestamp_from, timestamp_to, shifts) {
+        CATEGORIES.forEach(category => {
+            let data = {
+                'timestamp_from': timestamp_from,
+                'timestamp_to':  timestamp_to,
+                'shifts': shifts,
+                'category': category,
+                'container_id': CONTAINERS_REFERENCE[category],
+                'combined': false,
+            }
+            get_chart_data(url, data).then(resp => draw_chart(resp, BLUE))
+        })
+    }
+
+    function visualize_actual(timestamp_from, timestamp_to, shifts) {
+        CATEGORIES.forEach(category => {
+            let data = {
+                'timestamp_from': timestamp_from,
+                'timestamp_to': timestamp_to,
+                'shifts': shifts,
+                'category': category,
+                'container_id': CONTAINERS_ACTUAL[category],
+                'combined': false,
+            }
+            get_chart_data(url, data).then(resp => draw_chart(resp, GREEN))
+        });
+        visualize_combined(reference_timestamp_from, reference_timestamp_to, actual_timestamp_from, actual_timestamp_to, shifts)
+    }
+
+    function visualize_combined(reference_timestamp_from, reference_timestamp_to, actual_timestamp_from, actual_timestamp_to, shifts) {
+        CATEGORIES.forEach(category => {
+            let data = {
+                'reference_timestamp_from': reference_timestamp_from,
+                'reference_timestamp_to': reference_timestamp_to,
+                'actual_timestamp_from': actual_timestamp_from,
+                'actual_timestamp_to': actual_timestamp_to,
+                'shifts': shifts,
+                'category': category,
+                'container_id': CONTAINERS_COMBINED[category],
+                'combined': true,
+            }
+            get_chart_data_combined(url, data).then(resp => draw_chart_combined(resp, BLUE, GREEN))
+        })
+    }
+
+    function fill_reference_dates() {
+        let todays_date = new Date();
+        let yesterdays_minus_one_date = new Date();
+        yesterdays_minus_one_date.setDate(todays_date.getDate() - 2);
+        reference_date_from.value = yesterdays_minus_one_date.toISOString().slice(0, 10)
+        reference_date_to.value = yesterdays_minus_one_date.toISOString().slice(0, 10)
+    }
+
+    function fill_actual_dates() {
+        let todays_date = new Date();
+        let yesterdays_date = new Date();
+        yesterdays_date.setDate(todays_date.getDate() - 1);
+        actual_date_from.value = yesterdays_date.toISOString().slice(0, 10)
+        actual_date_to.value = yesterdays_date.toISOString().slice(0, 10)
+    }
+
+    fill_reference_dates();
+    fill_actual_dates();
+
+    function scale_charts() {
+        if (reference_wrapper_hidden == true && actual_wrapper_hidden == true) {
+            document.getElementById('compared-wrapper').removeAttribute('class');
+            document.getElementById('compared-wrapper').classList.add('full-width');
+            let affected_divs = document.getElementById('compared-wrapper').getElementsByTagName('div')
+            for (let i = 0; i < affected_divs.length; i++) {
+                affected_divs[i].removeAttribute('class');
+                affected_divs[i].classList.add('max-full');
+            }
+        } else if (reference_wrapper_hidden == true || actual_wrapper_hidden == true) {
+            document.getElementById('compared-wrapper').removeAttribute('class');
+            document.getElementById('compared-wrapper').classList.add('one-half');
+            let affected_divs = document.getElementById('compared-wrapper').getElementsByTagName('div')
+            for (let i = 0; i < affected_divs.length; i++) {
+                affected_divs[i].removeAttribute('class');
+                affected_divs[i].classList.add('max-half');
+            }
+        } else if (reference_wrapper_hidden == false && actual_wrapper_hidden == false) {
+            document.getElementById('compared-wrapper').removeAttribute('class');
+            document.getElementById('compared-wrapper').classList.add('one-third');
+            let affected_divs = document.getElementById('compared-wrapper').getElementsByTagName('div')
+            for (let i = 0; i < affected_divs.length; i++) {
+                affected_divs[i].removeAttribute('class');
+                affected_divs[i].classList.add('max-third');
+            }
+        }
+    }
+
+    function show_detailed_window(category, reference_timestamp_from, reference_timestamp_to, actual_timestamp_from, actual_timestamp_to) {
+        let detailed_div = document.createElement('div');
+        detailed_div.classList.add('detailed-window');
+        document.body.append(detailed_div);
+        let data = {
+            'category': category,
+            'reference_timestamp_from': reference_timestamp_from,
+            'reference_timestamp_to': reference_timestamp_to,
+            'actual_timestamp_from': actual_timestamp_from,
+            'actual_timestamp_to': actual_timestamp_to,
+            'shifts': shifts,
+        }
+        get_details(url_details, data).then(resp => console.log(resp))
+    }
+
+    async function get_details(url = '', data = {}) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data) // body data type must match "Content-Type" header
+        })
+        return response.json();
+    }
+
+</script>
+    
+</body>
+</html>

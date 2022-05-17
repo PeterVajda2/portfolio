@@ -1,0 +1,68 @@
+{% extends 'fp09_visualizations_base.html' %}
+
+{% load static %}
+
+{% block body %}
+
+<div class="charts-wrapper" id="charts-wrapper">
+    <canvas id="pareto-overall"></canvas>
+    <canvas id="Repair, maintenance / Oprava, údržba"></canvas>
+    <canvas id="Input components + packaging / Vstupní komponenty + balení"></canvas>
+    <canvas id="Organization / Organizace"></canvas>
+    <canvas id="Logistic / Logistika"></canvas>
+    <canvas id="Changeover / Přestavba"></canvas>
+    <canvas id="Technical downtime / technický prostoj"></canvas>
+</div>
+
+
+<script>
+    var chart_container = document.getElementById('chart')
+    var url = '{% url "fp09:pareto_screen_fp09" %}'
+    var submit_buttons = document.querySelectorAll('input[type=button]')
+    console.log(submit_buttons)
+    let now_value = new Date()
+    let default_start = new Date(now_value.getFullYear(), now_value.getMonth(), now_value.getDate(), 24, 0)
+    let default_end = new Date(now_value.getFullYear(), now_value.getMonth(), now_value.getDate(), 24, 0)
+    document.getElementById('date-from').value = default_start.toISOString().slice(0, 10)
+    document.getElementById('date-to').value = default_end.toISOString().slice(0, 10)
+    let date_from = document.getElementById('date-from').value
+    let date_to = document.getElementById('date-to').value
+     
+
+    var types = ['Repair, maintenance / Oprava, údržba', 'Input components + packaging / Vstupní komponenty + balení', 'Organization / Organizace', 'Logistic / Logistika', 'Changeover / Přestavba', 'Technical downtime / technický prostoj']
+
+    get_downtimes_overall_pareto_data(url, {'type': 'downtimes_overall', 'date_from': date_from, 'date_to': date_to, 'shift': 'All'}).then(data => draw_overall_pareto(data))
+
+    types.forEach(type => {
+        get_downtimes_category_pareto_data(url, { 'type': type, 'date_from': date_from, 'date_to': date_to, 'shift': 'All' }).then(data => draw_category_pareto(data))    
+    })
+
+    submit_buttons.forEach(submit_button => {
+        submit_button.addEventListener('click', (e) => {
+            submit_buttons.forEach(submit_button => {
+                submit_button.classList.remove('shift-selected');
+            })
+            e.target.classList.add('shift-selected');
+            let date_from = document.getElementById('date-from').value
+            let date_to = document.getElementById('date-to').value
+            document.querySelectorAll('canvas').forEach(canvas => canvas.remove())
+            let charts_wrapper = document.getElementById('charts-wrapper')
+            let overal_chart = document.createElement('canvas')
+            overal_chart.id = "pareto-overall"
+            charts_wrapper.append(overal_chart)
+            types.forEach(type => {
+                let new_canvas = document.createElement('canvas')
+                    new_canvas.id = type
+                    charts_wrapper.append(new_canvas)
+            })
+            get_downtimes_overall_pareto_data(url, { 'type': 'downtimes_overall', 'date_from': date_from, 'date_to': date_to, 'shift': e.target.dataset.shift }).then(data => draw_overall_pareto(data));
+            types.forEach(type => { get_downtimes_category_pareto_data(url, { 'type': type, 'date_from': date_from, 'date_to': date_to, 'shift': e.target.dataset.shift }).then(data => draw_category_pareto(data))})
+        })
+    })
+
+
+</script>
+
+
+{% endblock %}
+</html>

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="breadcrumb">
+    <a href="{% url 'admin_view' %}"> Admin </a> > Distribuovat dotazník
+</div>
+
+{% if return_message %}
+
+<h2>{{return_message}}</h2>
+{% endif %}
+
+<div class="engagement-distribute-wrapper">
+    <form method="POST">{% csrf_token %}
+    <div style="border-bottom: 1px dashed lightgray">
+        1. <br />Vyberte dotazník, který chcete distribuovat
+        <br />
+        <select style="box-sizing:border-box; margin: 1em; width: 80%; padding-left: 0.5em" name="questionnaire">
+        {% for questionnaire in questionnaires %}
+        <option value="{{questionnaire.id}}">{{questionnaire.name}}</option>
+        {% endfor %}
+            
+        </select>
+    </div>
+
+    <div style="border-bottom: 1px dashed lightgray">
+        2. Odešlete <br />
+        <input type="submit" value="Distribuovat"  class="create-questionnaire" >
+    </div>
+
+    </form>
+</div>
+
+
+
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load tags %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<form method="POST" class="engagement-add-employee">{% csrf_token %}
+
+    <label>Jméno zaměstnance
+        <input type="text" name="name" id="name" value='{{employee.name}}' required>
+    </label>
+    <br />
+
+    <label>Osobní číslo
+        <input type="number" id="personal_number" name="personal_number" value={{employee.personal_number}} required>
+    </label>
+    <br />
+
+    <label>Nákladové středisko
+        <br />
+        <select name="costcenter" id="costcenter" required>
+            <option>Vyberte ze seznamu</option>
+            {% for cost_center in cost_centers %}
+            <option value='{{cost_center.0}} - {{cost_center.1}}' {% if employee.cost_center_number == cost_center.0 %} selected {% endif %}>{{cost_center.0}} - {{cost_center.1}}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>Pozice
+        <select name="position" id="position" required>
+            <option>Vyberte ze seznamu</option>
+            {% for position in positions %}
+                <option value='{{position}}' {% if employee.position == position %} selected {% endif %}>{{position}}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>Hodnotitel
+        <select name="evaluator" id="evaluator" required>
+            <option>Vyberte ze seznamu</option>
+            <option></option>
+            {% for evaluator in evaluators %}
+                <option value='{{evaluator}}' {% if employee.evaluator == true %} selected {% endif %}>{{evaluator}}</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>Je supervizor?</label>
+    <br />
+    <input type="checkbox" id="supervisor" name="supervisor" style="margin-left: 1em; margin-top: 2em; width:auto; transform: scale(3)" {% if employee.is_supervisor %} checked onclick="checkMagic()" {% endif %}>
+
+    <input type="submit" value="Upravit" style="margin-top: 2em; height: 2em">
+    <input type="button" onclick="deleteEmployee({{employee.id}})" value="Smazat zaměstnance" style="margin-top: 2em; height: 2em; background-color: red; color: white">
+
+</form>
+
+<script>
+    var employee_id = {{employee.id}}
+</script>
+
+
+<script>
+    window.onunload = refreshParent;
+    function refreshParent() {
+        window.opener.location.reload();
+    }
+
+</script>
+
+<script>
+
+    function deleteEmployee(employee_id) {
+        req = new XMLHttpRequest()
+        req.onreadystatechange = function() {
+            if (req.readyState == 4 && req.status == 200) {
+                if (req.responseText) {
+                    window.close();
+                } 
+            }
+        }
+
+        url = '{% url "remove_employee" employee_id="12345" %}'.replace('12345', employee_id)
+
+        req.open("POST", url, true)
+        req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        req.setRequestHeader('X-CSRFToken', token)
+        req.send("data=" + employee_id)
+        return req
+    }
+
+    function editEmployee(employee_id) {
+
+        data = {
+            'name': document.getElementById('name').value,
+            'personal_number': document.getElementById('personal_number').value,
+            'supervisor':  document.getElementById('supervisor').checked,
+            'position': document.getElementById('position').value,
+            'costcenter': document.getElementById('costcenter').value,
+            'evaluator': document.getElementById('evaluator').value,
+        }
+
+        req = new XMLHttpRequest()
+        req.onreadystatechange = function() {
+            if (req.readyState == 4 && req.status == 200) {
+                if (req.responseText) {
+                    window.close();
+                } 
+            }
+        }
+
+        url = '{% url "edit_employee" employee_id="12345" %}'.replace('12345', employee_id)
+
+        req.open("POST", url, true)
+        req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        req.setRequestHeader('X-CSRFToken', token)
+        req.send("data=" + JSON.stringify(data))
+        return req
+    }
+</script>
+
+<script>
+
+const element = document.querySelector('form');
+element.addEventListener('submit', event => {
+  event.preventDefault();
+  // actual logic, e.g. validate the form
+  editEmployee(employee_id);
+});
+
+
+function checkMagic() {
+    document.getElementById('supervisor').removeAttribute("checked");
+}
+</script>
+
+{% endblock %}

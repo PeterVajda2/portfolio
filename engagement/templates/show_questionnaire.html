@@ -1,0 +1,34 @@
+
+{% load tags %}
+
+<form method="POST">
+    <fieldset>
+        <div>
+            <label>Mistr:</label>
+            <input type="text" value= '{{user.first_name}} {{user.last_name}}'>
+
+            <label>Zaměstnanec</label>
+            <input type="text">
+        </div>
+    </fieldset>
+    {% for section in questionnaire_template.section_set.all %}
+    <fieldset>
+    <legend>{{section.section_name}}</legend>
+        {% for question in section.question.all %}
+        <div>
+            <label>{{question.text}}</label>
+
+            {% if question.type_of_answer == "Range" %}
+            <select name="{{question.id}}">
+                {% for key, value in question.ranged_answer.all.0.strings|ordered_by_key %}
+                <option>{{value}}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+        </div>
+        {% endfor %}
+</fieldset>
+{% endfor %}
+
+<input type="submit">
+</form>

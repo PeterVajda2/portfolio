@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load tags %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="breadcrumb">
+    {% if user.is_authenticated %}
+        <a href="{% url 'logout' %}?next=/engagement"> Odhlásit </a>
+    {% else %}
+        <a href="{% url 'login' %}?next=/engagement"> Přihlásit </a>
+    {% endif %}
+</div>
+
+{% if not is_supervisor %}
+<div style="display: flex; justify-content: center; align-self: center;">
+Na zobrazení stránky nemáte oprávnění, dostupná je jenom pro směnové mistry.
+</div>
+{% endif %}
+
+{% endblock %}

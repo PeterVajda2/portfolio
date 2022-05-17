@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="questionnaire-results-wrapper">
+
+    <h1>Vyberte dotazník</h1>
+
+    {% for questionnaire_template in questionnaire_templates %}
+
+    <a href="{% url 'questionnaire_results_questionnaire' questionnaire_template.id %}"><h2>{{questionnaire_template.name}}</a> - odpovědi</h2>
+    <a href="{% url 'questionnaire_results_questionnaire_charts' questionnaire_template.id %}"><h2>{{questionnaire_template.name}}</a> - přehled </h2>
+
+    {% endfor %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+<script>
+
+var url = "https://smartproductionlib.corp.knorr-bremse.com/Thingworx/Things/KBKPILocalThingWorxDatabaseThing/Services/GetProducedParts?Accept=application%2Fjson-compressed&_twsr=1&Content-Type=application%2Fjson"
+const response = fetch(url, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+        'Content-Type': 'application/json'
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: JSON.stringify({ StartDate: 1636549200000, EndDate: 1636578000000, Machine: "KBLIBFP08-Bayonet2MachineThing" })
+})
+</script>

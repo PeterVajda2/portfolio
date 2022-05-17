@@ -1,0 +1,73 @@
+{% extends 'fp09_visualizations_base.html' %}
+
+{% load static %}
+
+{% block body %}
+
+<div class="performance-wrapper" id="charts-wrapper">
+    <canvas id="ok-nok-chart"></canvas>
+    <canvas id="ok-production-co-loss-chart"></canvas>
+    <canvas id="performance-chart"></canvas>
+    <canvas id="performance-hourly-chart"></canvas>
+
+</div>
+
+
+<script>
+    var chart_container = document.getElementById('chart')
+    var url = '{% url "fp09:performance_screen_fp09" %}'
+    var submit_buttons = document.querySelectorAll('input[type=button]')
+    let now_value = new Date()
+    let default_start = new Date(now_value.getFullYear(), now_value.getMonth(), now_value.getDate(), 24, 0)
+    let default_end = new Date(now_value.getFullYear(), now_value.getMonth(), now_value.getDate(), 24, 0)
+    document.getElementById('date-from').value = default_start.toISOString().slice(0, 10)
+    document.getElementById('date-to').value = default_end.toISOString().slice(0, 10)
+    let date_from = document.getElementById('date-from').value
+    let date_to = document.getElementById('date-to').value
+
+    data = {
+        'date_from': date_from,
+        'date_to': date_to,
+    }
+
+    get_ok_production_co_loss_data(url, {'date_from': date_from, 'date_to': date_to, 'type': 'ok_production_co_loss_chart', 'shift': 'All'}).then(data => draw_ok_production_co_loss_chart(data))
+    get_ok_nok_data(url, { 'date_from': date_from, 'date_to': date_to, 'type': 'ok_nok_chart', 'shift': 'All' }).then(data => draw_ok_nok_chart(data))
+    get_performance_data(url, {'date_from': date_from, 'date_to': date_to, 'type': 'performance_chart', 'shift': 'All' }).then(data => draw_performance_chart(data))
+    get_performance_hourly_data(url, { 'date_from': date_from, 'date_to': date_to, 'type': 'performance_hourly_chart', 'shift': 'All' }).then(data => draw_performance_hourly_chart(data))
+
+    submit_buttons.forEach(submit_button => {
+        submit_button.addEventListener('click', (e) => {
+            submit_buttons.forEach(submit_button => {
+                submit_button.classList.remove('shift-selected');
+            })
+        e.target.classList.add('shift-selected');
+        let date_from = document.getElementById('date-from').value
+        let date_to = document.getElementById('date-to').value
+        document.querySelectorAll('canvas').forEach(canvas => canvas.remove())
+        let charts_wrapper = document.getElementById('charts-wrapper')
+        let performance_chart = document.createElement('canvas')
+        let performance_hourly_chart = document.createElement('canvas')
+        let ok_production_co_loss_chart = document.createElement('canvas')
+        let ok_nok_chart = document.createElement('canvas')
+        ok_nok_chart.id = "ok-nok-chart"
+        ok_production_co_loss_chart.id = "ok-production-co-loss-chart"
+        performance_chart.id = "performance-chart"
+        performance_hourly_chart.id = "performance-hourly-chart"
+        charts_wrapper.append(ok_nok_chart)
+        charts_wrapper.append(ok_production_co_loss_chart)
+        charts_wrapper.append(performance_chart)
+        charts_wrapper.append(performance_hourly_chart)
+        get_performance_data(url, { 'date_from': date_from, 'date_to': date_to, 'type': 'performance_chart', 'shift': e.target.dataset.shift }).then(data => draw_performance_chart(data))
+        get_ok_production_co_loss_data(url, { 'date_from': date_from, 'date_to': date_to, 'type': 'ok_production_co_loss_chart', 'shift': e.target.dataset.shift }).then(data => draw_ok_production_co_loss_chart(data))
+        get_ok_nok_data(url, { 'date_from': date_from, 'date_to': date_to, 'type': 'ok_nok_chart', 'shift': e.target.dataset.shift }).then(data => draw_ok_nok_chart(data))
+        get_performance_hourly_data(url, { 'date_from': date_from, 'date_to': date_to, 'type': 'performance_hourly_chart', 'shift': e.target.dataset.shift }).then(data => draw_performance_hourly_chart(data))
+
+    })
+})
+
+</script>
+
+
+{% endblock %}
+
+</html>

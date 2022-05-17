@@ -1,0 +1,18 @@
+
+
+<form method="POST" id="my_form" name="my_form" enctype="multipart/form-data">{% csrf_token %}
+    <label>Vyberte soubor
+        <input type="file" name="file">
+    </label>
+    <input type="submit" onclick="closeSelf();">
+</form>
+
+<script>
+    window.onunload = refreshParent;
+    function refreshParent() {
+      window.opener.location.reload();
+    }
+    function closeSelf(){
+      document.forms['my_form'].submit();
+    }
+  </script>

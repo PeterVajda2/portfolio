@@ -1,0 +1,831 @@
+{% extends 'base.html' %}
+
+{% load l10n %}
+
+{% load extras_2 %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="{% static 'all.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.1/xlsx.full.min.js"></script>
+<script>
+    function popnews(url) {
+    newwindow=window.open(url,'News','height=600,width=800');
+    if (window.focus) {newwindow.focus()}
+    return false;
+}
+</script>
+    {% block title %}
+    <title>Knorr-Bremse: CovCap 2020</title>
+    {% endblock %}
+
+{% endblock %}
+
+{% block body %}
+
+<div class="site-wrapper">
+
+    <div class="header-left">
+        <img src="{% static 'logo.png' %}" class="logo">
+    </div>
+
+    <div class="header-mid">
+        <h1><a href="javascript:window.location.reload(true)">COVCAP 2020</a></h1>
+    </div>
+
+    <div class="header-right">
+        <div class="header-ico-left">
+          <div class="currency_wrapper">{% if currency == 'CZK' %} <a href="{% url 'covcap' currency='EUR' %}"><span class="currency_span" title="Change currency to EUR">CZK</span></a> {% else %} <a href="{% url 'covcap' currency='CZK' %}"><span class="currency_span" title="Change currency to CZK">EUR</span></a> {% endif %}</div>
+        </div>
+        <div class="header-ico">
+            <a target="popup" style="cursor: pointer" title="Add new action" onclick="window.open('{% url 'add_action' currency=currency %}','popup','width=800,height=1000'); return false"><i class="fas fa-plus-circle"></i></a>
+        </div>
+        <div class="header-ico">
+            <span><i title="Export to XLSX" class="fas fa-fw fa-file-excel" id="btnExport" onclick="exportReportToExcel(this);"></i></span>
+        </div>
+        <div class="header-ico">
+            <a title="Show charts" href="{% url 'show_charts' currency=currency %}"><i class="fas fa-fw fa-chart-pie"></i></a>
+        </div>
+        <div class="header-ico">
+        <i class="fas fa-fw fa-highlighter" title="Toggle conditional formatting" onclick="conditionalFormatting()"></i>
+        </div>
+        <div class="header-ico">
+        <i class="fas fa-fw fa-filter" title="Toggle filter area" onclick="show()"></i>
+        </div>
+        <div class="header-ico">
+          {% if not user.is_authenticated %}
+          <a href="{% url 'login' %}?next={% url 'show_all' %}"><i class="fas fa-fw fa-user" title="Log in"></i></a>
+          {% else %}
+          <a href="{% url 'logout' %}?next={% url 'show_all' %}"><i class="fas fa-fw fa-user-slash" title="Log out {{User}} - {{User.profile.department}}"></i></a>
+          {% endif %}
+        </div>
+        <div class="header-ico number" onclick="return popnews('{% url 'show_news' %}')">
+          <div class="news-number" id="news-number">
+            {{ unread_items }}
+          </div>
+          <i class="fas fa-bell" title="News"></i>
+        </div>
+    </div>
+    
+    <div class="left-third">
+
+
+      <div id="content" style="display: none">
+      <div class="summary_row" id="summary_row">
+        <div class="summary_piece not_displayed" id="department">
+          <span><b>Department: </b></span><br />
+          <span id="summaryCellDepartmentFilter"></span>
+        </div>
+
+        <div class="summary_piece not_displayed" id="responsible">
+          <span><b>Responsible: </b></span><br />
+          <span id="summaryCellResponsibleFilter"></span>
+        </div>
+
+        {% if currency == 'EUR' %}
+        <div class="summary_piece" id="summary_actual_savings">
+          <b>Actual year's savings: </b><br />
+          <span id="summaryCellActualSavings">{{actual_savings_sum|floatformat:0|in_eur|separated}}</span>
+        </div>
+        {% else %}
+        <div class="summary_piece" id="summary_actual_savings">
+          <b>Actual year's savings: </b><br />
+          <span id="summaryCellActualSavings">{{actual_savings_sum|floatformat:0|separated}}</span>
+        </div>
+        {% endif %}
+        <div class="summary_piece" id="average_doi">
+          <b>Average DoI:</b><br />
+          <span id="summaryCellAverageDoI">{{average_doi.average_doi|floatformat:"3"}}</span>
+        </div>
+        <div class="summary_piece" id="count_of_actions"> 
+          <b>Count of actions:</b><br />
+          <span id="summaryCellCountOfActions">{{count_of_actions}}</span>
+        </div>
+      </div>
+      </div>
+
+
+        <table class="actions_table" id="actions_table">
+            <thead>
+                <tr class="actions_row sortable_header">
+                <th onclick="sortTable(0)">ID <i class="fas fa-sort" id="a0"></i></th>
+                <th onclick="sortTable(1)">Description of action <i class="fas fa-sort" id="a1"></i></th>
+                <th onclick="sortTable(2)">Annual savings <i class="fas fa-sort" id="a2"></i></th>
+                <th onclick="sortTable(3)">Department <i class="fas fa-sort" id="a3"></i></th>
+                <th onclick="sortTable(4)">DoI <i class="fas fa-sort" id="a4"></i></th>
+                <th onclick="sortTable(5)">Responsible <i class="fas fa-sort" id="a5"></i></th>
+                <th onclick="sortTable(6)">Valid since <i class="fas fa-sort" id="a6"></i></th>
+                <th onclick="sortTable(7)">Valid till <i class="fas fa-sort" id="a7"></i></th>
+                <th onclick="sortTable(8)">Savings 2020 <i class="fas fa-sort" id="a8"></i></th>
+                </tr>
+                <tr class="filter_row">
+                <td class="filter_cell"><input type="number" id="ID_search" class="ID_search" onkeyup="ID_search()" placeholder="ID" ></td>
+                <td class="filter_cell"><input type="text" id="name_search" class="name_search" onkeyup="name_search()" placeholder="Name contains..." ></td>
+                <td class="filter_cell">
+                    <input type="number" id="value_gte" class="value_search" onkeyup="value_search()" placeholder="Greater than" ></td>
+                </td>
+                <td class="filter_cell">
+                    <input type="text" id="type_search" class="type_search" onreset ="type_search()" onkeyup="type_search()" placeholder="Type" ></td>
+                </td>
+                <td class="filter_cell">
+                    <input type="text" id="doi_search" class="doi_search" onkeyup="doi_search()" placeholder="DoI" ></td>
+                </td>
+                <td class="filter_cell">
+                    <input type="text" id="responsible_search" class="responsible_search" onkeyup="responsible_search()" placeholder="Responsible" ></td>
+                </td>
+                <td class="filter_cell">
+                    <input type="date" id="valid_since" class="valid_since" onchange="valid_since_search()" placeholder="Valid since" ></td>
+                </td>
+                <td class="filter_cell">
+                    <input type="date" id="valid_till" class="valid_till" onchange="valid_till_search()" placeholder="Valid till" ></td>
+                </td>
+                <td class="filter_cell">
+                  <input type="number" id="actual_value_gte" class="savings_actual_year" onkeyup="actual_value_search()" placeholder="Savings 2020" ></td>
+              </td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for action in Actions %}
+             {% if action.type == user.profile.department or user.profile.is_superuser %} 
+                <tr {% if action.doi < 4 and action.savings_start < today %} class="overdue" {% else %} class="ontime" {% endif %}>
+                    <td title="{{action.id}}">
+                      <a target="popup" style="cursor: pointer" onclick="var test = window.open('{% url 'edit_action' action_id=action.id %}','popup','width=800,height=1000'); return false">{{action.id|default_if_none:""}}</a>
+                    </td>
+                    <td title="{{action.name}}">
+                        <a target="popup" style="cursor: pointer" onclick="window.open('{% url 'edit_action' action_id=action.id %}','popup','width=800,height=1000'); return false">{{action.name}}</a>
+                    </td>
+                    <td  class="plus_cursor" onclick="addSelectedActions({{forloop.counter}})">
+                      {% if currency == 'EUR' %}
+                        {% if action.one_timer %}
+                        <r>{{action.savings_actual_year|floatformat:0|in_eur|separated|default_if_none:"0"}}</r>
+                        {% else %}
+                        <r>{{action.savings_per_year|floatformat:0|in_eur|separated|default_if_none:"0"}}</r>
+                        {% endif %}
+                      {% else %}
+                        {% if action.one_timer %}
+                        <r>{{action.savings_actual_year|floatformat:0|separated|default_if_none:"0"}}</r>
+                        {% else %}
+                        <r>{{action.savings_per_year|floatformat:0|separated|default_if_none:"0"}}</r>
+                        {% endif %}
+                      {% endif %}
+                    </td>
+                    <td class="department" onclick="addToFilter(4, this)">
+                        <r>{{action.type}}</r>
+                    </td>
+                    <td onclick="addToFilter(5, this)">
+                        <r>{{action.doi}}</r>
+                    </td>
+                    <td onclick="addToFilter(6, this)">
+                        <r>{{action.responsible}}</r>
+                    </td>
+                    <td onclick="addToFilter(this)">
+                        <r>{{action.savings_start|date:"SHORT_DATE_FORMAT"}}</r>
+                    </td>
+                    <td>
+                        <r>{{action.savings_till|date:"SHORT_DATE_FORMAT"|default_if_none:""}}</r>
+                    </td>
+                    <td class="plus_cursor" onclick="addSelectedActions({{forloop.counter}})">
+                      {% if currency == 'EUR' %}
+                      <r>{{action.savings_actual_year|floatformat:0|in_eur|separated|default_if_none:""}}</r>
+                      {% else %}
+                      <r>{{action.savings_actual_year|floatformat:0|separated|default_if_none:""}}</r>
+                      {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+</div>
+
+<script>
+
+var summaryCellActualSavings = document.getElementById("summaryCellActualSavings");
+var summaryCellAverageDoI = document.getElementById("summaryCellAverageDoI");
+var summaryCellCountOfActions = document.getElementById("summaryCellCountOfActions");
+var summaryCellDepartmentFilter = document.getElementById("summaryCellDepartmentFilter");
+var summaryCellResponsibleFilter = document.getElementById("summaryCellResponsibleFilter");
+var table = document.getElementById("actions_table");
+var tr = table.getElementsByTagName("tr");
+var activeFilters = {}
+var test
+var countingManually = false
+var filterIcon = '<i id="filter-icon" title="Remove filter" onclick="removeFilterFrom(5)" class="fas fa-filter"></i>'
+
+    function sortTable(n) {
+      var rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+      switching = true;
+      // Set the sorting direction to ascending:
+      dir = "asc";
+      var textish = 'a' + String(n)
+      var x = document.querySelectorAll(".sortable_header > i:not(" + textish + ")")
+      var z;
+      for (z = 0; z < x.length; z++) {
+        x[z].className = "fas fa-sort";
+        }
+      document.getElementById(textish).className = "fas fa-sort-up";
+      /* Make a loop that will continue until
+      no switching has been done: */
+      while (switching) {
+        // Start by saying: no switching is done:
+        switching = false;
+        rows = table.rows;
+        /* Loop through all table rows (except the
+        first, which contains table headers): */
+        for (i = 2; i < (rows.length - 1); i++) {
+          // Start by saying there should be no switching:
+          shouldSwitch = false;
+          /* Get the two elements you want to compare,
+          one from current row and one from the next: */
+          x = rows[i].getElementsByTagName("TD")[n];
+          y = rows[i + 1].getElementsByTagName("TD")[n];
+          /* Check if the two rows should switch place,
+          based on the direction, asc or desc: */
+          if (dir == "asc" && n != 2 && n != 8 && n != 6 && n != 7)  {
+            if (x.firstElementChild.innerHTML.toLowerCase() > y.firstElementChild.innerHTML.toLowerCase()) {
+              // If so, mark as a switch and break the loop:
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir == "desc" && n != 2 && n != 8 && n != 6 && n != 7) {
+            if (x.firstElementChild.innerHTML.toLowerCase() < y.firstElementChild.innerHTML.toLowerCase()) {
+              // If so, mark as a switch and break the loop:
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir == "asc" && (n == 2 || n == 8)) {
+            if (Number(x.firstElementChild.innerHTML.split(' ').join("")) > Number(y.firstElementChild.innerHTML.split(' ').join(""))) {
+              // If so, mark as a switch and break the loop:
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir == "desc" && (n == 2 || n == 8)) {
+            if (Number(x.firstElementChild.innerHTML.split(' ').join("")) < Number(y.firstElementChild.innerHTML.split(' ').join(""))) {
+              // If so, mark as a switch and break the loop:
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir == "asc" && (n == 6 || n == 7)) {
+            var xd = new Date(x.firstElementChild.innerHTML.slice(x.firstElementChild.innerHTML.length - 4), Number(x.firstElementChild.innerHTML.substring(4, 6)) - 1, x.firstElementChild.innerHTML.substring(0, 2));
+            var yd = new Date(y.firstElementChild.innerHTML.slice(x.firstElementChild.innerHTML.length - 4), Number(y.firstElementChild.innerHTML.substring(4, 6)) - 1, y.firstElementChild.innerHTML.substring(0, 2));
+            if (xd > yd) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir == "desc" && (n == 6 || n == 7)) {
+            var xd = new Date(x.firstElementChild.innerHTML.slice(x.firstElementChild.innerHTML.length - 4), Number(x.firstElementChild.innerHTML.substring(4, 6)) - 1, x.firstElementChild.innerHTML.substring(0, 2));
+            var yd = new Date(y.firstElementChild.innerHTML.slice(x.firstElementChild.innerHTML.length - 4), Number(y.firstElementChild.innerHTML.substring(4, 6)) - 1, y.firstElementChild.innerHTML.substring(0, 2));
+            if (xd < yd) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+        if (shouldSwitch) {
+          /* If a switch has been marked, make the switch
+          and mark that a switch has been done: */
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          // Each time a switch is done, increase this count by 1:
+          switchcount ++;
+        } else {
+          /* If no switching has been done AND the direction is "asc",
+          set the direction to "desc" and run the while loop again. */
+          if (switchcount == 0 && dir == "asc") {
+            dir = "desc";
+            switching = true;
+            document.getElementById(textish).className = "fas fa-sort-down";
+          }
+        }
+      }
+    }
+    </script>
+
+    <script>
+    function name_search() {
+      // Declare variables
+      var input, filter, td, i, txtValue;
+      input = document.getElementById("name_search");
+      eraseOtherFilters("name_search")
+      filter = input.value.toUpperCase();
+      localStorage.setItem("name", input.value)
+    
+      // Loop through all table rows, and hide those who don't match the search query
+      for (i = 2; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[1];
+        if (td) {
+          txtValue = td.textContent || td.innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+    }
+
+    function value_search() {
+      // Declare variables
+      var input, filter, td, i;
+      input = document.getElementById("value_gte");
+      eraseOtherFilters("value_gte")
+      localStorage.setItem("value", input.value)
+    
+      // Loop through all table rows, and hide those who don't match the search query
+      for (i = 2; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[2];
+        if (td) {
+          if (Number(td.firstElementChild.innerHTML.split(' ').join("")) > Number(input.value)) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+    }
+
+    function actual_value_search() {
+      // Declare variables
+      var input, filter, td, i;
+      input = document.getElementById("actual_value_gte");
+      eraseOtherFilters("actual_value_gte")
+    
+      // Loop through all table rows, and hide those who don't match the search query
+      for (i = 2; i < tr.length; i++) {
+        if (input.value == "") {
+            tr[i].style.display = "";
+          } else {
+        td = tr[i].getElementsByTagName("td")[8];
+        if (td) {
+          if (Number(td.firstElementChild.innerHTML.split(' ').join("")) > Number(input.value)) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+      }
+    }
+
+    function type_search() {
+      // Declare variables
+      var input, filter, td, i, txtValue;
+      input = document.getElementById("type_search");
+      eraseOtherFilters("type_search")
+      filter = input.value.toUpperCase();
+
+      localStorage.setItem("type", input.value)
+    
+      // Loop through all table rows, and hide those who don't match the search query
+      for (i = 2; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[3];
+        if (td) {
+          txtValue = td.textContent || td.innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+    }
+
+    function doi_search() {
+      // Declare variables
+      var input, filter, td, i, txtValue;
+      input = document.getElementById("doi_search");
+      eraseOtherFilters("doi_search")
+      localStorage.setItem("doi", input.value)
+    
+      // Loop through all table rows, and hide those who don't match the search query
+
+      for (i = 2; i < tr.length; i++) {
+          if (input.value == "") {
+            tr[i].style.display = "";
+          } else {
+        td = tr[i].getElementsByTagName("td")[4];
+        if (td) {
+          if (Number(td.firstElementChild.innerHTML) == Number(input.value)) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+      }
+    }
+
+    function ID_search() {
+      // Declare variables
+      var input, filter, td, i, txtValue;
+      input = document.getElementById("ID_search");
+      eraseOtherFilters("ID_search")
+      localStorage.setItem("ID", input.value)
+    
+      // Loop through all table rows, and hide those who don't match the search query
+
+      for (i = 2; i < tr.length; i++) {
+          if (input.value == "") {
+            tr[i].style.display = "";
+          } else {
+        td = tr[i].getElementsByTagName("td")[0];
+        if (td) {
+          if (Number(td.firstElementChild.innerHTML) == Number(input.value)) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+      }
+    }
+
+    function responsible_search() {
+      // Declare variables
+      var input, filter, td, i, txtValue;
+      input = document.getElementById("responsible_search");
+      eraseOtherFilters("responsible_search")
+      filter = input.value.toUpperCase();
+      localStorage.setItem("responsible", input.value)
+    
+      // Loop through all table rows, and hide those who don't match the search query
+      for (i = 2; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[5];
+        if (td) {
+          txtValue = td.textContent || td.innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+    }
+
+    function valid_since_search() {
+      // Declare variables
+      var input, filter, td, i;
+      input = document.getElementById("valid_since")
+      if (input.value) {
+        eraseOtherFilters("valid_since")
+    
+        // Loop through all table rows, and hide those who don't match the search query
+        for (i = 2; i < tr.length; i++) {
+          td = tr[i].getElementsByTagName("td")[6];
+          if (td) {
+            tdd = new Date(td.firstElementChild.innerHTML.slice(td.firstElementChild.innerHTML.length - 4), Number(td.firstElementChild.innerHTML.substring(4, 6)) - 1, td.firstElementChild.innerHTML.substring(0, 2))
+            input_date = new Date(input.value)
+            if (tdd >= input_date) {
+              tr[i].style.display = "";
+            } else {
+              tr[i].style.display = "none";
+            }
+          }
+        }
+      } else {
+        for (i = 2; i < tr.length; i++) {
+          tr[i].style.display = "";
+      }
+      }
+    }
+
+    function valid_till_search() {
+      // Declare variables
+      var input, filter, td, i;
+      input = document.getElementById("valid_till")
+      eraseOtherFilters("valid_till")
+    
+      // Loop through all table rows, and hide those who don't match the search query
+      for (i = 2; i < tr.length; i++) {
+        td = tr[i].getElementsByTagName("td")[7];
+        if (td) {
+          tdd = new Date(td.firstElementChild.innerHTML.slice(td.firstElementChild.innerHTML.length - 4), Number(td.firstElementChild.innerHTML.substring(4, 6)) - 1, td.firstElementChild.innerHTML.substring(0, 2))
+          input_date = new Date(input.value)
+          if (tdd >= input_date) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+    }
+
+    </script>
+
+    <script>
+      function eraseOtherFilters(activeField) {
+      textish = '#' + activeField;
+      var x = document.querySelectorAll(".filter_cell > input:not(" + textish + ")");
+      var z;
+      for (z = 0; z < x.length; z++) {
+        x[z].value = ""
+        }
+        }
+    </script>
+
+    <script>
+      function exportReportToExcel() {
+        var workbook = XLSX.utils.table_to_book(document.getElementById('actions_table'));
+        var first_sheet_name = workbook.SheetNames[0];
+        var ws = workbook.Sheets[first_sheet_name];
+        var fmt = "0"
+        var range = { s: {r:2, c:2}, e: {r:150, c:2} };
+          for(var R = range.s.r; R <= range.e.r; ++R) {
+	          for(var C = range.s.c; C <= range.e.c; ++C) {
+  	          var cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
+              if(!cell) continue; // only format numeric cells
+              cell.v = Number(cell.v.toString().split(' ').join(""))
+              cell.w = Number(cell.v)
+              cell.t = 'n'
+              cell.z = fmt;
+            }
+          }
+        var range2020 = { s: {r:2, c:8}, e: {r:150, c:8} };
+          for(var R = range2020.s.r; R <= range2020.e.r; ++R) {
+	          for(var C = range2020.s.c; C <= range2020.e.c; ++C) {
+  	          var cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
+              if(!cell) continue; // only format numeric cells
+              cell.v = Number(cell.v.toString().split(' ').join(""))
+              cell.w = Number(cell.v)
+              cell.t = 'n'
+              cell.z = fmt;
+            }
+          }
+
+        var rangedates = { s: {r:2, c:6}, e: {r:150, c:7} };
+          for(var R = rangedates.s.r; R <= rangedates.e.r; ++R) {
+	          for(var C = rangedates.s.c; C <= rangedates.e.c; ++C) {
+  	          var cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
+              if(!cell) continue; // only format numeric cells
+              if(cell.t == "s") {
+              datefromcell = new Date(cell.v.substring(6, 10), Number(cell.v.substring(3, 5)) - 1, cell.v.substring(0, 2))
+              cell.v = datefromcell
+              cell.w = datefromcell
+              cell.t = 'd'
+              } 
+            }
+          }
+
+        var rangenames = { s: {r:2, c:1}, e: {r:150, c:1} };
+          for(var R = rangenames.s.r; R <= rangenames.e.r; ++R) {
+	          for(var C = rangenames.s.c; C <= rangenames.e.c; ++C) {
+  	          var cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
+              if(!cell) continue; // only format numeric cells
+              cell.z = '@';
+            }
+          }
+
+        delete_row(ws, 1);
+
+        function ec(r, c){
+          return XLSX.utils.encode_cell({r:r,c:c});
+        }
+
+        function delete_row(ws, row_index){
+          var variable = XLSX.utils.decode_range(ws["!ref"])
+          for(var R = row_index; R < variable.e.r; ++R){
+            for(var C = variable.s.c; C <= variable.e.c; ++C){
+              ws[ec(R,C)] = ws[ec(R+1,C)];
+            }
+          }
+          variable.e.r--
+          ws['!ref'] = XLSX.utils.encode_range(variable.s, variable.e);
+        }
+
+        XLSX.writeFile(workbook, 'covcap.xlsx');
+        }
+
+    </script>
+
+  <script>
+    conditionalFormat = true
+
+    function conditionalFormatting() {
+      if (conditionalFormat == true) {
+      var items = document.querySelectorAll('.overdue');
+        for (var i = 0; i < items.length; i++) {
+          items[i].classList.remove('overdue');
+          items[i].classList.add('unoverdued');
+        }
+          conditionalFormat = false;
+      } else {
+        var items = document.querySelectorAll('.unoverdued');
+        for (var i = 0; i < items.length; i++) {
+          items[i].classList.remove('unoverdued');
+          items[i].classList.add('overdue');
+        }
+          conditionalFormat = true;
+      }};
+
+    function addToFilter(element_id, element) {
+      for (n = 2; n < tr.length; n++) {
+        tr[n].classList.remove('selected');
+      }
+      if (element_id in activeFilters) {
+        activeFilters[element_id].push(element.firstElementChild.innerHTML)
+      } else {
+        activeFilters[element_id] = []
+        activeFilters[element_id].push(element.firstElementChild.innerHTML)
+      }
+      total_to_actual_savings = 0
+      total_to_annual_savings = 0
+      total_to_count_of_actions = 0
+      total_to_doi = 0
+
+      switch(element_id) {
+        case 4:
+        summaryCellDepartmentFilter.innerHTML = '<i id="filter-icon" title="Remove filter" onclick="removeFilterFrom(' + element_id + ')" class="fas fa-filter"></i>' + ' ' + element.firstElementChild.innerHTML + '<br />';
+        document.getElementById('department').classList.remove('not_displayed');
+          break;
+
+        case 5:
+        summaryCellAverageDoI.innerHTML = filterIcon.toString()
+          break;
+
+        case 6:
+        summaryCellResponsibleFilter.innerHTML = '<i id="filter-icon" title="Remove filter" onclick="removeFilterFrom(' + element_id + ')" class="fas fa-filter"></i>' + ' ' + element.firstElementChild.innerHTML;
+        document.getElementById('responsible').classList.remove('not_displayed');
+          break;
+      }
+
+      removeFiltered(activeFilters)
+
+    }
+
+
+
+    function removeFiltered(activeFilters) {
+      total_to_actual_savings = 0
+      total_to_annual_savings = 0
+      total_to_count_of_actions = 0
+      total_to_doi = 0
+    
+      for (i = 2; i < tr.length; i++) {
+        tr[i].classList.remove('not_displayed')
+      }
+
+      for (i = 2; i < tr.length; i++) {
+        for (j = 0; j < Object.keys(activeFilters).length; j++) {
+          let criterion = Object.keys(activeFilters)[j]
+          for (k = 0; k < activeFilters[criterion].length; k++) {
+            let fvalue = activeFilters[criterion]
+            if (fvalue.includes(tr[i].getElementsByTagName('td')[criterion - 1].firstElementChild.innerHTML) != true) {
+              tr[i].classList.add('not_displayed')
+            }
+          }
+        }
+      }
+
+      for (i = 2; i < tr.length; i++) {
+        if (!tr[i].classList.contains('not_displayed')) {
+          total_to_actual_savings += Number(tr[i].getElementsByTagName('td')[8].firstElementChild.innerHTML.split(" ").join(""))
+          total_to_annual_savings += Number(tr[i].getElementsByTagName('td')[2].firstElementChild.innerHTML.split(" ").join(""))
+          total_to_count_of_actions += 1
+          total_to_doi += Number(tr[i].getElementsByTagName('td')[4].firstElementChild.innerHTML.split(" ").join(""))
+        }
+      }
+
+      summaryCellActualSavings.textContent = addSpaces(total_to_actual_savings)
+      summaryCellCountOfActions.textContent = total_to_count_of_actions
+      if (activeFilters[5]) {
+      summaryCellAverageDoI.innerHTML = filterIcon.toString() + Number(total_to_doi / total_to_count_of_actions).toFixed(2)
+      } else {
+        summaryCellAverageDoI.innerHTML = Number(total_to_doi / total_to_count_of_actions).toFixed(2)
+      }
+    };
+  
+    function removeFilterFrom(element_id) {
+      delete activeFilters[element_id];
+      removeFiltered(activeFilters);
+      switch(element_id) {
+        case 4:
+        summaryCellDepartmentFilter.innerHTML = ''
+        document.getElementById('department').classList.add('not_displayed');
+          break;
+
+        case 5:
+        summaryCellAverageDoI.innerHTML = '{{average_doi.average_doi|floatformat:"3"}}'
+          break;
+        
+        case 6:
+        summaryCellResponsibleFilter.innerHTML = ''
+        document.getElementById('responsible').classList.add('not_displayed');
+          break;
+
+      }
+    }
+
+    function addSpaces(nStr) {
+            nStr += '';
+            var space = / /g;
+            nStr = nStr.replace(space,'');
+            x = nStr.split('.');
+            x1 = x[0];
+            x2 = x.length > 1 ? '.' + x[1] : '';
+            var rgx = /(\d+)(\d{3})/;
+            while (rgx.test(x1)) {
+                x1 = x1.replace(rgx, '$1' + ' ' + '$2');
+            }
+            return x1 + x2;
+    };
+    
+
+  </script>
+
+  <script>
+  function show() {
+    if (document.getElementById('content').style.display != 'none') {
+      document.getElementById('content').style.display = 'none';
+    } else {
+      document.getElementById('content').style.display = 'block';
+    }
+  };
+
+  function addSelectedActions(rowNumber) {
+    if (!tr[rowNumber + 1].classList.contains('selected')) {
+      if (!countingManually) {
+        countingManually = true;
+        if (activeFilters) {
+          summaryCellActualSavings.innerHTML = 0;
+          keys = Object.keys(activeFilters)
+          for (var m = 0; m < keys.length; m++) {
+            fras = keys[m]
+            removeFilterFrom(Number(fras))
+          }
+        }
+        summaryCellActualSavings.textContent = 0
+        summaryCellCountOfActions.textContent = 0
+        summaryCellAverageDoI.textContent = 0
+        total_to_actual_savings = Number(tr[rowNumber + 1].getElementsByTagName('td')[8].firstElementChild.innerHTML.split(" ").join(""))
+        total_to_annual_savings = Number(tr[rowNumber + 1].getElementsByTagName('td')[2].firstElementChild.innerHTML.split(" ").join(""))
+        total_to_count_of_actions = 1
+        total_to_doi = Number(tr[rowNumber + 1].getElementsByTagName('td')[4].firstElementChild.innerHTML.split(" ").join(""))
+      }
+      else {
+        total_to_actual_savings += Number(tr[rowNumber + 1].getElementsByTagName('td')[8].firstElementChild.innerHTML.split(" ").join(""))
+        total_to_annual_savings += Number(tr[rowNumber + 1].getElementsByTagName('td')[2].firstElementChild.innerHTML.split(" ").join(""))
+        total_to_count_of_actions += 1
+        total_to_doi += Number(tr[rowNumber + 1].getElementsByTagName('td')[4].firstElementChild.innerHTML.split(" ").join(""))
+      }
+    
+      summaryCellActualSavings.textContent = addSpaces(total_to_actual_savings)
+      summaryCellCountOfActions.textContent = total_to_count_of_actions
+      summaryCellAverageDoI.textContent = Number(total_to_doi / total_to_count_of_actions).toFixed(2)
+
+      tr[rowNumber + 1].classList.add('selected')
+    } else {
+      tr[rowNumber + 1].classList.remove('selected');
+      total_to_actual_savings -= Number(tr[rowNumber + 1].getElementsByTagName('td')[8].firstElementChild.innerHTML.split(" ").join(""))
+      total_to_annual_savings -= Number(tr[rowNumber + 1].getElementsByTagName('td')[2].firstElementChild.innerHTML.split(" ").join(""))
+      total_to_count_of_actions -= 1
+      total_to_doi -= Number(tr[rowNumber + 1].getElementsByTagName('td')[4].firstElementChild.innerHTML.split(" ").join(""))
+      summaryCellActualSavings.textContent = addSpaces(total_to_actual_savings)
+      summaryCellCountOfActions.textContent = total_to_count_of_actions
+      summaryCellAverageDoI.textContent = Number(total_to_doi / total_to_count_of_actions).toFixed(2)
+    }
+    } 
+
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+      document.getElementById('type_search').value = localStorage.getItem('type');
+      document.getElementById('name_search').value = localStorage.getItem('name');
+      document.getElementById('responsible_search').value = localStorage.getItem('responsible');
+      document.getElementById('doi_search').value = localStorage.getItem('doi');
+      document.getElementById('value_gte').value = localStorage.getItem('value');
+      document.getElementById('ID_search').value = localStorage.getItem('ID');
+
+      if (document.getElementById('type_search').value) {
+        type_search();
+      } else if (document.getElementById('name_search').value) {
+        name_search();
+      } else if (document.getElementById('responsible_search').value) {
+        responsible_search();
+      } else if (document.getElementById('doi_search').value) {
+        doi_search();
+      } else if (document.getElementById('value_gte').value) {
+        value_search();
+      } else if (document.getElementById('ID_search').value) {
+        ID_search();
+      }
+
+    });
+
+  </script>
+
+  <script>
+    function sendshit() {
+      var request = new XMLHttpRequest();
+      request.open('GET', '{% url 'read_news' %}', true);
+      request.send();
+      document.getElementById('news-number').innerHTML = '0';
+    }
+  </script>
+
+
+{% endblock %}
+

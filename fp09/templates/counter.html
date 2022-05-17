@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-flow: row;
+            flex-grow: 1;
+        }
+
+        button {
+            width: 50vw;
+            height: 100vh;
+            cursor: pointer;
+            background-color: white;
+            font-size: 5rem;
+            border: 0;
+        }
+
+        button:hover {
+            background-color: red;
+        }
+
+        #ok {
+            position: absolute;
+            background-color: yellow;
+            top: 80%;
+            left: 50%;
+            transform: translateX(-5vw);
+            width: 10vw;
+            text-align: center;
+            display: flex;
+            place-items: center;
+            place-content: center;
+            height: 10vh;
+            font-size: 2rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+    </style>
+</head>
+<body>
+    <button id="no-ring">Není kroužek</button>
+    <div id="ok" class="hidden">OK</div>
+    <button id="two-rings">Jsou dva kroužky</button>
+</body>
+
+<script>
+    const url = "{% url 'fp09:counter' %}"
+
+    document.getElementById('no-ring').addEventListener('click', () => {
+        sendInfo('no-ring').then(resp => console.log(resp));
+    })
+
+    document.getElementById('two-rings').addEventListener('click', () => {
+        sendInfo('two-rings').then(resp => console.log(resp));
+    })
+
+    async function sendInfo(info) {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({'info': info})
+        });
+        document.getElementById('ok').classList.remove('hidden');
+        setTimeout(() => {document.getElementById('ok').classList.add('hidden')}, 750);
+        return resp.json();
+    }
+
+</script>
+</html>

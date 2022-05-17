@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FP09 - zadávání prostojů</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+</head>
+<body>
+    <section>
+        <div class="operator-screen-header">
+            <div style="display: flex; justify-content: center; align-items: center; flex-flow: column">
+                <label>Načíst prostoje z:
+                <input type="date" id="historical_downtimes">
+                </label>
+                <label>Trvání prostojů: <span id="sum-downtimes"></span></label>
+            </div>
+
+            <div id="clock" class="operator-screen-clock">
+            </div>
+
+            <div id="end-of-downtime" class="not_displayed operator-screen-terminate-button">
+                Konec prostoje
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="operator-screen-main">
+            <div class="operator-screen-downtime-category">
+                <p class="operator-screen-headline">Kategorie</p>
+                {% for category in categories %}
+                <div class="category">{{category}}</div>
+                {% endfor %}
+            </div>
+
+            <div class="operator-screen-stations"> 
+                <p class="operator-screen-headline">Stanice</p4>
+                {% for station, categories in stations_categories.items %}
+                <div class="station not_displayed" {% for category in categories %} data-{{category|slice:"5"}} {% endfor %} id="station-{{forloop.counter}}">{{station}}</div>
+                {% endfor %}
+            </div>
+
+            <div class="operator-screen-downtime-reason">
+                <p class="operator-screen-headline">Prostoje</p>
+                {% for downtime_reason in downtime_reasons %}
+                    <div class="downtime_reason not_displayed" data-station='{{downtime_reason.station}}' data-category='{{downtime_reason.category|slice:"5"}}'>{{downtime_reason.name}}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="operator-screen-footer">
+            <table id="table" class="operator-screen-downtimes-table">
+                <thead>
+                    <th>Stanice</th>
+                    <th>Kategorie</th>
+                    <th>Prostoj</th>
+                    <th>Začátek</th>
+                    <th>Konec</th>
+                    <th>Komentář</th>
+                    <th></th>
+                </thead>
+                <tbody id='tbody'>
+                </tbody>
+
+            </table>
+
+        </div>
+    </section>
+</body>
+
+<script>
+    function showTime() {
+        var date = new Date();
+        var h = date.getHours(); // 0 - 23
+        var m = date.getMinutes(); // 0 - 59
+        var s = date.getSeconds(); // 0 - 59
+
+        h = (h < 10) ? "0" + h : h;
+        m = (m < 10) ? "0" + m : m;
+        s = (s < 10) ? "0" + s : s;
+
+        var time = h + ":" + m + ":" + s;
+        document.getElementById("clock").innerText = time;
+        setTimeout(showTime, 1000);
+    }
+
+    showTime();
+    var date_today = new Date()
+    show_sum_downtimes(date_today.toISOString().slice(0, 10))
+
+    var terminate_button = document.getElementById('end-of-downtime')
+    var active_station = undefined
+    var active_category = undefined
+    var active_downtime = undefined
+    var url = '{% url "fp09:operator_screen" %}'
+    var table = document.querySelector('#table')
+    var stations = document.querySelectorAll('.station')
+    var categories = document.querySelectorAll('.category')
+    var downtime_reasons = document.querySelectorAll('.downtime_reason')
+    var sum_downtimes = document.getElementById('sum-downtimes')
+    var date_input = document.getElementById('historical_downtimes')
+
+    categories.forEach(item => {
+        item.addEventListener('click', event => {
+            if (active_downtime) {
+                terminate_downtime();
+            } else {
+                show_sum_downtimes(date_input.value, event.target.innerText);
+                if (active_category && active_category == event.target) {
+                    active_category.classList.remove('active-category');
+                    show_sum_downtimes(date_input.value);
+                    stations.forEach(station => {
+                        station.classList.add('not_displayed');
+                    })
+                    if (active_station) {
+                        active_station.classList.remove('active-station')
+                        active_station = undefined;
+                    }
+                    active_category = undefined;
+                    downtime_reasons.forEach(reason => {
+                        reason.classList.add('not_displayed');
+                    })
+                }
+                else if (active_category && active_category != event.target) {
+                    active_category.classList.remove('active-category');
+                    event.target.classList.add('active-category');
+                    active_category = event.target;
+                    if (active_station) {
+                        active_station.classList.remove('active-station')
+                        active_station = undefined;
+                    }
+                    stations.forEach(station => {
+                        station.classList.add('not_displayed');
+                    })
+                    downtime_reasons.forEach(reason => {
+                        reason.classList.add('not_displayed');
+                    })
+                    document.querySelectorAll(`[data-${active_category.innerText.slice(0, 5)}]`).forEach(station => {
+                        station.classList.remove('not_displayed');
+                    })
+                } else {
+                    active_category = event.target;
+                    active_category.classList.add('active-category');
+                    stations.forEach(station => {
+                        station.classList.add('not_displayed');
+                    })
+                    document.querySelectorAll(`[data-${active_category.innerText.slice(0, 5)}]`).forEach(station => {
+                        station.classList.remove('not_displayed');
+                    })
+                }
+            }
+        })
+    })
+
+    stations.forEach(item => {
+        item.addEventListener('click', event => {
+            if (active_downtime) {
+                terminate_downtime();
+            } else {
+                show_sum_downtimes(date_input.value, active_category.innerText, event.target.innerText);
+                if (active_station && active_station == event.target) {
+                    active_station.classList.remove('active-station');
+                    downtime_reasons.forEach(reason => {
+                        reason.classList.add('not_displayed')
+                    });
+                    active_station = undefined;
+                }
+                else if (active_station && active_station != event.target) {
+                    active_station.classList.remove('active-station');
+                    active_station = event.target
+                    event.target.classList.add('active-station');
+                    downtime_reasons.forEach(reason => {
+                        reason.classList.add('not_displayed');
+                    })
+                    document.querySelectorAll(`[data-category=${active_category.innerText.slice(0, 5)}][data-station=${active_station.innerText}]`).forEach(reason => {
+                        reason.classList.remove('not_displayed');
+                    })
+                } else {
+                    active_station = event.target;
+                    active_station.classList.add('active-station');
+                    downtime_reasons.forEach(reason => {
+                        reason.classList.add('not_displayed');
+                    })
+                    document.querySelectorAll(`[data-category=${active_category.innerText.slice(0, 5)}][data-station=${active_station.innerText}]`).forEach(reason => {
+                        reason.classList.remove('not_displayed');
+                    })
+                }
+            }
+        })
+    })
+
+
+    downtime_reasons.forEach(item => {
+        item.addEventListener('click', event => {
+            if (active_downtime) {
+                active_downtime.classList.remove('active-downtime');
+                if (active_downtime == event.target) {
+                    active_downtime = undefined;
+                    stations.forEach(station => {
+                        station.classList.add('not_displayed');
+                    })
+                }
+                terminate_downtime();
+            } else {
+                active_downtime = event.target
+                event.target.classList.add('active-downtime');
+                activate_downtime();
+            }
+        });
+        item.addEventListener('mouseenter', event => {
+            show_sum_downtimes(date_input.value, active_category.innerText, active_station.innerText, event.target.innerText)
+        })
+        item.addEventListener('mouseleave', event => {
+            show_sum_downtimes(date_input.value, active_category.innerText, active_station.innerText)
+        })
+    })
+
+
+    function activate_downtime() {
+        terminate_button.classList.remove('not_displayed');
+        let downtime = active_downtime.innerText;
+        let start_time = new Date().toLocaleString('sv');
+        let station = active_station.innerText;
+        let category = active_category.innerText;
+
+        let row = table.getElementsByTagName('tbody')[0].insertRow(0);
+        row.id = Date.now();
+        let td_station = row.insertCell(0);
+        td_station.innerHTML = station;
+        td_station.classList.add("td_station");
+        td_station.addEventListener('click', () => {
+            open_edit_window(td_station);
+        })
+        let td_category = row.insertCell(1);
+        td_category.innerHTML = category;
+        td_category.classList.add("td_category");
+        td_category.addEventListener('click', () => {
+            open_edit_window(td_category);
+        })
+        let td_downtime = row.insertCell(2);
+        td_downtime.innerHTML = downtime;
+        td_downtime.classList.add("td_downtime");
+        td_downtime.addEventListener('click', () => {
+            open_edit_window(td_downtime);
+        });
+        let td_beginning = row.insertCell(3);
+        td_beginning.classList.add("td_beginning");
+        td_beginning.innerHTML = start_time.slice(11, 19);
+        td_beginning.dataset.beginning = start_time.slice(0, 19)
+        td_beginning.addEventListener('click', () => {
+            open_edit_window(td_beginning);
+        });
+        let td_end = row.insertCell(4);
+        td_end.classList.add("td_beginning");
+        td_end.addEventListener('click', () => {
+            open_edit_window(td_end);
+        })
+        let td_comment = row.insertCell(5);
+        td_comment.innerHTML = '<input type="text" class="operator-screen-table-input" placeholder="Vložte komentář">'
+        td_comment.getElementsByTagName('input')[0].addEventListener('keyup', (e) => {
+            if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+                td_comment.getElementsByTagName('input')[0].blur();
+            }
+        })
+        td_comment.getElementsByTagName('input')[0].addEventListener('blur', () => {
+            send_downtime(row);
+        })
+        let delete_cross = row.insertCell(6);
+        delete_cross.classList.add('delete-line-in-table');
+        delete_cross.classList.add('not_displayed');
+        delete_cross.innerHTML = "x";
+
+        delete_cross.addEventListener('click', () => {
+            if (confirm("Skutečne chcete odstranit prostoj?")) {
+                delete_downtime_from_db(delete_cross.parentElement.id);
+            }
+        })
+        row.querySelectorAll('td').forEach(td => {
+            td.addEventListener('mouseover', () => {
+                td.style.backgroundColor = 'rgba(0,0,0,0.1)';
+            })
+        })
+        row.querySelectorAll('td').forEach(td => {
+            td.addEventListener('mouseout', () => {
+                td.style.backgroundColor = '';
+            })
+        })
+    }
+
+    function terminate_downtime() {
+        terminate_button.classList.add('not_displayed')
+        let end_time = new Date().toLocaleString('sv-SE');
+        table.getElementsByTagName('tr')[1].getElementsByTagName('td')[4].dataset.end = end_time.slice(0, 19);
+        table.getElementsByTagName('tr')[1].getElementsByTagName('td')[4].innerHTML = end_time.slice(11, 19);
+        send_downtime(table.getElementsByTagName('tr')[1]);
+        if (active_downtime) { active_downtime.classList.remove('active-downtime') };
+        downtime_reasons.forEach(reason => {
+            reason.classList.add('not_displayed');
+        })
+        active_category.classList.remove('active-category');
+        active_category = undefined;
+        stations.forEach(station => {
+            station.classList.add('not_displayed');
+        })
+        if (active_station) { active_station.classList.remove('active-station') };
+        active_station = undefined;
+        active_downtime = undefined;
+        table.getElementsByTagName('tr')[1].getElementsByTagName('td')[6].classList.remove('not_displayed');
+
+    }
+
+    function send_downtime(row_to_send) {
+
+        let station_to_send = row_to_send.getElementsByTagName('td')[0].innerHTML
+        let category_to_send = row_to_send.getElementsByTagName('td')[1].innerHTML
+        let downtime_to_send = row_to_send.getElementsByTagName('td')[2].innerHTML
+        let beginning_to_send = row_to_send.getElementsByTagName('td')[3].dataset.beginning
+        let end_to_send = row_to_send.getElementsByTagName('td')[4].dataset.end
+        let comment_to_send = row_to_send.getElementsByTagName('td')[5].getElementsByTagName('input')[0].value
+        let uid_to_send = row_to_send.id
+
+        const data = { uid: uid_to_send, station: station_to_send, category: category_to_send, downtime: downtime_to_send, beginning: beginning_to_send, end: end_to_send, comment: comment_to_send }
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        show_sum_downtimes(date_input.value)
+    }
+
+    terminate_button.addEventListener('click', terminate_downtime);
+
+    function close_edit_window(el) {
+        document.getElementById('edit-window').remove();
+        document.getElementById('overlay').remove();
+        document.body.classList.remove('operator-screen-disabled-background');
+        send_downtime(el.parentElement);
+    }
+
+    function open_edit_window(el) {
+        var type = undefined;
+        let edit_window = document.createElement('div');
+        let overlay = document.createElement('div');
+        let close = document.createElement('span');
+        let send = document.createElement('span');
+
+        if (el.classList.contains('td_beginning') || el.classList.contains('td_end')) {
+            type = 'timer';
+            let timer = document.createElement('input');
+            timer.id = 'timer';
+            timer.type = 'time';
+            timer.step = 1;
+            timer.value = el.innerHTML;
+            timer.classList.add('operator-timer');
+            edit_window.appendChild(timer);
+
+        } else if (el.classList.contains('td_category')) {
+            type = 'category';
+            let categories_select = document.createElement('select');
+            categories_select.classList.add('operator-categories');
+            categories_select.id = 'categories_select'
+            let categories = document.querySelectorAll('.category');
+            let options = []
+            categories.forEach(category => {
+                let option = document.createElement('option');
+                option.value = category.innerText;
+                option.innerText = category.innerText;
+                if (options.includes(option.value)) { option.remove }
+                else {
+                    options.push(option.value);
+                    categories_select.appendChild(option);
+                }
+            });
+            edit_window.appendChild(categories_select)
+
+        } else if (el.classList.contains('td_station')) {
+            type = 'station';
+            let stations_select = document.createElement('select');
+            stations_select.classList.add('operator-categories');
+            stations_select.id = 'stations_select'
+            let stations = document.querySelectorAll('.station');
+            stations.forEach(station => {
+                let option = document.createElement('option');
+                option.value = station.innerText;
+                if (station.innerText == el.innerText) {
+                    option.selected = true;
+                }
+                option.innerText = station.innerText;
+                stations_select.appendChild(option);
+            });
+            edit_window.appendChild(stations_select)
+        } else if (el.classList.contains('td_downtime')) {
+            type = 'downtime';
+            let downtimes_select = document.createElement('select');
+            downtimes_select.classList.add('operator-categories');
+            downtimes_select.id = 'downtimes_select'
+            let selected_station = el.parentElement.getElementsByTagName('td')[0].innerHTML;
+            let downtimes = document.querySelectorAll(`[data-station=${selected_station}]`);
+            downtimes.forEach(downtime => {
+                let option = document.createElement('option');
+                option.value = downtime.innerText;
+                if (downtime.innerText == el.innerText) {
+                    option.selected = true;
+                }
+                option.innerText = downtime.innerText;
+                downtimes_select.appendChild(option);
+            });
+            edit_window.appendChild(downtimes_select)
+        }
+
+        edit_window.id = 'edit-window'
+        overlay.id = 'overlay'
+        close.innerText = "X";
+        send.innerText = "Odeslat";
+        edit_window.classList.add('operator-screen-edit-window')
+        overlay.classList.add('operator-screen-overlay')
+        close.classList.add('close-cross')
+        send.classList.add('send-button')
+        send.addEventListener('click', () => {
+            if (type == 'timer') {
+                el.innerHTML = document.getElementById('timer').value;
+                if (el.dataset.end) {
+                    el.dataset.end = el.dataset.end.slice(0, 11) + timer.value.toString()
+                }
+                if (el.dataset.beginning) {
+                    el.dataset.beginning = el.dataset.beginning.slice(0, 11) + timer.value.toString()
+                }
+            }
+            if (type == 'category') {
+                el.innerHTML = document.getElementById('categories_select').value;
+            }
+            if (type == 'station') {
+                el.innerHTML = document.getElementById('stations_select').value;
+            }
+
+            if (type == 'downtime') {
+                el.innerHTML = document.getElementById('downtimes_select').value;
+            }
+            close_edit_window(el);
+        })
+        close.addEventListener('click', () => {
+            close_edit_window(el);
+
+        })
+        document.body.classList.add('operator-screen-disabled-background')
+        document.body.appendChild(edit_window);
+        document.body.appendChild(overlay);
+        edit_window.appendChild(close);
+        edit_window.appendChild(send);
+    }
+
+    function delete_downtime_from_db(downtime_id) {
+
+        const data = { uid: downtime_id }
+        const url = "{% url 'fp09:delete_downtime' %}"
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+
+        document.getElementById(downtime_id).remove();
+
+        show_sum_downtimes(date_input.value)
+    }
+
+    var input_historical = document.getElementById('historical_downtimes')
+    input_historical.addEventListener('change', () => {
+        let url = "{% url 'fp09:add_historical_downtimes' %}"
+        const data = { date: input_historical.value }
+        show_sum_downtimes(data['date']);
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => add_historical_inputs(data))
+    })
+
+    function add_historical_inputs(data) {
+        document.getElementById('tbody').remove();
+        let new_body = document.createElement('tbody');
+        new_body.id = 'tbody';
+        table.append(new_body);
+
+        Object.entries(data).forEach(([k, v]) => {
+            let row = table.getElementsByTagName('tbody')[0].insertRow(-1);
+            row.id = k;
+            let td_station = row.insertCell(0);
+            td_station.innerHTML = v['station'];
+            td_station.classList.add("td_station");
+            td_station.addEventListener('click', () => {
+                open_edit_window(td_station);
+            })
+
+            let td_category = row.insertCell(1);
+            td_category.innerHTML = v['category'];
+            td_category.classList.add("td_category");
+            td_category.addEventListener('click', () => {
+                open_edit_window(td_category);
+            })
+
+            let td_downtime = row.insertCell(2);
+            td_downtime.innerHTML = v['downtime'];
+            td_downtime.classList.add("td_downtime");
+            td_downtime.addEventListener('click', () => {
+                open_edit_window(td_downtime);
+            });
+
+            let td_beginning = row.insertCell(3);
+            td_beginning.classList.add("td_beginning");
+            let start_time = v['beginning_t']
+            td_beginning.innerHTML = start_time.slice(11, 19);
+            td_beginning.dataset.beginning = start_time.slice(0, 19)
+            td_beginning.addEventListener('click', () => {
+                open_edit_window(td_beginning);
+            });
+
+            let td_end = row.insertCell(4);
+            td_end.classList.add("td_end");
+            let end_time = v['end_t']
+            td_end.innerHTML = end_time.slice(11, 19);
+            td_end.dataset.end = end_time.slice(0, 19)
+            td_end.addEventListener('click', () => {
+                open_edit_window(td_end);
+            })
+
+            let td_comment = row.insertCell(5);
+            td_comment.innerHTML = `<input type="text" class="operator-screen-table-input" value="${v['comment']}">`
+            td_comment.getElementsByTagName('input')[0].addEventListener('keyup', (e) => {
+                if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+                    td_comment.getElementsByTagName('input')[0].blur();
+                }
+            })
+            td_comment.getElementsByTagName('input')[0].addEventListener('blur', () => {
+                send_downtime(row);
+            })
+
+            let delete_cross = row.insertCell(6);
+            delete_cross.classList.add('delete-line-in-table');
+            delete_cross.innerHTML = "x";
+
+            delete_cross.addEventListener('click', () => {
+                if (confirm("Skutečne chcete odstranit prostoj?")) {
+                    delete_downtime_from_db(delete_cross.parentElement.id);
+                }
+            })
+
+            row.querySelectorAll('td').forEach(td => {
+                td.addEventListener('mouseover', () => {
+                    td.style.backgroundColor = 'rgba(0,0,0,0.1)';
+                })
+            })
+
+            row.querySelectorAll('td').forEach(td => {
+                td.addEventListener('mouseout', () => {
+                    td.style.backgroundColor = '';
+                })
+            })
+        })
+    }
+
+    function show_sum_downtimes(datetime_value, category_text = '', station_text = '', downtime_text = '') {
+        let url = "{% url 'fp09:get_sum_downtimes' %}";
+        let data = {};
+        let date_today = new Date();
+        let date_today_value = date_today.toISOString().slice(0, 10)
+        data['filters'] = {};
+        data['filters']['category'] = category_text;
+        data['filters']['station'] = station_text;
+        data['filters']['downtime'] = downtime_text;
+        data['filters']['day'] = datetime_value ? datetime_value : date_today_value
+        get_sum_downtimes(url, data).then(return_data => sum_downtimes.innerText = return_data + " min");
+    };
+
+    async function get_sum_downtimes(url = '', data = {}) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        return response.json();
+    }
+
+
+</script>
+</html>

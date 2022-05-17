@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+  </head>
+  <style>
+      .row {margin-right: 0;
+            margin-left: 0;}
+      .All {background-color: #003f5c;}
+      .Changeover {background-color: #374c80;}
+      .Input {background-color: #7a5195;}
+      .Logistic {background-color: #bc5090;}
+      .Organization {background-color: #ef5675;}
+      .Repair {background-color: #ff764a;}
+      .Technical {background-color: #ffa600;}
+      .btn {color: white;}
+      .loader {
+        height: 50px;
+        transform-origin: bottom center;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: block;
+        opacity: 0;
+        }
+
+        .circle {
+        display: inline-block;
+        background-color: darkslateblue;
+        height: 70px;
+        width: 70px;
+        border-radius: 50%;
+        transform: scale(0);
+        animation: grow 1.5s linear infinite;
+        margin: -10px;
+        }
+
+        .circle:nth-child(2) {
+        background-color: darkorchid;
+        animation-delay: 0.75s;
+        }
+
+
+        @keyframes rotate {
+        to {
+            transform: rotate(360deg);
+        }
+        }
+
+        @keyframes grow {
+        50% {
+            transform: scale(1);
+        }
+        }
+  </style>
+  <body>
+    <form class="row g-3" method="post">
+        <div class="col-md-3 position-relative">
+            <label for="validationTooltip01" class="form-label">First interval FROM / První interval OD</label>
+            <input class="form-select" type="date" id="validationTooltip01" name="FirstIntervalFrom">
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="validationTooltip01" class="form-label">First interval TO / První interval DO </label>
+            <input class="form-select" type="date" id="validationTooltip02" name="FirstIntervalTo">
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="validationTooltip03" class="form-label">Second interval FROM / Druhý interval OD</label>
+            <input class="form-select" type="date" id="validationTooltip03" name="SecondIntervalFrom">
+        </div>
+        <div class="col-md-3 position-relative">
+            <label for="validationTooltip04" class="form-label">Second interval TO / Druhý interval DO</label>
+            <input class="form-select" type="date" id="validationTooltip04" name="SecondIntervalFrom">
+        </div>
+        <div class="col-md-12 position-relative" style="text-align: center;">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="Morning">
+                <label class="form-check-label" for="inlineRadio1">Morning / Ranní </label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="Afternoon">
+                <label class="form-check-label" for="inlineRadio2">Afternoon / Odpolední</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio3" value="Night">
+                <label class="form-check-label" for="inlineRadio3">Night / Noční</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio4" value="All" checked>
+                <label class="form-check-label" for="inlineRadio4">All / Vše</label>
+              </div>
+            </div>
+        </div>
+        <div class="col-md-12 position-relative" style="text-align: center;">
+            <div class="btn-group">
+                <button type="button" class="btn All" onclick=SelectButton(this)>All / Vše</button>
+                <button type="button" class="btn Changeover" onclick=SelectButton(this)>Changeover / Přestavba</button>
+                <button type="button" class="btn Input" onclick=SelectButton(this)>Input components + packaging / Vstupní komponenty + balení</button>
+                <button type="button" class="btn Logistic" onclick=SelectButton(this)>Logistic / Logistika</button>
+                <button type="button" class="btn Organization" onclick=SelectButton(this)>Organization / Organizace</button>
+                <button type="button" class="btn Repair" onclick=SelectButton(this)>Repair, maintenance / Oprava, údržba</button>
+                <button type="button" class="btn Technical" onclick=SelectButton(this)>Technical downtime / technický prostoj</button>
+            </div>
+        </div>
+    </form>
+    <div class="loader">
+        <div class="circle"></div>
+        <div class="circle"></div>
+    </div>
+    <div class="container" style="text-align: center;">
+        <div class="row">
+            <div class="col">
+                <div id="first_interval_chart_div">
+                    <canvas id="first_interval_chart" width="300" height="500"></canvas>
+                </div>
+            </div>
+            <div class="col">
+                <div id="second_interval_chart_div">
+                    <canvas id="second_interval_chart" width="300" height="500"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div id="bar_chart_div">
+                <canvas id="bar_chart" width="500" height="500"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+  
+  </body>
+</html>
+<script>
+    const loader = document.querySelector('.loader');
+    const main = document.querySelector('.container');
+    let now_date = new Date();
+    let first_interval_start = new Date(now_date.getFullYear(), now_date.getMonth(), now_date.getDate() -7, 24, 0);
+    let first_interval_end = new Date(now_date.getFullYear(), now_date.getMonth(), now_date.getDate(), 24, 0);
+    let second_interval_start = new Date(now_date.getFullYear(), now_date.getMonth(), now_date.getDate() -15, 24, 0);
+    let second_interval_end = new Date(now_date.getFullYear(), now_date.getMonth(), now_date.getDate() -8, 24, 0);
+    document.getElementById('validationTooltip01').value = first_interval_start.toISOString().slice(0,10);
+    document.getElementById('validationTooltip02').value = first_interval_end.toISOString().slice(0,10);
+    document.getElementById('validationTooltip03').value = second_interval_start.toISOString().slice(0,10);
+    document.getElementById('validationTooltip04').value = second_interval_end.toISOString().slice(0,10);
+
+
+
+function loading() {
+    loader.style.opacity = '1';
+    loader.style.display = 'inline';
+    main.style.display = 'block';
+    main.style.opacity = '0';
+}
+
+function loadingdone() {
+    loader.style.opacity = '0';
+    loader.style.display = 'block';
+    main.style.opacity = '1';
+    main.style.display = 'inline';
+}
+
+
+function SelectButton(button){
+    loading()
+    var url = '{% url "fp09:fp09_downtime_trends" %}';
+    var ele = document.getElementsByName('inlineRadioOptions');
+    for(i = 0; i < ele.length; i++) {
+        if(ele[i].checked){
+            var shift = ele[i].value
+        }
+    }
+    let first_interval_start = document.getElementById('validationTooltip01').value;
+    let first_interval_end = document.getElementById('validationTooltip02').value;
+    let second_interval_start = document.getElementById('validationTooltip03').value;
+    let second_interval_end = document.getElementById('validationTooltip04').value;
+    let button_option = button.innerText
+    get_data(url, {'first_interval_start': first_interval_start, 'first_interval_end': first_interval_end, 'second_interval_start': second_interval_start, 'second_interval_end': second_interval_end, 'button_option': button_option, 'shift':shift }).then(data => {Charts(data) });
+}
+
+async function get_data(url = '', data = {}) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json(); 
+}
+
+function Charts(data = {}) {
+    var first_interval_chart = document.getElementById('first_interval_chart')
+    var second_interval_chart = document.getElementById('second_interval_chart')
+
+    if (Chart.getChart("first_interval_chart")) {
+    Chart.getChart("first_interval_chart").destroy();
+}
+    if (Chart.getChart("second_interval_chart")) {
+    Chart.getChart("second_interval_chart").destroy();
+}
+
+    var newLegendClickHandler = (e, legendItem, legend) => {
+        const index = legendItem.datasetIndex;
+        const ci = legend.chart;
+        for (need_to_be_hidden in legend.legendItems){
+            ci.hide(need_to_be_hidden)
+        }
+        ci.show(index)
+        const paired_chart = Chart.getChart('second_interval_chart')
+        const label_to_stay = legendItem.text
+        const ci2 = paired_chart.legend.chart
+        for (need_to_be_hidden in paired_chart.legend.legendItems){
+            ci2.hide(need_to_be_hidden)
+        }
+
+        const paired_chart_labels = paired_chart.legend.legendItems
+        for (i = 0; i < paired_chart_labels.length; i++) {
+            label = paired_chart_labels[i].text
+            if (label_to_stay == label) {
+                ci2.show(i)
+            }}
+    }
+
+    var newLegendClickHandler2 = (e, legendItem, legend) => {
+        const index = legendItem.datasetIndex;
+        const ci = legend.chart;
+        for (need_to_be_hidden in legend.legendItems){
+            ci.hide(need_to_be_hidden)
+        }
+        ci.show(index)
+        const paired_chart = Chart.getChart('first_interval_chart')
+        const label_to_stay = legendItem.text
+        const ci2 = paired_chart.legend.chart
+        for (need_to_be_hidden in paired_chart.legend.legendItems){
+            ci2.hide(need_to_be_hidden)
+        }
+
+        const paired_chart_labels = paired_chart.legend.legendItems
+        for (i = 0; i < paired_chart_labels.length; i++) {
+            label = paired_chart_labels[i].text
+            if (label_to_stay == label) {
+                ci2.show(i)
+            }}
+    }
+
+    const labels = data['days_in_range_first'];
+    const chart_data = {
+        labels: labels,
+        datasets: data['datasets1'],
+    }
+
+    var myChart = new Chart(first_interval_chart, {
+        type: 'line',
+        data: chart_data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    onClick: newLegendClickHandler,
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            return [context.chart.data.datasets[context.datasetIndex].label, context.chart.data.datasets[context.datasetIndex].tooltips[context.dataIndex].split("|")[0], context.chart.data.datasets[context.datasetIndex].tooltips[context.dataIndex].split("|")[1]]
+                        },
+                    }
+                }
+            }
+        }
+    });
+
+    const labels2 = data['days_in_range_second'];
+    const chart_data2 = {
+        labels: labels2,
+        datasets: data['datasets2'],
+    }
+
+    var myChart = new Chart(second_interval_chart, {
+        type: 'line',
+        data: chart_data2,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    onClick: newLegendClickHandler2,
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            return [context.chart.data.datasets[context.datasetIndex].label, context.chart.data.datasets[context.datasetIndex].tooltips[context.dataIndex].split("|")[0], context.chart.data.datasets[context.datasetIndex].tooltips[context.dataIndex].split("|")[1]]
+                        },
+                    }
+                }
+            }
+        }
+    });
+
+    var barchart_dict = data['barchart_dict']
+    var bar_chart = document.getElementById('bar_chart')
+
+    if (Chart.getChart("bar_chart")) {
+    Chart.getChart("bar_chart").destroy();
+}
+    var data_first_interval = []
+    var data_second_interval = []
+    for (key in barchart_dict) {
+        data_first_interval.push(barchart_dict[key][1])
+        data_second_interval.push(barchart_dict[key][2])
+    }
+
+    var myChart = new Chart(bar_chart, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(barchart_dict),
+            datasets: [{
+                label: 'First Interval / První Interval',
+                backgroundColor: "#caf270",
+                data: data_first_interval,
+            }, {
+                label: 'Second Interval / Druhý Interval',
+                backgroundColor: "#45c490",
+                data: data_second_interval,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            tooltips: {
+            displayColors: true,
+            callbacks:{
+                mode: 'index',
+            },
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    },
+            }
+            }
+        });
+    loadingdone();
+
+}
+
+
+</script>

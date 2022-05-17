@@ -1,0 +1,41 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{% static 'fp09.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+    <script src="{% static 'fp09.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <title>FP09 visualizations</title>
+</head>
+<body>
+    <div class="fp09-visualizations-wrapper">
+        <div class="period-selector">
+            <label>Od
+                <input id="date-from" type="date">
+            </label>
+            
+            <label>Do
+                <input id="date-to" type="date">
+            </label>
+
+            <input type="button" value="Ranní" data-shift='Morning' class="shift-button">
+            <input type="button" value="Odpolední" data-shift='Afternoon' class="shift-button">
+            <input type="button" value="Noční" data-shift='Night' class="shift-button">
+            <input type="button" value="Všechny směny" id="submit" data-shift='All' class="shift-button shift-selected" >
+
+            {% block input_buttons %}
+            {% endblock %}
+        </div>
+
+    {% block body %}
+
+    {% endblock %}
+    </div>
+</body>
+</html>

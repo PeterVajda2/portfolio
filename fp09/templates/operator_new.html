@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FP09 downtimes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        select[data-purpose="downtime"] {
+            width: 350px;
+            text-overflow: ellipsis;
+        }
+
+        #downtime_div {
+            grid-row: 2/3;
+            grid-column: 1/4;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+
+        .wrapper {
+            display: grid;
+            grid-gap: 1rem;
+            width: 100vw;
+            height: 100vh;
+            grid-template-rows: 1fr 5fr 5fr;
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .current_time_div {
+            grid-row: 1/2;
+            grid-column: 1/2;
+            display: flex;
+        }
+
+        .latest_piece_datetime_div {
+            grid-row: 1/2;
+            grid-column: 3/4;
+            display: flex;
+        }
+
+        .downtime_timer_div {
+            grid-row: 1/2;
+            grid-column: 2/3;
+            background-color: red;
+            color: white;
+        }
+        
+        .downtime_timer_div, .current_time_div,  .latest_piece_datetime_div {
+            place-content: center;
+            place-items: center;
+            flex-direction: column;
+            font-size: 1.75rem;
+        }
+
+        #current_time {
+            display: block;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .category-button, .station-button, .reason-button {
+            border: 1px solid gray;
+            border-radius: 5px;
+            padding: 0.5em;
+            place-items: center;
+            place-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .category-button {
+            display: flex;
+        }
+
+        .selected {
+            background-color: red;
+            color: white;
+        }
+
+        .operator-new-categories, .operator-new-reasons, .operator-new-stations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        .downtimes-table {
+            grid-row: 3/4;
+            grid-column: 1/4;
+            overflow: scroll;
+        }
+
+        .operator-screen-downtimes-table {
+            width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+            border-collapse: collapse;
+        }
+
+        .operator-screen-downtimes-table tr {
+            padding: 0;
+            margin: 0;
+        }
+
+        .operator-screen-downtimes-table th {
+            font-weight: 700;
+            border-bottom: 1px solid black;
+            background-color: rgba(0,0,0);
+            color: white;
+            padding: 0;
+            margin: 0;
+            position: sticky;
+            top: 0;
+        }
+
+        .operator-screen-downtimes-table tr td:nth-child(4), .operator-screen-downtimes-table tr td:nth-child(5) {
+            text-align: center;
+        }
+
+        td {
+            padding-bottom: 10px;
+        }
+
+        select {
+            height: 2rem;    
+            font-size: 1rem;
+        }
+
+        input[type="button"] {
+            background-color: white;
+            width: 100%;
+            height: 2rem;
+            outline: none;
+            border: 1px solid gray;
+            cursor: pointer;
+        }
+
+        .split-downtime {
+            cursor: pointer;
+        }
+
+        .split-form {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 25vw;
+            height: 25vh;
+            background-color: white;
+            transform: translate(-62.5%, -62.5%);
+            border: 1px solid gray;
+            display: flex;
+            flex-flow: column;
+            justify-content: space-between;
+        }
+       
+
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="current_time_div">Aktuální čas: <span id="current_time"></span></div>
+        <div class="downtime_timer_div hidden" id="downtime_timer">Prostoj: <span id="actual_downtime_duration"></span></div>
+        <div class="latest_piece_datetime_div">Čas posledního kusu: <span id="latest_piece_datetime"></span></div>
+        <div id="downtime_div" class="hidden"> 
+            <div class="operator-new-categories" id="operator-new-categories">
+                {% for category in categories %}
+                    <div class="category-button" data-category="{{category|slice:'5'|lower}}">{{category}}</div>
+                {% endfor %}
+            </div>
+
+            <div class="operator-new-stations" id="operator-new-stations" >
+                {% for station, categories in stations_categories.items %}
+                    <div class="station-button hidden" {% for category in categories %} data-{{category|slice:"5"}}{% endfor %} data-station="{{station}}">{{station}}</div>
+                {% endfor %}
+            </div>
+
+            <div class="operator-new-reasons" id="operator-new-reasons">
+                {% for downtime_reason in downtime_reasons %}
+                    <div data-station="{{downtime_reason.station}}" data-category="{{downtime_reason.category|slice:'5'|lower}}" class="reason-button hidden" data-reason="{{downtime_reason.name}}">{{downtime_reason.name}}</div>
+                {% endfor %}
+            </div>
+
+        </div>
+        <div class="downtimes-table">
+            <table class="operator-screen-downtimes-table">
+                <thead>
+                    <th>Kategorie</th>
+                    <th>Stanice</th>
+                    <th>Prostoj</th>
+                    <th>Začátek</th>
+                    <th>Konec</th>
+                    <th>Komentář</th>
+                    <th>Rozdělit</th>
+                </thead>
+                <tbody>
+                    {% for downtime in downtimes %}
+                    <tr>
+                        <td>
+                            <select data-sid="{{downtime.id}}" data-purpose="category">
+                                <option selected>---</option>
+                                {% for category in categories %}
+                                <option data-sid="{{downtime.id}}" value='{{category|slice:"5"|lower}}' {% if category == downtime.category %} selected {% endif %}>{{category}}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+
+                        <td>
+                            <select data-sid="{{downtime.id}}" data-purpose="station">
+                                <option selected>---</option>
+                                {% for station, categories in stations_categories.items %}
+                                <option data-sid="{{downtime.id}}" value="{{station}}" data-purpose="station-option" {% for category in categories %} data-{{category|slice:"5"}} {% endfor %} {% if downtime.station == station %} selected {% endif %}>{{station}}</option>
+                                {% endfor %}
+                            </select>  
+                        </td>
+
+                        <td>
+                            <select data-sid="{{downtime.id}}" data-purpose="downtime">
+                                <option selected>---</option>
+                                {% for downtime_reason in downtime_reasons %}
+                                <option data-sid="{{downtime.id}}" data-purpose="reason-option" data-category-station='{{downtime_reason.category|slice:"5"|lower}} - {{downtime_reason.station}}' {% if downtime.downtime == downtime_reason.name %} selected {% endif %}>{{downtime_reason.name}}</option>
+                                {% endfor %}
+                            </select> 
+                        </td>
+
+                        <td data-sid="{{downtime.id}}" data-purpose="beginning_t">{{downtime.beginning_t|date:"H:i:s"}} ({{downtime.beginning_t|date:"Y-m-d"}})</td>
+
+                        <td data-sid="{{downtime.id}}" {% if not downtime.end_t %} data-unfinished="True" {% endif %}data-purpose="end_t">{% if downtime.end_t %} {{downtime.end_t|date:"H:i:s"}} ({{downtime.end_t|date:"Y-m-d"}}) {% else %} ... {% endif %}</td>
+
+                        <td data-sid="{{downtime.id}}" data-purpose="comment" data-value="{{downtime.comment}}" contenteditable="true">{{downtime.comment|default_if_none:""}}</td>
+
+                        <td class="split-downtime" data-sid="{{downtime.id}}" data-purpose="split-downtime">Rozdělit</td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+
+            </table>
+        </div>
+        <div class="split-form hidden" id="split-form">
+            <div>
+                <label for="split-time">Rozdělit v: 
+                    <input type="datetime-local" name="split-time" value="2021-12-21T06:54:00" step="1" data-sid="" id="split-downtime-datetime">
+                </label>
+            </div>
+            <div>
+                <input type="button" value="Rozdělit prostoj" id="split-downtime-button"></button>
+                <input type="button" value="Zavřít" id="close-split-form"></button>
+            </div>
+        </div>
+    </div>
+    
+<script>
+    var categories = {{categories|safe}}
+    var stations = {{stations_categories|safe}}
+    var downtime_reasons = {{downtime_reasons|safe}}
+    const downtimes_table = document.getElementsByTagName('tbody')[0]
+    var active_downtime = false
+    var active_downtime_id
+    var datetime_last_produced_piece
+    var string_last_produced_piece
+    const category_buttons = document.querySelectorAll('.category-button')
+    const station_buttons = document.querySelectorAll('.station-button')
+    const reason_buttons = document.querySelectorAll('.reason-button')
+    var selected_category
+    var selected_station
+    var selected_category_short
+    var selected_reason
+    const split_form = document.getElementById("split-form")
+    const split_downtime_submit_button = document.getElementById("split-downtime-button")
+    const split_downtime_datetime = document.getElementById("split-downtime-datetime")
+    const url_post = '{% url "fp09:operator_screen_new" %}'
+    const category_names = {}
+    const split_form_close_button = document.getElementById("close-split-form")
+
+    split_form_close_button.addEventListener("click", () => {
+        split_form.classList.add("hidden");
+    })
+
+    add_event_listeners();
+
+    category_names['input'] = "Input components + packaging / Vstupní komponenty + balení"
+    category_names['organ'] = "Organization / Organizace"
+    category_names['techn'] = "Technical downtime / technický prostoj"
+    category_names['repai'] = "Repair, maintenance / Oprava, údržba"
+    category_names['logis'] = "Logistic / Logistika"
+
+    category_buttons.forEach(category_button => {
+        category_button.addEventListener('click', (e) => {
+                if (e.target.classList.contains('selected')) {
+                    e.target.classList.remove('selected');
+                    hide_reasons();
+                    hide_stations();
+                }
+                else {
+                    selected_category = e.target.dataset.category;
+                    category_buttons.forEach(category_button => { category_button.classList.remove('selected')});
+                    e.target.classList.add('selected');
+                    send_downtime(active_downtime_id, 'category', e.target.innerText);
+                    add_downtime_details_to_table(active_downtime_id, 'category', e.target.innerText);
+                    hide_reasons();
+                    hide_stations();
+                    show_stations(e.target.dataset.category);
+                }
+            }
+        )
+    })
+
+    station_buttons.forEach(station_button => {
+        station_button.addEventListener('click', (e) => {
+            if (e.target.classList.contains('selected')) {
+                e.target.classList.remove('selected');
+                hide_reasons();
+            }
+            else {
+                selected_station = e.target.dataset.station;
+                station_buttons.forEach(station_button => { station_button.classList.remove('selected')});
+                e.target.classList.add('selected');
+                send_downtime(active_downtime_id, 'station', selected_station)
+                add_downtime_details_to_table(active_downtime_id, 'station', selected_station)
+                hide_reasons();
+                show_reasons(selected_category, selected_station);
+            }
+        })
+    })
+
+    reason_buttons.forEach(reason_button => {
+        reason_button.addEventListener('click', (e) => {
+            if (e.target.classList.contains('selected')) {
+                e.target.classList.remove('selected');
+            } 
+            else {
+                selected_reason = e.target.dataset.reason;
+                reason_buttons.forEach(reason_button => {reason_button.classList.remove('selected')});
+                e.target.classList.add('selected');
+                send_downtime(active_downtime_id, 'downtime_reason', selected_reason)
+                add_downtime_details_to_table(active_downtime_id, 'downtime', selected_reason)
+            }
+        })
+    })
+
+    function show_stations(category) {
+        let stations_to_unhide = document.querySelectorAll(`[data-${category}]`);
+        stations_to_unhide.forEach(station_button => {
+            station_button.classList.remove('hidden');
+            station_button.classList.add('flex');
+        })
+    }
+
+    function show_reasons(category, station) {
+        let reasons_to_unhide = document.querySelectorAll(`[data-station="${station}"][data-category="${category}"]`)
+        reasons_to_unhide.forEach(reason_button => {
+            reason_button.classList.remove('hidden');
+            reason_button.classList.add('flex');
+        })
+    }
+
+    function hide_stations() {
+        station_buttons.forEach(station_button => {
+            station_button.classList.add('hidden');
+            station_button.classList.remove('flex');
+            station_button.classList.remove('selected');
+        })
+    }
+
+    function hide_reasons() {
+        reason_buttons.forEach(reason_button => {
+            reason_button.classList.add('hidden');
+            reason_button.classList.remove('flex');
+            reason_button.classList.remove('selected');
+        })
+    }
+
+    setInterval(() => get_latest_piece(), 3000)
+    setInterval(() => show_time(), 1000) 
+    setInterval(() => check_completeness(), 300000)
+    
+    function get_latest_piece() {
+        fetch(url = '{% url "fp09:check_for_downtime" %}')
+        .then(response => response.json())
+        .then(resp => process_response(resp))
+    }
+    
+    function process_response(resp) {
+        document.getElementById('latest_piece_datetime').innerText = `${resp['last_produced_piece'].slice(11, 19)} (${resp['last_produced_piece'].replace("T", " ").slice(0, 10)})`
+
+        datetime_last_produced_piece = new Date(resp['last_produced_piece'])
+        string_last_produced_piece = resp['beginning_t']
+
+        if (resp['downtime'] == true) {
+            active_downtime = true;
+            active_downtime_id = resp['downtime_id']
+            prefilled_station = resp['station'] ? resp['station'] : "---"
+            document.getElementById('downtime_timer').classList.remove('hidden');
+            document.getElementById('downtime_timer').classList.add('flex');
+            document.getElementById('downtime_div').classList.remove('hidden');
+            add_downtime_to_table(active_downtime_id, prefilled_station);
+        }
+        if (resp['downtime'] == false) {
+            active_downtime = false;
+
+            if (document.querySelector('[data-unfinished="True"]') !== null) {
+                let unfinished = document.querySelector('[data-unfinished="True"]')
+                unfinished.innerText = `${resp['end_t'].slice(11, 19)} (${resp['end_t'].replace("T", " ").slice(0, 10)})`
+                unfinished.dataset.unfinished = "False";
+            }
+
+            document.getElementById('downtime_timer').classList.add('hidden');
+            document.getElementById('downtime_timer').classList.remove('flex');
+            document.getElementById('downtime_div').classList.add('hidden');
+            hide_reasons();
+            hide_stations();
+            deactivate_categories();
+        }
+    }
+
+    function deactivate_categories() {
+        category_buttons.forEach(category_button => {
+            category_button.classList.remove('selected');
+        })
+    }
+        
+    function show_time() {
+        var date = new Date();
+        var h = date.getHours(); // 0 - 23
+        var m = date.getMinutes(); // 0 - 59
+        var s = date.getSeconds(); // 0 - 59
+
+        h = (h < 10) ? "0" + h : h;
+        m = (m < 10) ? "0" + m : m;
+        s = (s < 10) ? "0" + s : s;
+
+        var time = h + ":" + m + ":" + s;
+        document.getElementById("current_time").innerText = time;
+
+        if (active_downtime) {
+            document.getElementById('actual_downtime_duration').innerText = msToTime(date - datetime_last_produced_piece);
+        }
+
+    }
+    
+    function msToTime(duration) {
+        var milliseconds = Math.floor((duration % 1000) / 100),
+            seconds = Math.floor((duration / 1000) % 60),
+            minutes = Math.floor((duration / (1000 * 60)) % 60),
+            hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+        hours = (hours < 10) ? "0" + hours : hours;
+        minutes = (minutes < 10) ? "0" + minutes : minutes;
+        seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+        return hours + ":" + minutes + ":" + seconds
+    }
+
+    async function send_downtime(active_downtime_id, property, property_value) {
+        data = {'property': property, 'property_value': property_value, 'id': active_downtime_id}
+
+        const response = await fetch(url_post, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data),
+        })
+        return response.json();
+    }
+
+    function add_event_listeners() {
+        let category_selectors = document.querySelectorAll('select[data-purpose="category"]')
+        category_selectors.forEach(category_selector => {
+            category_selector.removeEventListener('input', category_listener);
+            category_selector.addEventListener('input', category_listener);
+        })
+
+        let station_selectors = document.querySelectorAll('select[data-purpose="station"]');
+        station_selectors.forEach(station_selector => {
+            station_selector.removeEventListener('input', station_listener);
+            station_selector.addEventListener('input', station_listener);
+        })
+
+        let downtime_reasons_selectors = document.querySelectorAll('select[data-purpose="downtime"]');
+        downtime_reasons_selectors.forEach(downtime_reasons_selector => {
+            downtime_reasons_selector.removeEventListener('input', reason_listener);
+            downtime_reasons_selector.addEventListener('input', reason_listener);
+        })
+
+        let comment_cells = document.querySelectorAll('td[data-purpose="comment"]');
+        comment_cells.forEach(comment_cell => {
+            comment_cell.removeEventListener('blur', comment_listener);
+            comment_cell.addEventListener('blur', comment_listener);
+        });
+
+        let split_downtime_cells = document.querySelectorAll('td[data-purpose="split-downtime"]');
+        split_downtime_cells.forEach(split_downtime_cell => {
+            split_downtime_cell.removeEventListener('click', split_downtime_listener);
+            split_downtime_cell.addEventListener('click', split_downtime_listener);
+        });
+    }
+
+    function add_downtime_to_table(downtime_id, prefilled_station, table_index = -1, beginning_time = '', end_time = '') {
+        downtime_does_not_exist_in_table = document.querySelector(`[data-purpose="beginning_t"][data-sid="${downtime_id}"]`) !== null ? false : true
+
+        if (downtime_does_not_exist_in_table) {
+            if (table_index >= 0) {
+            var row = downtimes_table.insertRow(table_index);
+            } else {
+            var row = downtimes_table.insertRow(0);
+            }
+
+            let category_cell = row.insertCell(0);
+            let station_cell = row.insertCell(1);
+            let downtime_reason_cell = row.insertCell(2);
+            let beginning_t_cell = row.insertCell(3);
+            let end_t_cell = row.insertCell(4);
+            let comment_cell = row.insertCell(5);
+            let split_downtime_cell = row.insertCell(6);
+
+            split_downtime_cell.dataset.sid = downtime_id;
+            split_downtime_cell.dataset.purpose = "split-downtime";
+            split_downtime_cell.classList.add("split-downtime");
+            split_downtime_cell.innerText = "Rozdělit";
+
+            comment_cell.dataset.sid = downtime_id;
+            comment_cell.dataset.purpose = "comment";
+            comment_cell.contentEditable = true;
+
+            beginning_t_cell.dataset.purpose = "beginning_t";   
+            beginning_t_cell.dataset.sid = downtime_id;
+            if (table_index >= 0) {
+                beginning_t_cell.innerText = beginning_time;
+            } else {
+                beginning_t_cell.innerText = `${string_last_produced_piece.slice(11, 19)} (${string_last_produced_piece.slice(0, 10)})`;
+            }
+
+            end_t_cell.dataset.purpose = "end_t";
+            end_t_cell.dataset.sid = downtime_id;
+            end_t_cell.dataset.unfinished = 'True';
+
+            if (table_index >= 0) {
+                end_t_cell.innerText = end_time;
+            } else {
+                end_t_cell.innerText = '...';
+            }
+
+            var category_select = document.createElement('select')
+            category_select.dataset.sid = downtime_id;
+            category_select.dataset.purpose = "category";
+            let default_option_category = document.createElement('option');
+            default_option_category.selected = true;
+            default_option_category.innerText = '---'
+            category_select.append(default_option_category);
+            category_cell.append(category_select)
+            
+            categories.forEach(category => {
+                let option = document.createElement('option');
+                option.dataset.sid = downtime_id;
+                option.value = category.slice(0, 5).toLowerCase();
+                option.innerText = category
+                category_select.append(option);
+            })
+
+            var station_select = document.createElement('select')
+            station_select.dataset.sid = downtime_id;
+            station_select.dataset.purpose = "station";
+            let default_option_station = document.createElement('option');
+            default_option_station.selected = true;
+            default_option_station.innerText = prefilled_station;
+            station_select.append(default_option_station);
+            station_cell.append(station_select)
+
+            for (const [key, values] of Object.entries(stations)) {
+                let option = document.createElement('option');
+                option.dataset.sid = downtime_id;
+                option.dataset.purpose = "station-option";
+                option.value = key;
+                option.innerText = key;
+
+                values.forEach(value => {
+                    eval(`option.dataset.${value.slice(0, 5).toLowerCase()} = ""`)
+                })
+
+                station_select.append(option);
+            }
+
+            var downtime_reasons_select = document.createElement('select');
+            downtime_reasons_select.dataset.sid = downtime_id;
+            downtime_reasons_select.dataset.purpose = "downtime";
+            let default_option_downtime_reason = document.createElement('option');
+            default_option_downtime_reason.selected = true;
+            default_option_downtime_reason.innerText = '---'
+            downtime_reasons_select.append(default_option_downtime_reason);
+            downtime_reason_cell.append(downtime_reasons_select);
+
+            downtime_reasons.forEach(downtime_reason => {
+                let option = document.createElement('option');
+                option.dataset.sid = downtime_id;
+                option.dataset.purpose = "reason-option";
+                option.dataset.categoryStation = `${downtime_reason.category.slice(0, 5).toLowerCase()} - ${downtime_reason.station}`
+                option.innerText = downtime_reason.name;
+
+                downtime_reasons_select.append(option);
+            })
+
+            add_event_listeners();
+        }
+    }
+
+    function add_downtime_details_to_table(downtime_id, property, property_value) {
+        // console.log(downtime_id, property, property_value);
+        let select = document.querySelector(`[data-purpose="${property}"][data-sid="${downtime_id}"]`);
+        let options = select.getElementsByTagName('option');
+
+        for (option of options) {
+            if (option.innerText == property_value) {
+                option.selected = true;
+                option.value = property_value;
+            }
+        }
+    }
+
+    function comment_listener(event) {
+        send_downtime(event.target.dataset.sid, 'comment', event.target.innerText);
+    }
+
+    function split_downtime_listener(event) {
+        show_split_form(event.target.dataset.sid);
+    }
+
+    function category_listener(event) {
+        selected_category_short = event.target.value
+        
+        if (event.target.options[event.target.selectedIndex].text !== "---") {
+
+            send_downtime(event.target.dataset.sid, 'category', event.target.options[event.target.selectedIndex].text)
+
+            let station_options_to_hide = document.querySelectorAll(`[data-purpose="station-option"][data-sid="${event.target.dataset.sid}"]:not([data-${event.target.value}])`);
+
+            let station_options = document.querySelectorAll(`[data-purpose="station-option"][data-sid="${event.target.dataset.sid}"]`)
+
+            station_options.forEach(station_option => {
+                station_option.hidden = false;
+            })
+            station_options_to_hide.forEach(station_option => {
+                station_option.hidden = true;
+            })
+        } else {
+            console.log('Zvolena dummmy kategorie')
+        }
+    }
+
+    function station_listener(event) {
+
+        if (event.target.options[event.target.selectedIndex].text !== "---") {
+
+            let downtime_reason_options = document.querySelectorAll(`[data-purpose="reason-option"][data-sid="${event.target.dataset.sid}"]`)
+            let downtime_reasons_to_hide = document.querySelectorAll(`[data-purpose="reason-option"][data-sid="${event.target.dataset.sid}"]:not([data-category-station="${selected_category_short} - ${event.target.value}"])`);
+
+            send_downtime(event.target.dataset.sid, 'station', event.target.options[event.target.selectedIndex].text)
+
+            downtime_reason_options.forEach(downtime_reason => {
+                downtime_reason.hidden = false;
+            })
+            downtime_reasons_to_hide.forEach(downtime_reason => {
+                downtime_reason.hidden = true;
+            })
+        } else {
+            console.log('Zvolena dummy stanice')
+        }
+    }
+
+    function reason_listener(event) {
+
+        if (event.target.options[event.target.selectedIndex].text !== "---") {
+            send_downtime(event.target.dataset.sid, 'downtime_reason', event.target.options[event.target.selectedIndex].text)
+        } else {
+            console.log('Zvolen dummy duvod')
+        }
+    }
+
+    function check_completeness() {
+        last_ten_downtime_tds_in_the_table = document.querySelectorAll('td[data-purpose="beginning_t"]')
+    }
+
+    split_downtime_submit_button.addEventListener("click", () => {
+        let downtime_id = split_downtime_datetime.dataset.sid;
+        let cut_off_time = split_downtime_datetime.value;
+        if (cut_off_time.length < 17) {
+            cut_off_time = `${cut_off_time}:00`
+        }
+        let original_downtime_end_td = document.querySelector(`td[data-sid="${downtime_id}"][data-purpose="end_t"]`);
+        let original_downtime_end = original_downtime_end_td.innerText;
+        original_downtime_end_td.innerText =  `${cut_off_time.slice(11, 22)} (${cut_off_time.replace("T", " ").slice(0, 10)})`;
+        original_downtime_end_td.dataset.unfinished = "False";
+        let original_row = original_downtime_end_td.parentElement;
+        split_downtime(downtime_id, cut_off_time, original_downtime_end).then(resp => add_downtime_to_table(resp['id'], '---', original_row.rowIndex - 1, original_downtime_end_td.innerText, original_downtime_end));
+        split_form.classList.add("hidden");
+    })
+
+    function show_split_form(downtime_id) {
+        split_form.classList.remove("hidden");
+        split_downtime_datetime.dataset.sid = downtime_id;
+
+        downtime_beginning = document.querySelector(`[data-purpose="beginning_t"][data-sid="${downtime_id}"]`).innerText;
+        downtime_end = document.querySelector(`[data-purpose="end_t"][data-sid="${downtime_id}"]`).innerText;
+
+        split_downtime_datetime.value = `${downtime_beginning.slice(10, 20)}T${downtime_beginning.slice(0, 8)}`;
+        split_downtime_datetime.min = `${downtime_beginning.slice(10, 20)}T${downtime_beginning.slice(0, 8)}`;
+        
+        
+        if (!downtime_end == '---') {
+            split_downtime_datetime.max = `${downtime_end.slice(10, 20)}T${downtime_end.slice(0, 8)}`;
+        }
+    
+    }
+    
+    async function split_downtime(downtime_id, split_time, end_time = '') {
+        data = {}
+
+        data['id'] = downtime_id;
+        data['property_value'] = split_time;
+        data['property'] = 'split_downtime';
+        data['optional_property_value'] = end_time;
+
+        const response = await fetch(url_post, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data),
+        })
+        return response.json();
+    }
+
+</script>
+
+</body>
+</html>
+
+

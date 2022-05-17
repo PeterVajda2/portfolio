@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% load extras_2 %}
+
+{% block head %}
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+<div class="news-wrapper">
+    {% if unread_items %}
+        <div class="news-main-part">
+        <h2>News since last login:</h2>
+            {% for unread_item in unread_items %}
+            <div class="news-item">
+                <div class="news-name">
+                    {{unread_item.type}}: <a href="{% url 'edit_action' unread_item.action.id %}">{{unread_item.action.name}} ({{unread_item.action.responsible}})</a> 
+                    <div class="news-detail">
+                        {% if not unread_item.type == 'New action' %}
+                            {% for k, v in unread_item.text.items %}
+                                <div class="news-detail-row">{{k|verbose_name}}: <span id={{k}}>{{v.new|number_if_available}}</span>
+                                <del>{{v.previous|number_if_available}}</del></div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="news-detail-row">Savings in actual year: {{unread_item.action.savings_actual_year|number_if_available}} </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    
+    {% if read_items %}
+        <div class="news-main-part">
+        <h3>Previous news:</h3>
+    
+        {% for read_item in read_items %}
+            <div class="news-item">
+                <div class="news-name">
+                    {{read_item.type}}: <a href="{% url 'edit_action' read_item.action.id %}">{{read_item.action.name}} ({{read_item.action.responsible}})</a> 
+                    <div class="news-detail">
+                        {% if not read_item.type == 'New action' %}
+                            {% for k, v in read_item.text.items %}
+                                <div class="news-detail-row">{{k|verbose_name}}: <span id={{k}}>{{v.new|number_if_available}}</span>
+                                <del>{{v.previous|number_if_available}}</del></div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="news-detail-row">Savings in actual year: <span class="money">{{read_item.action.savings_actual_year|number_if_available}}</span></div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+
+    {% if user.profile.department == 'FiCo' %}
+        <div class="news-main-part">
+        {% if pending_doi_changes %}
+            <h2>Změna DoI >2</h2>
+            {% for pending_doi_change in pending_doi_changes %}
+                <div class="news-item">
+                    {{ pending_doi_change.action }} ({{pending_doi_change.action.responsible}}) <br />
+                        <div class="two-fold">
+                            <div>
+                            <a href="#">Ponechat původní DoI {{ pending_doi_change.previous_doi }}</a>
+                            </div>
+                            <div>
+                            <a href="{% url 'doi_change_agree' action_id=pending_doi_change.action.id doi=pending_doi_change.new_doi %}">Potvrdit nový DoI {{ pending_doi_change.new_doi }}</a>
+                            </div>
+                        </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+</div>
+    
+<script>
+
+    window.onbeforeunload = function() {
+        window.opener.sendshit();
+    }
+
+    function addSpaces(nStr) {
+            nStr += '';
+            var space = / /g;
+            nStr = nStr.replace(space,'');
+            x = nStr.split('.');
+            x1 = x[0];
+            x2 = x.length > 1 ? '.' + x[1] : '';
+            var rgx = /(\d+)(\d{3})/;
+            while (rgx.test(x1)) {
+                x1 = x1.replace(rgx, '$1' + ' ' + '$2');
+            }
+            return x1 + x2;
+    };
+
+    window.onload = initAddSpaces;
+        function initAddSpaces() {
+        document.getElementById("savings_actual_year").innerHTML = addSpaces(document.getElementById("savings_actual_year").innerHTML);
+        document.getElementById("savings_actual_year").nextElementSibling.innerHTML = addSpaces(document.getElementById("savings_actual_year").nextElementSibling.innerHTML);
+        document.getElementById("savings_per_year").innerHTML = addSpaces(document.getElementById("savings_per_year").innerHTML);
+        document.getElementById("savings_per_year").nextElementSibling.innerHTML = addSpaces(document.getElementById("savings_per_year").nextElementSibling.innerHTML);
+        var moneys = document.getElementsByClassName("money");
+            for (var i = 0; i < moneys.length; i++) {
+                moneys[i].innerHTML = addSpaces(moneys[i].innerHTML)
+            }
+        }
+
+</script>
+{% endblock %}

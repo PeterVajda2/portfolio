@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        .hidden {
+            display: none !important;
+        }
+
+        .highlighted {
+            background-color: rgba(0,255,0,0.05);
+        }
+
+        .data-row {
+            cursor: pointer;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            background-color: white;
+        }
+
+        .filters {
+            position: sticky;
+            top: 1.25em;
+            background-color: white;
+        }
+
+        .filters input {
+            width: 100%;
+        }
+
+        .new {
+            right: 2em;
+            border: 1px solid lightgreen;
+            background-color: lightgreen;
+        }
+
+        .confirm {
+            right: 8em;
+            border: 1px solid green;
+            background-color: green;
+        }
+
+        .confirm, .new {
+            position: fixed;
+            top: 2em;
+            width: 5em;
+            height: 5em;
+            border-radius: 50%;
+            display: flex;
+            place-content: center;
+            place-items: center;
+            cursor: pointer;
+            font-size: 1.5em;
+        }
+
+        th {
+            cursor: pointer;
+        }
+
+        .add-downtime {
+            position: fixed;
+            height: 30vh;
+            width: 30vw;
+            top: 50vh;
+            left: 50vw;
+            padding: 2em;
+            margin: 2em;
+            outline: 10px solid gray;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid black;
+            display: flex;
+            flex-flow: column;
+            justify-content: space-between;
+        }
+
+        .add-downtime input, select {
+            width: 100%;
+        }
+
+        .new-downtime {
+            border: 1px solid black;
+            background-color: white;
+            height: 2em;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="parent">
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th onclick="sort_table(0)">Category</th>
+                <th onclick="sort_table(1)">Station</th>
+                <th onclick="sort_table(2)">Downtime</th>
+            </tr>
+        </thead>
+    
+        <tbody>
+            <tr class="filters">
+                <td><input type="text" placeholder="filtrovat..." data-purpose="category"></td>
+                <td><input type="text" placeholder="filtrovat..." data-purpose="station"></td>
+                <td><input type="text" placeholder="filtrovat..." data-purpose="name"></td>
+            </tr>
+            {% for downtime in data %}
+            <tr class="data-row" data-downtime-id="{{downtime.id}}">
+                <td data-purpose="category" data-original-value="{{downtime.category}}" contenteditable="true">{{downtime.category}}</td>
+                <td data-purpose="station" data-original-value="{{downtime.station}}" contenteditable="true">{{downtime.station}}</td>
+                <td data-purpose="name" data-original-value="{{downtime.name}}" contenteditable="true">{{downtime.name}}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="new">
+        +
+    </div>
+
+    <div class="confirm hidden">
+        ✓
+    </div>
+
+    <div class="add-downtime hidden">
+        <div>
+            <label>Category
+                <select name="new-downtime-category">
+                    {% for category in downtime_categories %}
+                    <option value="{{category}}">{{category}}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <div>
+            <label>Station
+                <input type="text" name="new-downtime-station">
+            </label>
+        </div>
+
+        <div>
+            <label>Name
+                <input type="text" name="new-downtime-name">
+            </label>
+        </div>
+
+        <input type="button" class="new-downtime" value="Create">
+
+    </div> 
+</div>
+    
+<script>
+
+    const filters = document.querySelectorAll('input[data-purpose]')
+    const data_tds = document.querySelectorAll('tr[class="data-row"] td')
+    const ths = document.querySelectorAll('th');
+    const confirm_button = document.querySelector('[class*="confirm"]')
+    const new_button = document.querySelector('[class*="new"]')
+    const changed = new Set()
+    const url = "{% url 'fp09:downtime_editor' %}"
+    const new_downtime_submit_button = document.querySelector('input[class="new-downtime"]')
+    const new_downtime_window = document.querySelector('[class*="add-downtime"]')
+
+
+    new_downtime_submit_button.addEventListener('click', (e) => {
+        send(url, {
+            'category': document.querySelector('[name="new-downtime-category"]').value,
+            'station': document.querySelector('[name="new-downtime-station"]').value,
+            'name': document.querySelector('[name="new-downtime-name"]').value
+        }).then(resp => {location.reload()})
+    })
+
+    new_button.addEventListener('click', (e) => {
+        new_downtime_window.classList.toggle('hidden');
+        if (new_button.innerText == '+') {
+            new_button.innerText = '-';
+        } else {
+            new_button.innerText = '+';
+        };
+    })
+
+    confirm_button.addEventListener('click', (e) => {
+        for (let item of changed) {
+            let row = document.querySelector(`[data-downtime-id="${item}"]`)
+            send(url, {'id': item, 'category': row.getElementsByTagName('td')[0].innerText, 'station': row.getElementsByTagName('td')[1].innerText, 'name': row.getElementsByTagName('td')[2].innerText}).then(resp => confirm(resp))
+        }
+    })
+
+    data_tds.forEach(td => {
+        td.addEventListener('mouseenter', (e) => {
+            e.target.parentElement.classList.add('highlighted');
+        })
+
+        td.addEventListener('mouseout', (e) => {
+            e.target.parentElement.classList.remove('highlighted');
+        })
+
+        td.addEventListener('input', (e) => {
+            if (e.target.innerText != e.target.dataset.originalValue) {
+                confirm_button.classList.remove('hidden');
+                changed.add(e.target.parentElement.dataset.downtimeId);
+            } else {
+                confirm_button.classList.add('hidden');
+                changed.delete(e.target.parentElement.dataset.downtimeId);
+            }
+        })
+    })
+
+    filters.forEach(filter => {
+        filter.addEventListener('input', (e) => {
+            tds_to_filter = document.querySelectorAll(`td[data-purpose=${e.target.dataset.purpose}`)
+            tds_to_filter.forEach(td => {
+                if (td.innerText.toLowerCase().includes(e.target.value.toLowerCase())) {
+                    td.parentElement.classList.remove('hidden');
+                } else {
+                    td.parentElement.classList.add('hidden');
+                }
+            })
+        })
+    })
+
+    function sort_table(n) {
+            var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+            table = document.getElementById("data-table");
+            switching = true;
+            dir = "asc";
+
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+
+                for (i = 2; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("td")[n];
+                    y = rows[i + 1].getElementsByTagName("td")[n];
+                    
+                    if (dir == "asc") {
+                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else if (dir == "desc") {
+                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount++;
+                } else {
+                    if (switchcount == 0 && dir == "asc") {
+                        dir = "desc";
+                        switching = true;
+                    }
+                }
+            }
+        }
+
+    async function send(url = '', data = {}) {
+        const response = await fetch(url, {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        return response.json(); // parses JSON response into native JavaScript objects
+    }
+
+    async function confirm(response_text) {
+        confirm_button.innerText = response_text['okay'];
+        await sleep(1000);
+        confirm_button.classList.add('hidden');
+        confirm_button.innerText = "✓";
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    function add_downtime() {
+
+    }
+    
+    </script>    
+</body>
+</html>
+

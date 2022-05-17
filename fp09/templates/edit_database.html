@@ -1,0 +1,271 @@
+{% extends 'fp09_visualizations_base.html' %}
+
+{% load static %}
+{% load fp09_extras %}
+{% block body %}
+
+<table class="edit-database" id="table">
+    <thead>
+        <th width="15%">Kategorie</th>
+        <th width="20%">Prostoj</th>
+        <th width="5%">Stanice</th>
+        <th width="15%">Začátek</th>
+        <th width="15%">Konec</th>
+        <th width="10%">Trvání</th>
+        <th width="20%">Komentář</th>
+    </thead>
+    <tbody>
+    {% for row in data %}
+        <tr>
+            <td>
+                <select data-purpose="category" data-downtime-id="{{row.id}}">
+                    {% for category in categories %}
+                    <option value="{{category}}" {% if row.category == category %} selected {% endif %}>{{category|cut_after:" / "}}</option>
+                    {% endfor %}
+                </select>
+                <span style="display: none;">{{row.category}}</span>
+            </td>
+            <td>{{row.downtime}}</td>
+            <td>{{row.station}}</td>
+            <td data-purpose="time-span" data-time-span="beginning" data-downtime-id="{{row.id}}"  contenteditable="true">{{row.beginning_t|date:'Y-m-d G:i:s'}}</td>
+            <td data-purpose="time-span"  data-time-span="end" data-downtime-id="{{row.id}}"  contenteditable="true">{{row.end_t|date:'Y-m-d G:i:s'}}</td>
+            <td data-purpose="duration" data-downtime-id="{{row.id}}">{{row.duration|cut:"000"}}</td>
+            <td>{{row.comment|default_if_none:""|truncatechars:30}}</td>
+        </tr>
+
+    {% endfor %}
+    </tbody>
+
+</table>
+
+<script>
+    var submit_buttons = document.querySelectorAll('input[type=button]')
+    var time_spans = document.querySelectorAll('[data-purpose="time-span"]')
+    let now_value = new Date()
+    let default_start = new Date(now_value.getFullYear(), now_value.getMonth(), now_value.getDate(), 24, 0)
+    let default_end = new Date(now_value.getFullYear(), now_value.getMonth(), now_value.getDate(), 24, 0)
+    document.getElementById('date-from').value = default_start.toISOString().slice(0, 10)
+    document.getElementById('date-to').value = default_end.toISOString().slice(0, 10)
+    let date_from = document.getElementById('date-from').value
+    let date_to = document.getElementById('date-to').value
+    const category_selects = document.querySelectorAll('select[data-purpose="category"]')
+    const category_options = {{categories|safe }}
+
+
+    submit_buttons.forEach(submit_button => {
+        submit_button.addEventListener('click', (e) => {
+            submit_buttons.forEach(submit_button => {
+                submit_button.classList.remove('shift-selected');
+            })
+            e.target.classList.add('shift-selected');
+            get_data(e.target.dataset.shift).then(data => recreate_table(data))
+        })
+    })
+
+    time_spans.forEach(time_span => {
+        time_span.addEventListener('blur', (e) => {
+            downtime_id = e.target.dataset.downtimeId;
+            let beginning_t = Date.parse(document.querySelector(`[data-time-span="beginning"][data-downtime-id='${downtime_id}']`).innerText)
+            let end_t = Date.parse(document.querySelector(`[data-time-span="end"][data-downtime-id='${downtime_id}']`).innerText)
+            let duration = (end_t - beginning_t) 
+            let duration_td = document.querySelector(`[data-purpose="duration"][data-downtime-id='${downtime_id}']`)
+            duration_td.innerText = milis_to_time(duration)
+            highlight_long_durations();
+            save_to_db(downtime_id, document.querySelector(`[data-time-span="beginning"][data-downtime-id='${downtime_id}']`).innerText, document.querySelector(`[data-time-span="end"][data-downtime-id='${downtime_id}']`).innerText).then(data => console.log(data))
+        })
+    })
+
+    category_selects.forEach(category_select => {
+        category_select.addEventListener('input', (e) => {
+            downtime_id = e.target.dataset.downtimeId;
+            category = e.target.value;
+            console.log(category)
+            save_to_db(downtime_id, document.querySelector(`[data-time-span="beginning"][data-downtime-id='${downtime_id}']`).innerText, document.querySelector(`[data-time-span="end"][data-downtime-id='${downtime_id}']`).innerText, category).then(data => console.log(data))
+
+        })
+    })
+
+    highlight_long_durations()
+
+    function recreate_table(data) {
+        let table = document.getElementsByTagName('table')[0]
+        let t_body = document.getElementsByTagName('tbody')[0];
+        t_body.remove();
+        let new_t_body = document.createElement('tbody')
+        table.append(new_t_body)
+        data['data'].forEach(datum => {
+            let new_row = new_t_body.insertRow(0);
+            let category = new_row.insertCell(0);
+            let downtime = new_row.insertCell(1);
+            let station = new_row.insertCell(2);
+            let beginning_t = new_row.insertCell(3);
+            beginning_t.dataset.purpose = "time-span"
+            beginning_t.dataset.timeSpan = "beginning"
+            beginning_t.dataset.downtimeId = datum['id']  
+            beginning_t.contentEditable = "true"
+            let end_t = new_row.insertCell(4);
+            end_t.dataset.purpose = "time-span"
+            end_t.dataset.timeSpan = "end"
+            end_t.dataset.downtimeId = datum['id']
+            end_t.contentEditable = "true"
+            let duration = new_row.insertCell(5);
+            duration.dataset.purpose = "duration"
+            duration.dataset.downtimeId = datum['id']
+            let comment = new_row.insertCell(6);
+            downtime.innerText = datum['downtime']
+            station.innerText = datum['station']
+            beginning_t.innerText = datum['beginning_t'].replace("T", " ")
+            end_t.innerText = datum['end_t'].replace("T", " ")
+            duration.innerText = datum['duration'].slice(4,6) + ":" + datum['duration'].slice(7, 9) + ":" + datum['duration'].slice(10, 12)
+            comment.innerText = datum['comment'];
+            let category_select = document.createElement('select');
+            category.append(category_select);
+            category_select.dataset.downtimeId = datum['id'];
+            category_select.dataset.purpose = "category";
+            category_options.forEach(category_option => {
+                let category_option_element = document.createElement('option');
+                category_option_element.value = category_option;
+                category_option_element.innerText = category_option.split(" / ")[0];
+                if (datum['category'] == category_option) {
+                    category_option_element.selected = true;
+                }
+                category_select.append(category_option_element)
+            })
+            let shadow_span = document.createElement('span')
+            shadow_span.style.display = "none";
+            shadow_span.textContent = datum['category'];
+            category.append(shadow_span);
+            category_select.addEventListener('input', (e) => {
+                downtime_id = e.target.dataset.downtimeId;
+                category = e.target.value;
+                console.log(category)
+                save_to_db(downtime_id, document.querySelector(`[data-time-span="beginning"][data-downtime-id='${downtime_id}']`).innerText, document.querySelector(`[data-time-span="end"][data-downtime-id='${downtime_id}']`).innerText, category).then(data => console.log(data))
+            })
+        })
+
+        var time_spans = document.querySelectorAll('[data-purpose="time-span"]');
+
+        time_spans.forEach(time_span => {
+            time_span.addEventListener('blur', (e) => {
+                downtime_id = e.target.dataset.downtimeId;
+                let beginning_t = Date.parse(document.querySelector(`[data-time-span="beginning"][data-downtime-id='${downtime_id}']`).innerText)
+                let end_t = Date.parse(document.querySelector(`[data-time-span="end"][data-downtime-id='${downtime_id}']`).innerText)
+                let duration = (end_t - beginning_t)
+                let duration_td = document.querySelector(`[data-purpose="duration"][data-downtime-id='${downtime_id}']`)
+                duration_td.innerText = milis_to_time(duration)
+                highlight_long_durations();
+                save_to_db(downtime_id, document.querySelector(`[data-time-span="beginning"][data-downtime-id='${downtime_id}']`).innerText, document.querySelector(`[data-time-span="end"][data-downtime-id='${downtime_id}']`).innerText).then(data => console.log(data))
+            })
+        })
+
+        highlight_long_durations();
+    }
+
+    function highlight_long_durations() {
+        let duration_tds = document.querySelectorAll('[data-purpose="duration"]')
+        var long_1_time = 0
+        var long_2_time = 0
+        var long_3_time = 0
+        duration_tds.forEach(td => {
+            td_to_seconds = parseInt(td.innerText.split(":")[0]) * 3600 + parseInt(td.innerText.split(":")[1]) * 60 + parseInt(td.innerText.split(":")[2])
+            if (td_to_seconds >= long_1_time) {
+                long_1_time = td_to_seconds;
+                if (document.getElementById('long_3_element')) {
+                    document.getElementById('long_3_element').id = "";
+                }
+                if (document.getElementById('long_2_element')) {
+                    document.getElementById('long_2_element').id = "long_3_element";
+                }
+                if (document.getElementById('long_1_element')) {
+                    document.getElementById('long_1_element').id = "long_2_element";
+                }
+                td.id = 'long_1_element'
+            } else if (td_to_seconds >= long_2_time) {
+                long_2_time = td_to_seconds;
+                 if (document.getElementById('long_3_element')) {
+                    document.getElementById('long_3_element').id = "";
+                }
+                if (document.getElementById('long_2_element')) {
+                    document.getElementById('long_2_element').id = "long_3_element";
+                }
+                td.id = 'long_2_element'
+            } else if (td_to_seconds >= long_3_time) {
+                long_3_time = td_to_seconds;
+                if (document.getElementById('long_3_element')) {
+                    document.getElementById('long_3_element').id = "";
+                }
+                td.id = 'long_3_element'
+            }
+        })
+        document.getElementById('long_1_element').parentElement.style.background = '#d4af37';
+        document.getElementById('long_2_element').parentElement.style.background = '#C0C0C0';
+        document.getElementById('long_3_element').parentElement.style.background = '#cd7f32';
+    }
+
+
+    async function save_to_db(downtime_id, beginning_t, end_t, category) {
+        let url = '{% url "fp09:edit_database" %}';
+        data = {};
+        data['id'] = downtime_id
+        data['beginning_t'] = beginning_t
+        data['end_t'] = end_t
+        
+        if (category !== undefined) {
+            data['category'] = category;
+        }
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        return response.json();
+    }
+
+
+    function milis_to_time(duration) {
+        var milliseconds = Math.floor((duration % 1000) / 100),
+            seconds = Math.floor((duration / 1000) % 60),
+            minutes = Math.floor((duration / (1000 * 60)) % 60),
+            hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+        hours = (hours < 10) ? "0" + hours : hours;
+        minutes = (minutes < 10) ? "0" + minutes : minutes;
+        seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+        return hours + ":" + minutes + ":" + seconds;
+    }
+
+    async function get_data(shift) {
+        let beginning_t = document.getElementById('date-from').value
+        let end_t = document.getElementById('date-to').value
+        let url = `{% url "fp09:edit_database" %}?beginning=${beginning_t}&end=${end_t}&shift=${shift}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },        });
+        return response.json();
+    }
+
+document.addEventListener('keydown', (e) => {
+if (e.ctrlKey && String.fromCharCode(e.keyCode).toLowerCase() === 'x') {
+        let selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.remove();
+        })
+        let spans_hidden = document.querySelectorAll('[style="display: none;"]');
+        spans_hidden.forEach(span => {
+            span.style.display = "block";
+        })
+        let table_elt = document.getElementById("table");
+        let workbook = XLSX.utils.table_to_book(table_elt);
+        XLSX.writeFile(workbook, "Report.xlsb");
+}
+})
+
+</script>
+
+
+{% endblock %}

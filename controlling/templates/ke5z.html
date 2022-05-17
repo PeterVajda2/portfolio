@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load controlling_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/underscore@1.12.0/underscore-min.js"></script>
+
+
+{% endblock %}
+
+{% block body %}
+
+<table class="ke5z">
+    <thead>
+        <tr>
+            <th>Transaction description</th>
+            <th>Supplier</th>
+            <th>Posting Period</th>
+            <th>Fiscal Year</th>
+            <th>Text</th>
+            <th>In profit center local currency</th>
+            <th>Curr. Key of PrCtr LC</th>
+            <th>Cost Center</th>
+            <th>Profit Center</th>
+            <th>Account Number</th>
+            <th>Acc.Text</th>
+            <th>Purchasing Document</th>
+            <th>Order</th>
+            <th>Quantity</th>
+            <th>Document Type</th>
+            <th>Partner Profit Ctr</th>
+            <th>Functional Area</th>
+            <th>Document type</th>
+            <th>Document Cat.</th>
+            <th>Document Number</th>
+            <th>Material</th>
+            <th>Document Type</th>
+            <th>Posting Date</th>
+            <th>Trading partner</th>
+            <th>Ref. Document</th>
+            <th>Ref. Doc. Line</th>
+            <th>Document line</th>
+            <th>User Name</th>
+            <th>Purch. Doc. Item</th>
+            <th>Pulled on</th>
+            <th>Cost position</th>
+            <th>Cost position text</th>
+            <th>Affectability</th>
+            <th>Responsibility group</th>
+            <th>First line manager</th>
+            <th>Second line manager</th>
+            <th>FA description</th>
+            <th>FA group</th>
+            <th>FA group name</th>
+            <th>POC/ GC group</th>
+            <th>CZ account name</th>
+            <th>Group account</th>
+            <th>Flexibility rate</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+        <tr>
+                <td><input type="text" placeholder="&#x1F50D" class="controlling-report-input"></td>
+            </div>
+        </tr>
+        {% for row in data %}
+        <tr>
+            <td>{{row.transaction_description}}</td>
+            <td>{{row.supplier}}</td>
+            <td>{{row.posting_period}}</td>
+            <td>{{row.fiscal_year}}</td>
+            <td>{{row.text|default_if_none:""}}</td>
+            <td>{{row.in_profit_center_local_currency}}</td>
+            <td>{{row.profit_center_local_currency}}</td>
+            <td>{{row.cost_center}}</td>
+            <td>{{row.profit_center}}</td>
+            <td>{{row.account_number}}</td>
+            <td>{{row.account_text}}</td>
+            <td>{{row.purchasing_document|default_if_none:""}}</td>
+            <td>{{row.order_number|default_if_none:""}}</td>
+            <td>{{row.quantity}}</td>
+            <td>{{row.document_type_1|default_if_none:""}}</td>
+            <td>{{row.partner_profit_center|default_if_none:""}}</td>
+            <td>{{row.functional_area|default_if_none:""}}</td>
+            <td>{{row.document_type_2}}</td>
+            <td>{{row.document_category|default_if_none:""}}</td>
+            <td>{{row.document_number}}</td>
+            <td>{{row.material|default_if_none:""}}</td>
+            <td>{{row.document_type_3|default_if_none:""}}</td>
+            <td>{{row.posting_date}}</td>
+            <td>{{row.trading_partner|default_if_none:""}}</td>
+            <td>{{row.reference_document|default_if_none:""}}</td>
+            <td>{{row.reference_document_line}}</td>
+            <td>{{row.document_line}}</td>
+            <td>{{row.user_name}}</td>
+            <td>{{row.purchasing_document_item}}</td>
+            <td>{{row.pulled_on}}</td>
+            <td>{{row.cost_position}}</td>
+            <td>{{row.cost_position_text}}</td>
+            <td>{{row.affectability}}</td>
+            <td>{{row.responsibility_group}}</td>
+            <td>{{row.first_line_manager}}</td>
+            <td>{{row.second_line_manager}}</td>
+            <td>{{row.fa_description}}</td>
+            <td>{{row.fa_group}}</td>
+            <td>{{row.fa_group_name}}</td>
+            <td>{{row.poc_gc}}</td>
+            <td>{{row.cz_account_name}}</td>
+            <td>{{row.group_account}}</td>
+            <td>{{row.flexibility_rate|to_percent}}</td>
+
+        </tr>
+        {% endfor %}
+    </tbody>
+
+
+</table>
+
+
+<script>
+
+document.querySelectorAll('.controlling-report-input').forEach(box => box.addEventListener("click", () => box.placeholder = ""))
+var search_icon = _.escape("&#x1F50D")
+document.querySelectorAll('.controlling-report-input').forEach(box => box.addEventListener("focusout", () => box.placeholder = "&#x1F50D"))
+
+let trt = document.createElement("input")
+trt.placeholder = "&#x1F50D"
+
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% load carpool_tags %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<table class="ksb1">
+    <thead>
+        <tr>
+            <th>Cost center</th><th>Cost element</th><th>Cost element desc</th><th>Value in report currency</th><th>Report currency</th><th>Value in stransaction currency</th><th>Transaction currency</th><th>Offsetting account type</th><th>Offsetting account number</th><th>Name of offsetting account</th><th>Document date</th><th>Ref document number</th><th>Period</th><th>Fiscal year</th><th>Functional area</th><th>Trading partner</th><th>Document number</th><th>Posting row</th><th>Document type</th><th>Material desc</th><th>Material</th><th>Purchasing document</th><th>Order number</th><th>Cost element name</th><th>CO object name</th><th>Item</th><th>Profit center</th><th>PO text</th><th>Document header text</th><th>Posting row</th><th>FI posting item</th><th>CO partner object name</th>
+        </tr>
+    </thead>
+
+    <tbodY>
+        {% for row in ksb1_data %}
+            <tr>
+            <td>{{row.cost_center}}</td>
+            <td>{{row.cost_element}}</td>
+            <td>{{row.cost_element_description}}</td>
+            <td>{{row.value_in_report_currency|floatformat:"2"}}</td>
+            <td>{{row.report_currency}}</td>
+            <td>{{row.value_in_transaction_currency|floatformat:"2"}}</td>
+            <td>{{row.transaction_currency}}</td>
+            <td>{{row.offsetting_account_type}}</td>
+            <td>{{row.offsetting_account_number}}</td>
+            <td>{{row.name_of_ofsetting_account}}</td>
+            <td>{{row.document_date}}</td>
+            <td>{{row.ref_document_number}}</td>
+            <td>{{row.time_period}}</td>
+            <td>{{row.fiscal_year}}</td>
+            <td>{{row.functional_area}}</td>
+            <td>{{row.trading_partner}}</td>
+            <td>{{row.document_number}}</td>
+            <td>{{row.posting_row_1}}</td>
+            <td>{{row.document_type}}</td>
+            <td>{{row.material_description|default_if_none:""|truncatechars:30}}</td>
+            <td>{{row.material}}</td>
+            <td>{{row.purchasing_document}}</td>
+            <td>{{row.order_number}}</td>
+            <td>{{row.cost_element_name}}</td>
+            <td>{{row.co_object_name}}</td>
+            <td>{{row.item}}</td>
+            <td>{{row.profit_center}}</td>
+            <td>{{row.purchase_order_text}}</td>
+            <td>{{row.document_header_text}}</td>
+            <td>{{row.posting_row_2}}</td>
+            <td>{{row.fi_posting_item}}</td>
+            <td>{{row.co_partner_object_name}}</td>
+                
+
+            </tr>
+        {% endfor %}
+    </tbodY>
+
+</table>
+
+{% endblock %}

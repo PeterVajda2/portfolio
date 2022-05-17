@@ -1,0 +1,381 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load tags %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+<div class="breadcrumb">
+<a href="{% url 'admin_view' %}"> Admin </a> > Vytvořit dotazník
+</div>
+
+<script>
+    var question_counter = 0
+</script>
+
+<div class="engagement-wrapper">
+
+{% if not created %}
+
+    <form method="POST" id="questionnaire_form" onsubmit="checkForm()">{% csrf_token %}
+    
+        <div class="survey-title">
+        <label>Název dotazníku</label>
+        <input type="text" id="survey_name" name="name">
+        </div>
+        <div onclick="addSection()" class="add-section">přidat sekci (Alt + S)</div>
+
+    </form>
+
+    <div>
+        <button type="submit" form="questionnaire_form" class="create-questionnaire">Vytvořit dotazník</button>
+    </div>
+
+{% else %}
+
+Blahopřejeme, dotazník byl vytvořen. Nyní můžete dotazník <a href="{% url 'edit_questionnaire' questionnaire_id %}">upravit</a> nebo ho distribuovat.
+
+{% endif %}
+</div>
+
+
+
+<script>
+
+    var div_for_new_question
+    var label_for_question_text
+    var input_for_question_text
+    var label_for_answer_type
+    var select_for_answer_type
+    var label_for_detailed_answer
+    var select_for_detailed_answer
+    var label_for_answer_weight
+    var input_for_answer_weight
+    var label_for_answer_description
+    var select_for_answer_description
+    
+    var questionnaire_form = document.getElementById('questionnaire_form')
+    var survey_name = document.getElementById('survey_name')
+    var valid_name
+    var regExp = /\(([^)]+)\)/;
+    var matches
+
+
+    function checkForm()
+    {
+        req = new XMLHttpRequest()
+
+        url = '{% url "create_questionnaire" %}'
+
+        req.open("POST", url, true)
+        req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        req.setRequestHeader('X-CSRFToken', token)
+        req.send(formToJson())
+    }
+
+
+    function addSection()
+    {
+        if (!survey_name.value) {
+            alert("Enter the survey name first")
+            return false
+        }
+        else {
+            if (valid_name) {
+                var new_fieldset = document.createElement("fieldset"); // New fieldset
+                var new_legend = document.createElement("legend"); // New legend (name) for fieldset
+                var section_name = prompt("Nazev sekce");
+                if (!section_name) {
+                    return false;
+                }
+                new_legend.innerHTML = section_name;
+                new_fieldset.append(new_legend);
+                new_legend.onclick = function () { 
+                    hideSection(this)
+                }
+
+                var hidden_input = document.createElement("input")
+                hidden_input.type = "hidden"
+                hidden_input.name = 'Section_' + section_name
+                hidden_input.value = section_name
+                new_fieldset.append(hidden_input)
+
+                var question_adder = document.createElement("div");
+                question_adder.classList.add('clickable');
+                question_adder.innerText = "+ přidat otázku";
+                question_adder.onclick = function() {
+                    addQuestion(section_name, new_fieldset)
+                }
+
+                var section_remover = document.createElement("div");
+                section_remover.classList.add('section-remover');
+                section_remover.innerText = "- smazat sekci";
+                section_remover.onclick = function() {
+                    event.target.parentNode.remove();
+                }
+
+                var section_renamer = document.createElement("div");
+                section_renamer.classList.add('section-renamer');
+                section_renamer.innerText = "přejmenovat sekci";
+                section_renamer.onclick = function() {
+                    new_name = prompt("Nový název sekce")
+                    event.target.parentNode.getElementsByTagName("legend")[0].innerText = new_name
+                    event.target.parentNode.getElementsByTagName("input")[0].value = new_name
+                }
+
+                new_fieldset.insertAdjacentElement('beforeend', section_remover)
+                new_fieldset.insertAdjacentElement('beforeend', section_renamer)
+                new_fieldset.insertAdjacentElement('beforeend', question_adder)
+                questionnaire_form.append(new_fieldset);
+
+
+            } else {
+                alert("Nazev dotazniku neni platny")
+            }
+        }
+    }
+    
+    function addQuestion(section_name, fieldset)
+    {
+        // Deklarace DIVu pro otazku, labelu a inputu pro: otazku, typ odpovedi a detail odpovedi
+        question_number = question_counter
+        div_for_new_question = document.createElement("div")
+        label_for_question_text = document.createElement("label");
+        input_for_question_text = document.createElement("textarea");
+        label_for_answer_type = document.createElement("label");
+        label_for_answer_type.classList.add("label-answer-type")
+        select_for_answer_type = document.createElement("select");
+        label_for_detailed_answer = document.createElement("label");
+        select_for_detailed_answer = document.createElement("select");
+        select_for_detailed_answer.id = "DetailedAnswer" + question_number
+        div_question_remover = document.createElement("div")
+        div_question_remover.innerText = "- smazat otázku"
+        label_for_answer_weight = document.createElement("label")
+        input_for_answer_weight = document.createElement("input")
+        label_for_answer_weight.innerText = "Váha odpovědi"
+        label_for_answer_weight.append(input_for_answer_weight)
+        input_for_answer_weight.style.width = "40px"
+        input_for_answer_weight.setAttribute("type", "number")
+        input_for_answer_weight.setAttribute("step", "0.5")
+        input_for_answer_weight.value = 1
+        label_for_question_order = document.createElement("label")
+        input_for_question_order = document.createElement("input")
+        label_for_question_order.innerText = "Pořadí otázky"
+        label_for_question_order.append(input_for_question_order)
+        input_for_question_order.style.width = "40px"
+        input_for_question_order.setAttribute("type", "number")
+        input_for_question_order.name = "Question(" + question_number + ")Order(" + question_number + ")"
+        input_for_answer_weight.name =  "Question(" + question_number + ")Weight(" + question_number + ")"
+        label_for_answer_description = document.createElement("label");
+        select_for_answer_description = document.createElement("select");
+        label_for_answer_description.innerText = "Slovní popis"
+
+        // Textova odpoved
+        var option_text_for_answer_type = document.createElement("option");
+        option_text_for_answer_type.value = "Text"
+        option_text_for_answer_type.innerText = "Textová odpověď"
+
+        // Ano/Ne odpoved
+        var option_boolean_for_answer_type = document.createElement("option");
+        option_boolean_for_answer_type.value = "Boolean"
+        option_boolean_for_answer_type.innerText = "Odpověď ano/ne"
+
+        // Stupnicova odpoved
+        var option_numeric_for_answer_type = document.createElement("option");
+        option_numeric_for_answer_type.value = "Range"
+        option_numeric_for_answer_type.selected = true;
+        option_numeric_for_answer_type.innerText = "Stupnicová odpověď"
+
+        // Slovni popis ano
+        var option_yes_for_answer_description = document.createElement("option");
+        option_yes_for_answer_description.value = true;
+        option_yes_for_answer_description.innerText = "Ano"
+
+        // Slovni popis ne
+        var option_no_for_answer_description = document.createElement("option");
+        option_no_for_answer_description.value = false;
+        option_no_for_answer_description.innerText = "Ne"
+
+
+        // Otazka
+        label_for_question_text.innerHTML = "Text otázky";
+        label_for_question_text.append(input_for_question_text);
+        input_for_question_text.name = "Question(" + question_number + ")Section(" + section_name + ")";
+        input_for_question_text.required = true;
+
+        // Odpoved
+        label_for_answer_type.innerHTML = "Typ odpovědi";
+
+        select_for_answer_type.append(option_text_for_answer_type)
+        select_for_answer_type.append(option_boolean_for_answer_type)
+        select_for_answer_type.append(option_numeric_for_answer_type)
+        select_for_answer_type.name = "Question(" + question_number + ")AnswerType";
+
+        select_for_answer_description.append(option_yes_for_answer_description)
+        select_for_answer_description.append(option_no_for_answer_description)
+        select_for_answer_description.name = "Question(" + question_number + ")Description";
+
+        label_for_answer_description.append(select_for_answer_description)
+        
+        label_for_answer_type.append(select_for_answer_type);
+
+        label_for_detailed_answer.innerHTML = "Detail odpovědi"
+        label_for_detailed_answer.append(select_for_detailed_answer)
+
+        select_for_detailed_answer.name = "Question(" + question_number + ")AnswerDetail";
+
+        {% for interval in ranged_answers %}
+            js_dict = {{interval.strings|ordered_by_key_return_dict|safe}}
+            var option_range_for_detailed_answer = document.createElement("option")
+
+            option_range_for_detailed_answer.value = {{interval.id|safe}}
+            option_range_for_detailed_answer.innerText = '{{interval.strings|ordered_by_key_return_value_string}}'
+
+            select_for_detailed_answer.append(option_range_for_detailed_answer)
+        {% endfor %}
+        
+
+        select_for_answer_type.onchange = function() 
+        {
+
+            matches = regExp.exec(event.target.name)
+
+            console.log(matches[1])
+
+            select_for_detailed_answer = document.getElementById("DetailedAnswer" + matches[1])
+
+            if (event.target.value == "Text") {
+
+                while (select_for_detailed_answer.length > 0) {
+                    select_for_detailed_answer.remove(0)
+                }
+
+                {% for text_limit in text_limits %}
+                var option_text_length_for_detailed_answer = document.createElement("option")
+                option_text_length_for_detailed_answer.value = option_text_length_for_detailed_answer.value = {{text_limit.id}}
+                option_text_length_for_detailed_answer.innerText = "Délka maximálně {{text_limit.length_limit}}"
+                select_for_detailed_answer.append(option_text_length_for_detailed_answer)
+                {% endfor %}
+            }
+
+            if (event.target.value == "Boolean") {
+                while (select_for_detailed_answer.length > 0) {
+                    select_for_detailed_answer.remove(0)
+                }
+                var option_boolean_for_detailed_answer = document.createElement("option")
+                option_boolean_for_detailed_answer.style.display = 'none'
+                select_for_detailed_answer.append(option_boolean_for_detailed_answer)
+            }
+
+            if (event.target.value == "Range") {
+
+                while (select_for_detailed_answer.length > 0) {
+                    select_for_detailed_answer.remove(0)
+                }
+
+                {% for interval in ranged_answers %}
+                    js_dict = {{interval.strings|ordered_by_key_return_dict|safe}}
+                    var option_range_for_detailed_answer = document.createElement("option")
+
+                    option_range_for_detailed_answer.value = {{interval.id|safe}}
+                    option_range_for_detailed_answer.innerText = '{{interval.strings|ordered_by_key_return_value_string}}'
+
+                    select_for_detailed_answer.append(option_range_for_detailed_answer)
+                {% endfor %}
+            }
+                
+        }
+
+        div_for_new_question.appendChild(label_for_question_text)
+        div_for_new_question.appendChild(label_for_answer_type)
+        div_for_new_question.appendChild(label_for_answer_description)
+        div_for_new_question.appendChild(label_for_detailed_answer);
+        div_for_new_question.appendChild(label_for_answer_weight);
+        div_for_new_question.appendChild(label_for_question_order);
+        div_for_new_question.insertAdjacentElement('beforeend', div_question_remover);
+        div_question_remover.onclick = function() {
+            event.target.parentNode.remove();
+        }
+        div_question_remover.classList.add("question-remover")
+        div_for_new_question.classList.add("question-div")
+        fieldset.append(div_for_new_question);
+        question_counter++;
+    }
+
+    function checkName() 
+    {
+        req = new XMLHttpRequest()
+        req.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                if ((JSON.parse(this.responseText)['is_taken']) == true) {
+                    valid_name = false
+                } else {
+                    valid_name = true
+                }
+        }}
+
+        url = '{% url "validate_survey_name" %}'
+
+        req.open("POST", url, true)
+        req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+        var token = document.getElementsByName('csrfmiddlewaretoken')[0].value
+        req.setRequestHeader('X-CSRFToken', token)
+        req.send("survey_name=" + survey_name.value)
+    }
+
+    survey_name.addEventListener("change", checkName, false);
+
+</script>
+
+<script>
+// Serialize form
+
+function formToJson(){
+        var formElement = document.getElementsByTagName("form")[0],
+            allElements = formElement.getElementsByTagName("*"),
+            jsonObject = {};
+        for(var i = 0; i < allElements.length; i++){
+            var elemente = allElements[i];
+            jsonObject[elemente.name] = elemente.value;
+
+        }
+        return JSON.stringify(jsonObject);
+    }
+
+</script>
+
+<script>
+    document.onkeyup = function(e) {
+  if (e.altKey && e.which == 83) {
+    addSection()
+  } 
+};
+</script>
+
+<script>
+    function hideSection(elem) {
+        if (event.target == event.currentTarget) {
+        if (!elem.parentNode.classList.contains('questions-hidden')) {
+
+            elem.parentNode.classList.add("questions-hidden");
+            let to_hide = elem.parentNode.querySelectorAll("div");
+            for (var i = 0; i < to_hide.length; i++) {
+                to_hide[i].style.display = "none";
+            }
+        } else {
+            elem.parentNode.classList.remove("questions-hidden");
+            let to_hide = elem.parentNode.querySelectorAll("div");
+            for (var i = 0; i < to_hide.length; i++) {
+                to_hide[i].style.display = "block";
+            }
+        }
+        }
+    }
+</script>
+
+
+{% endblock %}

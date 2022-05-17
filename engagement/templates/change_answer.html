@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% load tags %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<form method="POST">{% csrf_token %}
+
+
+<label>{{question.text}}</label>
+<br />
+
+
+{% for key, value in ranged_answer.strings|ordered_by_key %}
+
+<span {% if key|floatformat:"0" == current_answer|floatformat:"0" %} class="select-answer selected-answer" {% endif %} class="select-answer" onclick="makeSelected({{key}})">{{value}}</span>
+
+
+
+{% endfor %}
+<input type="hidden" name='{{question.id}}' id="hidden-input">
+
+<input type="submit" name="Odeslat">
+</form>
+
+<script>
+function makeSelected(answer) {
+    var poss_answers = event.target.parentNode.getElementsByTagName('span')
+    for (i = 0; i < poss_answers.length; i++) {
+        poss_answers[i].classList.remove('selected-answer')
+    }
+
+    event.target.classList.add('selected-answer')
+
+    var hidden_input = document.getElementById('hidden-input')
+    hidden_input.value = answer
+    console.log(hidden_input.value)
+}
+</script>
+
+<script>
+    window.onunload = window.opener.location.reload();
+</script>
+
+{% endblock %}

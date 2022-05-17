@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% load tags %}
+
+{% block head %}
+
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="engagement-fill-wrapper to-print" id="engagement-fill-wrapper">
+
+<form method="POST" id="q_form" onsubmit="event.preventDefault(); addStrings()">{% csrf_token %}
+        <div class="engagement-form-header">
+            <div>
+                <strong>Hodnotitel:</strong> {{user.last_name}} {{user.first_name}}
+            </div>
+
+            <div>
+                <strong>Hodnocený:</strong> {{questionnaire.interviewee.name}}
+            </div>
+
+            <div>
+                <strong>Pozice:</strong> {{questionnaire.interviewee.position}}
+            </div>
+
+            <div>
+                <strong>Březen - Červen</strong>
+            </div>
+
+            <div id="timestamp" style="font-size: 1em; display: flex; justify-content: center; align-content: center; flex-direction: column;">
+
+            </div>
+
+        </div>
+    {% for section in questionnaire.questionnaire.section_set.all %}
+    <fieldset style="margin-bottom: 0.5em; margin-top: 0.25em; border: 1px solid lightgray; padding: 0.25em 0.25em">
+        <legend style="text-transform: uppercase; font-weight: bold;">{{section.section_name}}</legend>
+        {% for question in section.question.all|proper_order %}
+
+        <div style="margin: 0.5em 0">
+            <label style="font-size: 1.1em; color: darkblue;" class="question-label-for-numbering">{{question.text}}</label>
+            {% answer_to_question questionnaire.answers question.id as answervalue %}
+
+            {% if question.type_of_answer == "Range" %}
+            <br />
+            <div style="display: flex;">
+                <div style="width: 30%;" class="answers-container" name={{question.id}}>
+                {% for key, value in question.ranged_answer.all.0.strings|ordered_by_key %}
+
+                <span id={{question.id}}:{{key}} {% if key|floatformat:"0" == answervalue|floatformat:"0" %} class="select-answer selected-answer" {% else %} class="select-answer" {% endif %} onclick="makeAndAdd({{question.id}}, {{key}})">{{value}}</span>
+                {% endfor %}
+                <span style="font-weight: 700; cursor: help;" data-question-id="{{question.id}}" class="helper"> ? </span>
+
+                {% elif question.type_of_answer == "Text" %} 
+
+                <input name="{{question.id}}">
+
+                {% endif %}
+                </div>
+
+                <div style="width: 70%;">
+
+                    {% if question.description %}
+
+                    <label style="width: 10%;">Slovní popis</label>
+
+                    <textarea placeholder="Vyplňte" rows="1" name="description-{{question.id}}" onchange="addToDescriptions({{question.id}})" oninput="auto_grow(this)")
+                    {% get_answer_description questionnaire.descriptions question.id as description %}>{{description|default_if_none:""}}</textarea>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+        {% endfor %}
+</fieldset>
+{% endfor %}
+
+<input type="hidden" id="strings" name="strings">
+<input type="hidden" id="descriptions" name="descriptions">
+{% if period_over %}
+<input type="submit" class="no-print engagement-fill-submit" value="Uložit">
+{% endif %}
+<input type="button" class="no-print engagement-fill-submit" value="Tisknout" onclick="(event) => event.preventDefault(); datestamp = new Date().toLocaleDateString(); timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });getElementById('timestamp').innerText = 'Tisk: ' + datestamp + ' ' + timestamp; window.print()">
+</form>
+
+</div>
+
+
+<script>
+
+    var answers = {}
+    var descriptions = {{descriptions_from_db|safe}}
+
+    function makeAndAdd(question_id, val) {
+        makeSelected();
+        addToAnswers(question_id, val);
+    }
+
+    function makeSelected() {
+        var poss_answers = event.target.parentNode.getElementsByTagName('span')
+        for (i = 0; i < poss_answers.length; i++) {
+            poss_answers[i].classList.remove('selected-answer')
+        }
+
+        event.target.classList.add('selected-answer')
+    }
+
+    function addToAnswers(question_id, val) {
+        answers[question_id] = val
+    }
+
+    function addToDescriptions(question_id) {
+        descriptions[question_id] = event.target.value
+    }
+
+    function addStrings() {
+        let answers_containers = document.getElementsByClassName('answers-container');
+
+        for (i = 0; i < answers_containers.length; i++) {
+            let answered = false;
+            let answer_boxes = answers_containers[i].getElementsByTagName('span');
+
+            for (j = 0; j < answer_boxes.length; j++) {
+                if (answer_boxes[j].classList.contains('selected-answer') == true) {
+                    answered = true;
+                }
+            }
+
+            if (answered == false) {
+                answers[answers_containers[i].getAttribute('name')] = '';
+            }
+        }
+
+
+        var strings = document.getElementById('strings')
+        var desc_strings = document.getElementById('descriptions')
+        strings.value = JSON.stringify(answers)
+        desc_strings.value = JSON.stringify(descriptions)
+        checkAndSubmit()
+    }
+
+    function checkAndSubmit(event) {
+
+        if (document.querySelectorAll("span.selected-answer").length == 18) {
+            document.getElementById("q_form").submit()
+        } else {
+            document.getElementById("q_form").submit()
+            // window.alert("Nevyplnili jste všechny otázky")
+            // return false;
+        }
+    }
+
+    function questInit() {
+        var answered_already = document.getElementsByClassName('selected-answer')
+
+        for (i = 0; i < answered_already.length; i++) {
+            let key = answered_already[i].id.split(':')[0]
+            let value = answered_already[i].id.split(':')[1]
+            answers[key] = value
+        }
+
+        let textareas = document.getElementsByTagName('textarea')
+
+        for (i = 0; i < textareas.length; i++) {
+            textareas[i].style.height = (textareas[i].scrollHeight)+"px";
+        }
+
+
+    }
+
+document.onload = questInit();
+
+function auto_grow(element) {
+    element.style.height = "5px";
+    element.style.height = (element.scrollHeight)+"px";
+}
+
+
+let question_labels_for_numbering = document.querySelectorAll(".question-label-for-numbering")
+
+function number_the_questions() {
+
+    let i = 1;
+
+    question_labels_for_numbering.forEach((question) => {
+    question.innerText = `${i}. ${question.innerText}`;
+    i += 1;
+});
+
+}
+
+number_the_questions();
+    
+</script>
+
+<script>
+    const helpers = document.querySelectorAll(".helper")
+
+    helpers.forEach((helper) => {
+        helper.addEventListener('mouseover', () => {
+            let helper_div = document.createElement("div");
+            let mouse_top = event.clientY;
+            mouse_top += window.scrollY;
+            let mouse_left = event.clientX;
+            helper_div.classList.add("helper_div")
+            helper_div.id = helper.dataset.questionId
+            helper_div.style.top = (mouse_top -20)+ "px";
+            if (helper.dataset.questionId == 841) {helper_div.style.top = (mouse_top - 200) + "px"};
+            helper_div.style.left = (mouse_left + 20) + "px";
+            document.body.append(helper_div);
+            let helper_pic = document.createElement("img");
+            helper_pic.src = `../../media/${helper.dataset.questionId}.PNG`
+            helper_div.append(helper_pic)
+            
+        });
+    });
+
+    helpers.forEach((helper) => {
+        helper.addEventListener('mouseout', () => {
+            document.getElementById(helper.dataset.questionId).remove()
+        });
+    });
+</script>
+{% endblock %}

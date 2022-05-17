@@ -1,0 +1,40 @@
+
+{% load tags %}
+
+<form method="POST">{% csrf_token %}
+    <fieldset>
+        <div>
+            <label>Mistr:</label>
+            <input type="text" value= '{{user.first_name}} {{user.last_name}}' name="interviewer" readonly>
+
+            <label>Zaměstnanec</label>
+            <input type="text" name="interviewee" value='{{filled_in_questionnaire.interviewee.name}}' readonly>
+        </div>
+    </fieldset>
+    {% for section in filled_in_questionnaire.questionnaire.section_set.all %}
+    <fieldset>
+    <legend>{{section.section_name}}</legend>
+        {% for question in section.question.all %}
+        <div>
+            <label>{{question.text}}</label>
+
+            {% if question.type_of_answer == "Range" %}
+            <select name="{{question.id}}">
+                {% for key, value in question.ranged_answer.all.0.strings|ordered_by_key %}
+                {% get_key filled_in_questionnaire.answers question.id as same %}
+                <option value={{key}} {% if key == same %} selected {% endif %}>{{value}}</option>
+                {% endfor %}
+            </select>
+
+            {% elif question.type_of_answer == "Text" %}
+
+            <input name="{{question.id}}" value='{% get_key filled_in_questionnaire.answers question.id %}'>
+
+            {% endif %}
+        </div>
+        {% endfor %}
+</fieldset>
+{% endfor %}
+
+<input type="submit">
+</form>

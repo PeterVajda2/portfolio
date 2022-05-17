@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'global.css' %}">
+
+{% endblock %}
+
+{% block body %}
+
+<div class="engagement-admin-wrapper">
+
+    <a href="{% url 'create_questionnaire' %}"><div class="engagement-admin-tile">Vytvořit dotazník</div></a>
+
+    <a href="{% url 'edit_questionnaire_list' %}"><div class="engagement-admin-tile">Upravit dotazník</div></a>
+
+    <a href="{% url 'distribute_questionnaire' %}"><div class="engagement-admin-tile">Distribuovat dotazník</div></a>
+
+    <a href="{% url 'questionnaire_results' %}"><div class="engagement-admin-tile">Vyhodnotit dotazník</div></a>
+
+    <a href="{% url 'show_employees' %}"><div class="engagement-admin-tile">Seznam zaměstnanců</div></a>
+
+    <a href="{% url 'ranged_answers' %}"><div class="engagement-admin-tile">Nastavit rozsahy stupnic</div></a>
+
+</div>
+
+{% endblock %}
